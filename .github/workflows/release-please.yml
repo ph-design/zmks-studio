@@ -17,7 +17,7 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          token: ${{ secrets.ZMK_STUDIO_RELEASE_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v4
         if: ${{ steps.release.outputs.release_created }}
         with:
@@ -27,5 +27,5 @@ jobs:
         run: |
           git fetch origin main
           git pull --ff-only origin main
-          git remote set-url origin "https://x-access-token:${{ secrets.ZMK_STUDIO_RELEASE_TOKEN }}@github.com/${{ github.repository }}.git"
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
           git push
