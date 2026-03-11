@@ -66,6 +66,12 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
+      - name: Configure GitHub Packages auth
+        shell: bash
+        run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+
       - name: install frontend dependencies
         run: bun install --frozen-lockfile
 
