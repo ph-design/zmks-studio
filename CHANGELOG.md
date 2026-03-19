@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.0.4](https://github.com/ph-design/zmk-studio/compare/v0.0.3...v0.0.4) (2026-03-19)
+
+
+### Bug Fixes
+
+* **deps:** upgrade tauri crates to match npm packages ([f4c5fa5](https://github.com/ph-design/zmk-studio/commit/f4c5fa5ce03517e55419645bcf6044f401001e85))
+* retrigger release-please ([a970489](https://github.com/ph-design/zmk-studio/commit/a970489e713221bd2c7a5a8c6cd3b6cb109a4de4))
+* trigger release ([1d23c74](https://github.com/ph-design/zmk-studio/commit/1d23c74f0ca944197f73766864d6620d25d281ab))
+* update PhysicalLayoutPicker for react-aria-components Key|null type change ([b8b35b0](https://github.com/ph-design/zmk-studio/commit/b8b35b00eccf63442f57b6269d5d27254d3efe75))
+
 ## [0.0.3](https://github.com/ph-design/zmk-studio/compare/v0.3.1...v0.0.3) (2026-03-12)
 
 
