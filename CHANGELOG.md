@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.0](https://github.com/ph-design/zmk-studio/compare/v0.0.4...v0.1.0) (2026-03-23)
+
+
+### Features
+
+* lift lighting state to Keyboard and add capslock color side-by-side layout ([a2ace3a](https://github.com/ph-design/zmk-studio/commit/a2ace3ad01e8bef193e2aaa5284a2b4d3e9713dc))
+* parallel lighting fetch on connect and on lighting tab open ([120c4fa](https://github.com/ph-design/zmk-studio/commit/120c4fabca74cb563d759552fcfccee88a20008d))
+* replace range inputs with custom color sliders and hex input ([c97ee6d](https://github.com/ph-design/zmk-studio/commit/c97ee6d11e9e37c4cc9647652e33d670b48b6cad))
+
+
+### Bug Fixes
+
+* i18n update ([e1d4714](https://github.com/ph-design/zmk-studio/commit/e1d4714994329472f094068a0041e41effb81735))
+* use wrapper message for layer LED enabled RPC call ([789cc32](https://github.com/ph-design/zmk-studio/commit/789cc3272ae197cbcb35fd9c269317daa4e7de4f))
+
 ## [0.0.4](https://github.com/ph-design/zmk-studio/compare/v0.0.3...v0.0.4) (2026-03-19)
 
 
