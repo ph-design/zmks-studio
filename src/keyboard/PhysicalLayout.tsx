@@ -50,15 +50,14 @@ function scalePosition(
   { x, y, r, rx, ry }: PhysicalLayoutPositionLocation,
   oneU: number,
 ): CSSProperties {
-  let left = x * oneU;
-  let top = y * oneU;
+  const left = x * oneU;
+  const top = y * oneU;
   let transformOrigin = undefined;
   let transform = undefined;
-  const transformStyle = "preserve-3d";
 
   if (r) {
-    let transformX = ((rx || x) - x) * oneU;
-    let transformY = ((ry || y) - y) * oneU;
+    const transformX = ((rx || x) - x) * oneU;
+    const transformY = ((ry || y) - y) * oneU;
     transformOrigin = `${transformX}px ${transformY}px`;
     transform = `rotate(${r}deg)`;
   }
@@ -68,7 +67,6 @@ function scalePosition(
     left,
     transformOrigin,
     transform,
-    transformStyle,
   };
 }
 
@@ -119,10 +117,10 @@ export const PhysicalLayout = ({
   }, [zoom]);
 
   // TODO: Add a bit of padding for rotation when supported
-  let rightMost = positions
+  const rightMost = positions
     .map((k) => k.x + k.width)
     .reduce((a, b) => Math.max(a, b), 0);
-  let bottomMost = positions
+  const bottomMost = positions
     .map((k) => k.y + k.height)
     .reduce((a, b) => Math.max(a, b), 0);
 
@@ -131,10 +129,10 @@ export const PhysicalLayout = ({
       ? selectedPositions.has(idx)
       : idx === selectedPosition;
     return (
-      <div key={p.id} className="absolute" style={scalePosition(p, oneU)}>
+      <div key={p.id} className="absolute hover:z-50" style={scalePosition(p, oneU)}>
         <div
           onClick={(e) => onPositionClicked?.(idx, e)}
-          className="hover:[transform:translateZ(100px)] transition-transform duration-200"
+          className="transition-transform duration-200"
         >
           <Key
             oneU={oneU}
@@ -154,7 +152,6 @@ export const PhysicalLayout = ({
         height: bottomMost * oneU + "px",
         width: rightMost * oneU + "px",
         transform: `scale(${scale})`,
-        transformStyle: "preserve-3d",
         transformOrigin: "center center",
         transition: "transform 240ms ease",
         willChange: "transform",

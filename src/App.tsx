@@ -7,8 +7,13 @@ import { call_rpc } from "./rpc/logging";
 
 import type { Notification } from "@zmkfirmware/zmk-studio-ts-client/studio";
 import { ConnectionState, ConnectionContext } from "./rpc/ConnectionContext";
-import { Dispatch, useCallback, useEffect, useState } from "react";
-import { ConnectModal, TransportFactory } from "./ConnectModal";
+import { Dispatch, useCallback, useEffect, useRef, useState } from "react";
+import {
+  ConnectModal,
+  type ConnectionPhase,
+  type ConnectionProgress,
+  type TransportFactory,
+} from "./ConnectModal";
 
 import type { RpcTransport } from "@zmkfirmware/zmk-studio-ts-client/transport/index";
 import { connect as gatt_connect } from "@zmkfirmware/zmk-studio-ts-client/transport/gatt";
@@ -26,7 +31,6 @@ import { UndoRedoContext, useUndoRedo } from "./undoRedo";
 import { usePub, useSub } from "./usePubSub";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import { LockStateContext } from "./rpc/LockStateContext";
-import { UnlockModal } from "./UnlockModal";
 import { valueAfter } from "./misc/async";
 import { AppFooter } from "./AppFooter";
 import { AboutModal } from "./AboutModal";
@@ -46,11 +50,10 @@ const TRANSPORTS: TransportFactory[] = [
   ...(window.__TAURI_INTERNALS__
     ? [
         {
-          label: "BLE",
-          isWireless: true,
+          label: "USB",
           pick_and_connect: {
-            connect: tauri_ble_connect,
-            list: ble_list_devices,
+            connect: tauri_serial_connect,
+            list: serial_list_devices,
           },
         },
       ]
@@ -58,10 +61,11 @@ const TRANSPORTS: TransportFactory[] = [
   ...(window.__TAURI_INTERNALS__
     ? [
         {
-          label: "USB",
+          label: "BLE",
+          isWireless: true,
           pick_and_connect: {
-            connect: tauri_serial_connect,
-            list: serial_list_devices,
+            connect: tauri_ble_connect,
+            list: ble_list_devices,
           },
         },
       ]
@@ -74,14 +78,16 @@ async function listen_for_notifications(
 ): Promise<void> {
   let reader = notification_stream.getReader();
   const onAbort = () => {
-    reader.cancel();
-    reader.releaseLock();
+    reader.cancel().catch(() => {});
   };
   signal.addEventListener("abort", onAbort, { once: true });
-  do {
-    let pub = usePub();
+  try {
+    do {
+      if (signal.aborted) {
+        break;
+      }
 
-    try {
+      let pub = usePub();
       let { done, value } = await reader.read();
       if (done) {
         break;
@@ -112,26 +118,47 @@ async function listen_for_notifications(
       const topic = ["rpc_notification", subId, eventName].join(".");
 
       pub(topic, eventData);
-    } catch (e) {
-      signal.removeEventListener("abort", onAbort);
-      reader.releaseLock();
+    } while (true);
+  } catch (e) {
+    if (!signal.aborted) {
       throw e;
     }
-  } while (true);
-
-  signal.removeEventListener("abort", onAbort);
-  reader.releaseLock();
-  notification_stream.cancel();
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+    try {
+      await reader.cancel();
+    } catch {}
+    reader.releaseLock();
+  }
 }
 
 async function connect(
   transport: RpcTransport,
   setConn: Dispatch<ConnectionState>,
   setConnectedDeviceName: Dispatch<string | undefined>,
-  signal: AbortSignal
-) {
-  let conn = await create_rpc_connection(transport, { signal });
+  signal: AbortSignal,
+  setConnectionError: Dispatch<string | undefined>,
+  setConnectionProgress: Dispatch<ConnectionProgress | undefined>
+): Promise<boolean> {
+  let conn;
+  try {
+    setConnectionProgress({ labelKey: "welcome.connectProgressTransport", percent: 15 });
+    conn = await create_rpc_connection(transport, { signal });
+  } catch (e) {
+    if (signal.aborted) {
+      return false;
+    }
 
+    console.error("Failed to create RPC connection", e);
+    setConnectionError(
+      e instanceof Error && e.message ? e.message : i18n.t("errors.failedToConnect")
+    );
+    return false;
+  }
+
+  setConnectionProgress({ labelKey: "welcome.connectProgressRpcSession", percent: 25 });
+
+  setConnectionProgress({ labelKey: "welcome.connectProgressDeviceInfo", percent: 35 });
   let details = await Promise.race([
     call_rpc(conn, { core: { getDeviceInfo: true } })
       .then((r) => r?.core?.getDeviceInfo)
@@ -143,23 +170,36 @@ async function connect(
   ]);
 
   if (!details) {
-    // TODO: Show a proper toast/alert not using `window.alert`
-    window.alert(i18n.t("errors.failedToConnect"));
-    return;
+    setConnectionError(i18n.t("errors.failedToConnect"));
+    return false;
   }
+
+  setConnectionProgress({ labelKey: "welcome.connectProgressResponse", percent: 45 });
 
   listen_for_notifications(conn.notification_readable, signal)
     .then(() => {
+      if (signal.aborted) {
+        return;
+      }
+
       setConnectedDeviceName(undefined);
       setConn({ conn: null });
     })
     .catch((_e) => {
+      if (signal.aborted) {
+        return;
+      }
+
       setConnectedDeviceName(undefined);
       setConn({ conn: null });
     });
 
+  setConnectionProgress({ labelKey: "welcome.connectProgressNotifications", percent: 55 });
   setConnectedDeviceName(details.name);
+  setConnectionError(undefined);
   setConn({ conn });
+  setConnectionProgress({ labelKey: "welcome.connectProgressConnected", percent: 60 });
+  return true;
 }
 
 function App() {
@@ -172,19 +212,29 @@ function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [showLicenseNotice, setShowLicenseNotice] = useState(false);
   const [connectionAbort, setConnectionAbort] = useState(new AbortController());
+  const [connectionError, setConnectionError] = useState<string | undefined>();
+  const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>("idle");
+  const [connectionProgress, setConnectionProgress] = useState<ConnectionProgress | undefined>();
+  const [keyboardReady, setKeyboardReady] = useState(false);
+  const connectionPhaseRef = useRef(connectionPhase);
 
-  const [lockState, setLockState] = useState<LockState>(
-    LockState.ZMK_STUDIO_CORE_LOCK_STATE_LOCKED
-  );
+  const [lockState, setLockState] = useState<LockState | undefined>(undefined);
+
+  useEffect(() => {
+    connectionPhaseRef.current = connectionPhase;
+  }, [connectionPhase]);
 
   useSub("rpc_notification.core.lockStateChanged", (ls) => {
     setLockState(ls);
   });
 
   useEffect(() => {
-    if (!conn) {
+    let ignore = false;
+
+    if (!conn.conn) {
       reset();
-      setLockState(LockState.ZMK_STUDIO_CORE_LOCK_STATE_LOCKED);
+      setLockState(undefined);
+      return;
     }
 
     async function updateLockState() {
@@ -192,9 +242,22 @@ function App() {
         return;
       }
 
-      let locked_resp = await call_rpc(conn.conn, {
+      setLockState(undefined);
+      setConnectionProgress((progress) => {
+        if (progress) {
+          return { labelKey: "welcome.connectProgressLockState", percent: Math.max(progress?.percent ?? 0, 58) };
+        }
+
+        return progress;
+      });
+
+      const locked_resp = await call_rpc(conn.conn, {
         core: { getLockState: true },
       });
+
+      if (ignore) {
+        return;
+      }
 
       setLockState(
         locked_resp.core?.getLockState ||
@@ -203,7 +266,57 @@ function App() {
     }
 
     updateLockState();
-  }, [conn, setLockState]);
+    return () => {
+      ignore = true;
+    };
+  }, [conn]);
+
+  useEffect(() => {
+    if (!conn.conn) {
+      setKeyboardReady(false);
+      if (connectionPhase === "connected") {
+        setConnectionPhase("idle");
+      }
+      return;
+    }
+
+    if (
+      connectionPhase === "connected" &&
+      lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED &&
+      !keyboardReady
+    ) {
+      setConnectionPhase("initializing");
+      setConnectionProgress({ labelKey: "welcome.connectProgressInitStart", percent: 62 });
+      return;
+    }
+
+    if (
+      connectionPhase === "initializing" &&
+      lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED
+    ) {
+      setConnectionPhase("connected");
+      return;
+    }
+
+    if (connectionPhase === "initializing" && keyboardReady) {
+      setConnectionPhase("connected");
+      setConnectionProgress({ labelKey: "welcome.connectProgressReady", percent: 100 });
+      return;
+    }
+
+    if (
+      connectionPhase === "connected" &&
+      lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED &&
+      keyboardReady
+    ) {
+      const closeTimer = window.setTimeout(() => {
+        setConnectionPhase("idle");
+        setConnectionProgress(undefined);
+      }, 1200);
+
+      return () => window.clearTimeout(closeTimer);
+    }
+  }, [conn.conn, connectionPhase, keyboardReady, lockState]);
 
   const save = useCallback(() => {
     async function doSave() {
@@ -269,6 +382,8 @@ function App() {
       await conn.conn.request_writable.close();
       connectionAbort.abort("User disconnected");
       setConnectionAbort(new AbortController());
+      setConnectionPhase("idle");
+      setConnectionProgress(undefined);
     }
 
     doDisconnect();
@@ -278,28 +393,85 @@ function App() {
     (t: RpcTransport) => {
       const ac = new AbortController();
       setConnectionAbort(ac);
-      connect(t, setConn, setConnectedDeviceName, ac.signal);
+      setConnectionError(undefined);
+      setKeyboardReady(false);
+      setLockState(undefined);
+      setConnectionPhase("connecting");
+      setConnectionProgress({ labelKey: "welcome.connectProgressTransport", percent: 10 });
+      connect(t, setConn, setConnectedDeviceName, ac.signal, setConnectionError, setConnectionProgress)
+        .then((connected) => {
+          setConnectionPhase(connected ? "connected" : "idle");
+          if (!connected) {
+            setConnectionProgress(undefined);
+          }
+        })
+        .catch((e) => {
+          console.error(e);
+          setConnectionPhase("idle");
+          setConnectionProgress(undefined);
+          setConnectionError(
+            e instanceof Error && e.message ? e.message : i18n.t("errors.failedToConnect")
+          );
+        });
     },
-    [setConn, setConnectedDeviceName, setConnectedDeviceName]
+    [setConn, setConnectedDeviceName, setConnectionError]
   );
+
+  const onKeyboardStartupProgress = useCallback(
+    (progress: ConnectionProgress) => {
+      if (
+        connectionPhaseRef.current === "initializing" ||
+        connectionPhaseRef.current === "connected"
+      ) {
+        setConnectionProgress(progress);
+      }
+    },
+    []
+  );
+
+  const cancelConnection = useCallback(() => {
+    connectionAbort.abort("User cancelled connection");
+    setConnectionAbort(new AbortController());
+    setKeyboardReady(false);
+    setConnectionPhase("idle");
+    setConnectionProgress(undefined);
+  }, [connectionAbort]);
+
+  const connectModalOpen =
+    !conn.conn ||
+    connectionPhase !== "idle" ||
+    lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
 
   return (
     <I18nextProvider i18n={i18n}>
       <ConnectionContext.Provider value={conn}>
         <LockStateContext.Provider value={lockState}>
           <UndoRedoContext.Provider value={doIt}>
-            <UnlockModal />
             <ConnectModal
-              open={!conn.conn}
+              open={connectModalOpen}
               transports={TRANSPORTS}
               onTransportCreated={onConnect}
+              connectionError={connectionError}
+              onConnectionError={setConnectionError}
+              connectionPhase={connectionPhase}
+              connectionProgress={connectionProgress}
+              connectedDeviceName={connectedDeviceName}
+              lockState={lockState}
+              onCancelConnection={cancelConnection}
+              footer={
+                <AppFooter
+                  variant="modal"
+                  onShowAbout={() => setShowAbout(true)}
+                  onShowLicenseNotice={() => setShowLicenseNotice(true)}
+                />
+              }
             />
             <AboutModal open={showAbout} onClose={() => setShowAbout(false)} />
             <LicenseNoticeModal
               open={showLicenseNotice}
               onClose={() => setShowLicenseNotice(false)}
             />
-            <div className="bg-base-100 text-base-content h-full max-h-[100vh] w-full max-w-[100vw] inline-grid grid-cols-[auto] grid-rows-[auto_1fr_auto] overflow-hidden">
+            <div className="relative bg-base-100 text-base-content h-full max-h-[100vh] w-full max-w-[100vw] inline-grid grid-cols-[auto] grid-rows-[auto_1fr] overflow-hidden">
               <AppHeader
                 connectedDeviceLabel={connectedDeviceName}
                 canUndo={canUndo}
@@ -311,11 +483,17 @@ function App() {
                 onDisconnect={disconnect}
                 onResetSettings={resetSettings}
               />
-              <Keyboard />
-              <AppFooter
-                onShowAbout={() => setShowAbout(true)}
-                onShowLicenseNotice={() => setShowLicenseNotice(true)}
+              <Keyboard
+                onStartupProgress={onKeyboardStartupProgress}
+                onReady={setKeyboardReady}
               />
+              {conn.conn && (
+                <AppFooter
+                  variant="floating"
+                  onShowAbout={() => setShowAbout(true)}
+                  onShowLicenseNotice={() => setShowLicenseNotice(true)}
+                />
+              )}
             </div>
           </UndoRedoContext.Provider>
         </LockStateContext.Provider>

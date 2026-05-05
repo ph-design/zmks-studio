@@ -1,11 +1,28 @@
 import { MutableRefObject, useEffect, useRef } from "react";
 
+const MODAL_CLOSE_ANIMATION_MS = 160;
+
 export function useModalRef(
   open: boolean,
   closeOnOutsideClick?: boolean,
   allowCancel?: boolean
 ): MutableRefObject<HTMLDialogElement | null> {
   const ref = useRef<HTMLDialogElement | null>(null);
+  const closeTimer = useRef<number | undefined>(undefined);
+
+  const closeWithAnimation = (target?: HTMLDialogElement | null) => {
+    const dialog = target || ref.current;
+    if (!dialog?.open) {
+      return;
+    }
+
+    window.clearTimeout(closeTimer.current);
+    dialog.classList.add("modal-closing");
+    closeTimer.current = window.setTimeout(() => {
+      dialog.close();
+      dialog.classList.remove("modal-closing");
+    }, MODAL_CLOSE_ANIMATION_MS);
+  };
 
   let reopen = async () => {
     // We do this in a timeout so it runs after the modal has actually closed.
@@ -15,6 +32,8 @@ export function useModalRef(
   useEffect(() => {
     if (open) {
       if (ref.current && !ref.current?.open) {
+        window.clearTimeout(closeTimer.current);
+        ref.current.classList.remove("modal-closing");
         ref.current?.showModal();
         if (allowCancel !== undefined && !allowCancel) {
           ref.current?.addEventListener("cancel", reopen);
@@ -33,7 +52,7 @@ export function useModalRef(
             e.clientX <= left + width;
 
           if (!clickedInDialog) {
-            target.close();
+            closeWithAnimation(target);
           }
         };
 
@@ -43,9 +62,11 @@ export function useModalRef(
         };
       }
     } else {
-      ref.current?.close();
+      closeWithAnimation();
       ref.current?.removeEventListener("cancel", reopen);
     }
+
+    return () => window.clearTimeout(closeTimer.current);
   }, [open, closeOnOutsideClick]);
 
   return ref;

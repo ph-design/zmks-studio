@@ -201,6 +201,13 @@ export const AboutModal = ({ open, onClose }: AboutModalProps) => {
           {t("common.close")}
         </button>
       </div>
+      <section className="my-3 rounded-md border border-base-300 bg-base-200 p-3 text-sm">
+        <h2 className="mb-1 text-base font-medium">{t("about.zmksTitle")}</h2>
+        <p className="mb-2">{t("about.zmksDescription")}</p>
+        <ExternalLink href="https://github.com/ph-design/zmks-studio">
+          {t("about.zmksRepo")}
+        </ExternalLink>
+      </section>
       <div>
         <p className="py-1 mr-2">
           {t("about.sponsorsDescription")}

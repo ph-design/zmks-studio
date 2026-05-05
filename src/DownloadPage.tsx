@@ -120,8 +120,8 @@ export const Download = () => {
       <div className="bg-base-100 rounded-lg px-5 py-3 mb-6 max-w-md w-full text-center text-sm opacity-80">
         {t("download.disclaimer")}
       </div>
-      <img src="/zmk-mac-app-icon.webp" alt="ZMK Studio" className="w-64" />
-      <div className="text-3xl mb-1">ZMK Studio</div>
+      <img src="/zmk-mac-app-icon.webp" alt="ZMKs Studio" className="w-64" />
+      <div className="text-3xl mb-1">ZMKs Studio</div>
       <div className="text-md mb-1 opacity-70">
         {ReleaseVersion}
       </div>
@@ -173,7 +173,7 @@ export const Download = () => {
       </div>
       <a
         className="text-md hover:underline"
-        href="https://github.com/ph-design/zmk-studio/releases"
+        href="https://github.com/ph-design/zmks-studio/releases"
       >
         {t("download.seeReleases")}
       </a>

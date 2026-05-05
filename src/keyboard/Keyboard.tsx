@@ -44,14 +44,16 @@ import IdlePanel from "./IdlePanel";
 import LightingControl from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
 import { useSub } from "../usePubSub";
+import type { ConnectionProgress } from "../ConnectModal";
 
 type BehaviorMap = Record<number, GetBehaviorDetailsResponse>;
 
-function useBehaviors(): BehaviorMap {
+function useBehaviors(): [BehaviorMap, boolean] {
   let connection = useContext(ConnectionContext);
   let lockState = useContext(LockStateContext);
 
   const [behaviors, setBehaviors] = useState<BehaviorMap>({});
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (
@@ -59,11 +61,13 @@ function useBehaviors(): BehaviorMap {
       lockState != LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED
     ) {
       setBehaviors({});
+      setLoaded(false);
       return;
     }
 
     async function startRequest() {
       setBehaviors({});
+      setLoaded(false);
 
       if (!connection.conn) {
         return;
@@ -97,6 +101,7 @@ function useBehaviors(): BehaviorMap {
 
         if (!ignore) {
           setBehaviors(behavior_map);
+          setLoaded(true);
         }
       }
     }
@@ -109,7 +114,7 @@ function useBehaviors(): BehaviorMap {
     };
   }, [connection, lockState]);
 
-  return behaviors;
+  return [behaviors, loaded];
 }
 
 function useLayouts(): [
@@ -171,7 +176,12 @@ function useLayouts(): [
   ];
 }
 
-export default function Keyboard() {
+export interface KeyboardProps {
+  onStartupProgress?: (progress: ConnectionProgress) => void;
+  onReady?: (ready: boolean) => void;
+}
+
+export default function Keyboard({ onStartupProgress, onReady }: KeyboardProps) {
   const [
     layouts,
     _setLayouts,
@@ -197,7 +207,7 @@ export default function Keyboard() {
     number | undefined
   >(undefined);
   const [bottomTab, setBottomTab] = useState<"keymap" | "lighting">("keymap");
-  const behaviors = useBehaviors();
+  const [behaviors, behaviorsLoaded] = useBehaviors();
 
   const [ledData, setLedData] = useState<GetLayerLedColorsResponse | null>(null);
   const [selectedLedPositions, setSelectedLedPositions] = useState<Set<number>>(new Set());
@@ -209,6 +219,7 @@ export default function Keyboard() {
   const [hasRgb, setHasRgb] = useState(false);
   const [hasBacklight, setHasBacklight] = useState(false);
   const [hasCapsLock, setHasCapsLock] = useState(false);
+  const [lightingLoaded, setLightingLoaded] = useState(false);
 
   const conn = useContext(ConnectionContext);
   const lockState = useContext(LockStateContext);
@@ -227,6 +238,7 @@ export default function Keyboard() {
     setHasRgb(false);
     setHasBacklight(false);
     setHasCapsLock(false);
+    setLightingLoaded(false);
   }, [conn]);
 
   const fetchAllLighting = useCallback(async (ignore?: { current: boolean }) => {
@@ -257,16 +269,56 @@ export default function Keyboard() {
       setCapsLockState(capsResp.value.lighting.getCapsLockIndicator);
       setHasCapsLock(true);
     }
+    setLightingLoaded(true);
   }, [conn]);
 
   useEffect(() => {
+    setLightingLoaded(false);
+
     if (!conn.conn || !isUnlocked) {
       return;
     }
+
     const ignore = { current: false };
     fetchAllLighting(ignore);
     return () => { ignore.current = true; };
   }, [conn, isUnlocked, fetchAllLighting]);
+
+  useEffect(() => {
+    if (!conn.conn || !isUnlocked) {
+      onReady?.(false);
+      return;
+    }
+
+    let progress: ConnectionProgress = {
+      labelKey: "welcome.connectProgressInitStart",
+      percent: 62,
+    };
+
+    if (keymap) {
+      progress = { labelKey: "welcome.connectProgressKeymap", percent: 72 };
+    }
+
+    if (layouts) {
+      progress = { labelKey: "welcome.connectProgressLayouts", percent: 80 };
+    }
+
+    if (behaviorsLoaded) {
+      progress = { labelKey: "welcome.connectProgressBehaviors", percent: 90 };
+    }
+
+    if (lightingLoaded) {
+      progress = { labelKey: "welcome.connectProgressLighting", percent: 96 };
+    }
+
+    const ready = !!keymap && !!layouts && behaviorsLoaded && lightingLoaded;
+    if (ready) {
+      progress = { labelKey: "welcome.connectProgressReady", percent: 100 };
+    }
+
+    onStartupProgress?.(progress);
+    onReady?.(ready);
+  }, [behaviorsLoaded, conn.conn, isUnlocked, keymap, layouts, lightingLoaded, onReady, onStartupProgress]);
 
   // Re-fetch when user opens the lighting tab
   useEffect(() => {

@@ -50,7 +50,7 @@ export const Key = ({
 
   return (
     <button
-      className={`group rounded relative flex justify-center items-center cursor-pointer transition-all hover:shadow-xl hover:ring-1 hover:ring-gray-300 hover:scale-125 ${selected ? "bg-primary text-primary-content" : hoverZoom ? "bg-base-100 text-base-content" : "bg-base-100 text-base-content outline outline-1 outline-base-content"
+      className={`group rounded relative z-0 flex justify-center items-center cursor-pointer transition-all hover:z-50 hover:shadow-xl hover:ring-1 hover:ring-gray-300 hover:scale-125 ${selected ? "bg-primary text-primary-content" : hoverZoom ? "bg-base-100 text-base-content" : "bg-base-100 text-base-content outline outline-1 outline-base-content"
         }`}
       style={{
         width: `${pixelWidth}px`,

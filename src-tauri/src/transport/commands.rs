@@ -7,11 +7,7 @@ use futures::channel::mpsc::SendError;
 use serde::{Deserialize, Serialize};
 
 use tauri::ipc::InvokeBody;
-use tauri::{
-    command,
-    ipc::{Request},
-    State,
-};
+use tauri::{command, ipc::Request, State};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AvailableDevice {

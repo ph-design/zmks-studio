@@ -6,10 +6,10 @@
     "devUrl": "http://localhost:5173",
     "frontendDist": "../dist/"
   },
-  "productName": "ZMK Studio",
-  "mainBinaryName": "zmk-studio",
+  "productName": "ZMKs Studio",
+  "mainBinaryName": "zmks-studio",
   "version": "0.1.0",
-  "identifier": "dev.zmk.studio",
+  "identifier": "cc.phdesign.dev.zmks.studio",
   "bundle": {
     "active": true,
     "category": "Productivity",
@@ -65,10 +65,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
+        "height": 768,
         "resizable": true,
-        "title": "ZMK Studio",
-        "width": 800
+        "title": "ZMKs Studio",
+        "width": 1024
       }
     ]
   }

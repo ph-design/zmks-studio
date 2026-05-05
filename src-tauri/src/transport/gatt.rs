@@ -1,12 +1,12 @@
 use async_std::future::timeout;
-use futures::future::ready;
 use futures::{channel::mpsc::channel, FutureExt};
 use futures::{StreamExt, TryFutureExt};
 
-use std::time::Duration;
+use std::collections::HashSet;
+use std::time::{Duration, Instant};
 use uuid::Uuid;
 
-use bluest::{Adapter, ConnectionEvent, Device, DeviceId};
+use bluest::{Adapter, ConnectionEvent, DeviceId};
 
 use tauri::{command, AppHandle, State};
 
@@ -19,15 +19,26 @@ pub async fn gatt_connect(
     app_handle: AppHandle,
     state: State<'_, super::commands::ActiveConnection<'_>>,
 ) -> Result<bool, String> {
-    let adapter = Adapter::default().await.ok_or("Failed to access the BT adapter".to_string())?;
+    let adapter = Adapter::default()
+        .await
+        .ok_or("Failed to access the BT adapter".to_string())?;
 
-    adapter.wait_available().await.map_err(|e| format!("Failed to wait for the BT adapter access: {}", e.message()))?;
+    adapter
+        .wait_available()
+        .await
+        .map_err(|e| format!("Failed to wait for the BT adapter access: {}", e.message()))?;
 
     let device_id: DeviceId = serde_json::from_str(&id).unwrap();
-    let d = adapter.open_device(&device_id).await.map_err(|e| format!("Failed to open the device: {}", e.message()))?;
+    let d = adapter
+        .open_device(&device_id)
+        .await
+        .map_err(|e| format!("Failed to open the device: {}", e.message()))?;
 
     if !d.is_connected().await {
-        adapter.connect_device(&d).await.map_err(|e| format!("Failed to connect to the device: {}", e.message()))?;
+        adapter
+            .connect_device(&d)
+            .await
+            .map_err(|e| format!("Failed to connect to the device: {}", e.message()))?;
     }
 
     let service = d
@@ -41,7 +52,12 @@ pub async fn gatt_connect(
         let char = s
             .discover_characteristics_with_uuid(RPC_CHRC_UUID)
             .await
-            .map_err(|e| format!("Failed to find the studio service characteristics: {}", e.message()))?
+            .map_err(|e| {
+                format!(
+                    "Failed to find the studio service characteristics: {}",
+                    e.message()
+                )
+            })?
             .get(0)
             .cloned();
 
@@ -95,28 +111,20 @@ pub async fn gatt_connect(
 
             Ok(true)
         } else {
-            Err("Failed to connect: Unable to locate the required studio GATT characteristic".to_string())
+            Err(
+                "Failed to connect: Unable to locate the required studio GATT characteristic"
+                    .to_string(),
+            )
         }
     } else {
         Err("Failed to connect: Unable to locate the required studio GATT service".to_string())
     }
 }
 
-#[cfg(target_os = "macos")]
-async fn check_connected(adapter: &Adapter, device: &Device) -> bool {
-    if let Ok(()) = adapter.connect_device(&device).await {
-        true
-    } else {
-        false
-    }
-}
-
-#[cfg(not(target_os = "macos"))]
-async fn check_connected(_: &Adapter, device: &Device) -> bool {
-    device.is_connected().await
-}
-
 const ADAPTER_TIMEOUT: Duration = Duration::from_secs(2);
+const DISCOVERY_TIMEOUT: Duration = Duration::from_secs(2);
+const DISCOVERY_SETTLE_TIMEOUT: Duration = Duration::from_millis(500);
+const DEVICE_NAME_TIMEOUT: Duration = Duration::from_millis(500);
 
 #[command]
 pub async fn gatt_list_devices() -> Result<Vec<super::commands::AvailableDevice>, ()> {
@@ -133,24 +141,44 @@ pub async fn gatt_list_devices() -> Result<Vec<super::commands::AvailableDevice>
     let mut ret = vec![];
 
     if let Ok(a) = adapter {
-        let devices = a
-            .discover_devices(&[SVC_UUID])
-            .await
-            .expect("GET DEVICES!")
-            .take_until(async_std::task::sleep(Duration::from_secs(2)))
-            .filter_map(|d| ready(d.ok()));
+        let devices = match a.discover_devices(&[SVC_UUID]).await {
+            Ok(devices) => devices,
+            Err(_) => return Ok(ret),
+        };
 
         futures::pin_mut!(devices);
+        let started_at = Instant::now();
+        let mut seen_devices = HashSet::new();
 
-        while let Some(device) = devices.next().await {
-            if check_connected(&a, &device).await {
-                let label = device.name_async().await.unwrap_or("Unknown".to_string());
-                let id = serde_json::to_string(&device.id()).unwrap();
-
-                ret.push(super::commands::AvailableDevice { label, id });
+        loop {
+            let remaining = match DISCOVERY_TIMEOUT.checked_sub(started_at.elapsed()) {
+                Some(remaining) => remaining,
+                None => break,
+            };
+            let next_timeout = if ret.is_empty() {
+                remaining
             } else {
-                println!("Device isn't connected: {:?}", device);
+                remaining.min(DISCOVERY_SETTLE_TIMEOUT)
+            };
+
+            let device = match timeout(next_timeout, devices.next()).await {
+                Ok(Some(Ok(device))) => device,
+                Ok(Some(Err(_))) => continue,
+                Ok(None) | Err(_) => break,
+            };
+
+            let id = serde_json::to_string(&device.id()).unwrap();
+            if !seen_devices.insert(id.clone()) {
+                continue;
             }
+
+            let label = timeout(DEVICE_NAME_TIMEOUT, device.name_async())
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or("Unknown".to_string());
+
+            ret.push(super::commands::AvailableDevice { label, id });
         }
     }
 

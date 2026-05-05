@@ -6,6 +6,13 @@ const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.resolve(__filename, "../..");
 
 async function generateReleaseData() {
+  const dataFilePath = path.resolve(
+    __dirname,
+    "src",
+    "data",
+    "release-data.json",
+  );
+
   try {
     const response = await fetch(
       "https://api.github.com/repos/ph-design/zmk-studio/releases/latest",
@@ -20,18 +27,20 @@ async function generateReleaseData() {
     }
 
     const data = await response.json();
-    const dataFilePath = path.resolve(
-      __dirname,
-      "src",
-      "data",
-      "release-data.json",
-    );
     await fs.mkdir(path.dirname(dataFilePath), { recursive: true });
     await fs.writeFile(dataFilePath, JSON.stringify(data));
 
     console.log("Release data generated successfully!");
   } catch (error) {
-    console.error("Error generating release data:", error);
+    try {
+      await fs.access(dataFilePath);
+      console.warn("Failed to refresh release data; using cached release-data.json.");
+      console.warn(error);
+      return;
+    } catch {
+      console.error("Error generating release data:", error);
+    }
+
     process.exit(1);
   }
 }
