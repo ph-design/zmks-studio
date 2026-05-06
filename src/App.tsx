@@ -246,7 +246,7 @@ function App() {
       }
 
       setLockState(
-        locked_resp.core?.getLockState ||
+        locked_resp.core?.getLockState ??
           LockState.ZMK_STUDIO_CORE_LOCK_STATE_LOCKED
       );
     }

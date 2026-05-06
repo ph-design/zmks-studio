@@ -112,16 +112,34 @@ body {
   }
 }
 
-@keyframes connect-progress {
+@keyframes circular-rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes circular-dash {
   0% {
-    transform: translateX(-110%);
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
   }
   50% {
-    transform: translateX(60%);
+    stroke-dasharray: 90, 200;
+    stroke-dashoffset: -35;
   }
   100% {
-    transform: translateX(220%);
+    stroke-dasharray: 90, 200;
+    stroke-dashoffset: -124;
   }
+}
+
+.circular-spinner {
+  animation: circular-rotate 1.4s linear infinite;
+}
+
+.circular-spinner circle {
+  animation: circular-dash 1.4s ease-in-out infinite;
+  stroke-linecap: round;
 }
 
 @keyframes device-row-in {

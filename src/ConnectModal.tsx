@@ -668,12 +668,13 @@ export const ConnectModal = ({
   }, []);
 
   const haveTransports = useMemo(() => transports.length > 0, [transports]);
-  const isLocked = lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_LOCKED;
   const showConnecting = connectionPhase === "connecting";
   const showInitializing = connectionPhase === "initializing";
   const showConnected = connectionPhase === "connected";
   const showCheckingLock = showConnected && lockState === undefined;
-  const showUnlock = showConnected && isLocked;
+  const showUnlock =
+    lockState !== undefined &&
+    lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
   const liveView = showConnecting || showInitializing || showCheckingLock
     ? "progress"
     : showUnlock

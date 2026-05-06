@@ -290,9 +290,9 @@ export default function HsbColorPicker({
 
   const satTrack: React.CSSProperties = useMemo(
     () => ({
-      background: `linear-gradient(to right, ${hsbToCssColor(hsb.h, 0, hsb.b)}, ${hsbToCssColor(hsb.h, 100, hsb.b)})`,
+      background: `linear-gradient(to right, ${hsbToCssColor(hsb.h, 0, 100)}, ${hsbToCssColor(hsb.h, 100, 100)})`,
     }),
-    [hsb.h, hsb.b]
+    [hsb.h]
   );
 
   const brtTrack: React.CSSProperties = useMemo(
