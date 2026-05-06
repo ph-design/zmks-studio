@@ -29,11 +29,6 @@ export type TransportFactory = {
 
 export type ConnectionPhase = "idle" | "connecting" | "initializing" | "connected";
 
-export type ConnectionProgress = {
-  labelKey: string;
-  percent: number;
-};
-
 export interface ConnectModalProps {
   open?: boolean;
   transports: TransportFactory[];
@@ -41,8 +36,6 @@ export interface ConnectModalProps {
   connectionError?: string;
   onConnectionError?: (message: string | undefined) => void;
   connectionPhase?: ConnectionPhase;
-  connectionProgress?: ConnectionProgress;
-  connectedDeviceName?: string;
   lockState?: LockState;
   onCancelConnection?: () => void;
   footer?: ReactNode;
@@ -268,16 +261,8 @@ function FlowStep({
   );
 }
 
-function ConnectingStep({
-  progress,
-  onCancel,
-}: {
-  progress?: ConnectionProgress;
-  onCancel?: () => void;
-}) {
+function ConnectingStep({ onCancel }: { onCancel?: () => void }) {
   const { t } = useTranslation();
-  const percent = progress?.percent ?? 10;
-  const label = t(progress?.labelKey || "welcome.connectProgressTransport");
 
   return (
     <FlowStep
@@ -285,16 +270,9 @@ function ConnectingStep({
       title={t("welcome.connectingTitle")}
       body={t("welcome.connectingDescription")}
     >
-      <div className="grid gap-2 text-left">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="font-medium">{label}</span>
-          <span className="tabular-nums opacity-75">{percent}%</span>
-        </div>
+      <div className="grid gap-2">
         <div className="h-2 overflow-hidden rounded-full bg-base-300">
-          <div
-            className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
-            style={{ width: `${percent}%` }}
-          />
+          <div className="h-full w-1/3 rounded-full bg-primary animate-[connect-progress_1.4s_ease-in-out_infinite]" />
         </div>
       </div>
       <Button
@@ -670,7 +648,6 @@ export const ConnectModal = ({
   connectionError,
   onConnectionError,
   connectionPhase = "idle",
-  connectionProgress,
   lockState,
   onCancelConnection,
   footer,
@@ -757,7 +734,7 @@ export const ConnectModal = ({
         />
         <div className="space-y-4">
           {displayView === "progress" && (
-            <ConnectingStep progress={connectionProgress} onCancel={onCancelConnection} />
+            <ConnectingStep onCancel={onCancelConnection} />
           )}
           {displayView === "unlock" && <UnlockStep />}
           {displayView === "options" && (

@@ -11,7 +11,6 @@ import { Dispatch, useCallback, useEffect, useRef, useState } from "react";
 import {
   ConnectModal,
   type ConnectionPhase,
-  type ConnectionProgress,
   type TransportFactory,
 } from "./ConnectModal";
 
@@ -137,12 +136,10 @@ async function connect(
   setConn: Dispatch<ConnectionState>,
   setConnectedDeviceName: Dispatch<string | undefined>,
   signal: AbortSignal,
-  setConnectionError: Dispatch<string | undefined>,
-  setConnectionProgress: Dispatch<ConnectionProgress | undefined>
+  setConnectionError: Dispatch<string | undefined>
 ): Promise<boolean> {
   let conn;
   try {
-    setConnectionProgress({ labelKey: "welcome.connectProgressTransport", percent: 15 });
     conn = await create_rpc_connection(transport, { signal });
   } catch (e) {
     if (signal.aborted) {
@@ -156,9 +153,6 @@ async function connect(
     return false;
   }
 
-  setConnectionProgress({ labelKey: "welcome.connectProgressRpcSession", percent: 25 });
-
-  setConnectionProgress({ labelKey: "welcome.connectProgressDeviceInfo", percent: 35 });
   let details = await Promise.race([
     call_rpc(conn, { core: { getDeviceInfo: true } })
       .then((r) => r?.core?.getDeviceInfo)
@@ -178,8 +172,6 @@ async function connect(
     return false;
   }
 
-  setConnectionProgress({ labelKey: "welcome.connectProgressResponse", percent: 45 });
-
   listen_for_notifications(conn.notification_readable, signal)
     .then(() => {
       if (signal.aborted) {
@@ -198,11 +190,9 @@ async function connect(
       setConn({ conn: null });
     });
 
-  setConnectionProgress({ labelKey: "welcome.connectProgressNotifications", percent: 55 });
   setConnectedDeviceName(details.name);
   setConnectionError(undefined);
   setConn({ conn });
-  setConnectionProgress({ labelKey: "welcome.connectProgressConnected", percent: 60 });
   return true;
 }
 
@@ -218,16 +208,10 @@ function App() {
   const [connectionAbort, setConnectionAbort] = useState(new AbortController());
   const [connectionError, setConnectionError] = useState<string | undefined>();
   const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>("idle");
-  const [connectionProgress, setConnectionProgress] = useState<ConnectionProgress | undefined>();
   const [keyboardReady, setKeyboardReady] = useState(false);
-  const connectionPhaseRef = useRef(connectionPhase);
   const connectionAbortRef = useRef(connectionAbort);
 
   const [lockState, setLockState] = useState<LockState | undefined>(undefined);
-
-  useEffect(() => {
-    connectionPhaseRef.current = connectionPhase;
-  }, [connectionPhase]);
 
   useEffect(() => {
     connectionAbortRef.current = connectionAbort;
@@ -252,13 +236,6 @@ function App() {
       }
 
       setLockState(undefined);
-      setConnectionProgress((progress) => {
-        if (progress) {
-          return { labelKey: "welcome.connectProgressLockState", percent: Math.max(progress.percent, 58) };
-        }
-
-        return progress;
-      });
 
       const locked_resp = await call_rpc(conn.conn, {
         core: { getLockState: true },
@@ -285,7 +262,6 @@ function App() {
       setKeyboardReady(false);
       if (connectionPhase !== "idle") {
         setConnectionPhase("idle");
-        setConnectionProgress(undefined);
       }
       return;
     }
@@ -296,7 +272,6 @@ function App() {
       !keyboardReady
     ) {
       setConnectionPhase("initializing");
-      setConnectionProgress({ labelKey: "welcome.connectProgressInitStart", percent: 62 });
       return;
     }
 
@@ -310,7 +285,6 @@ function App() {
 
     if (connectionPhase === "initializing" && keyboardReady) {
       setConnectionPhase("idle");
-      setConnectionProgress(undefined);
     }
   }, [conn.conn, connectionPhase, keyboardReady, lockState]);
 
@@ -385,7 +359,6 @@ function App() {
       setKeyboardReady(false);
       setLockState(undefined);
       setConnectionPhase("idle");
-      setConnectionProgress(undefined);
 
       try {
         await currentConn.request_writable.close();
@@ -406,17 +379,13 @@ function App() {
       setKeyboardReady(false);
       setLockState(undefined);
       setConnectionPhase("connecting");
-      setConnectionProgress({ labelKey: "welcome.connectProgressTransport", percent: 10 });
-      connect(t, setConn, setConnectedDeviceName, ac.signal, setConnectionError, setConnectionProgress)
+      connect(t, setConn, setConnectedDeviceName, ac.signal, setConnectionError)
         .then((connected) => {
           if (ac.signal.aborted) {
             return;
           }
 
           setConnectionPhase(connected ? "connected" : "idle");
-          if (!connected) {
-            setConnectionProgress(undefined);
-          }
         })
         .catch((e) => {
           if (ac.signal.aborted) {
@@ -425,25 +394,12 @@ function App() {
 
           console.error(e);
           setConnectionPhase("idle");
-          setConnectionProgress(undefined);
           setConnectionError(
             e instanceof Error && e.message ? e.message : i18n.t("errors.failedToConnect")
           );
         });
     },
     [setConn, setConnectedDeviceName, setConnectionError]
-  );
-
-  const onKeyboardStartupProgress = useCallback(
-    (progress: ConnectionProgress) => {
-      if (
-        connectionPhaseRef.current === "initializing" ||
-        connectionPhaseRef.current === "connected"
-      ) {
-        setConnectionProgress(progress);
-      }
-    },
-    []
   );
 
   const cancelConnection = useCallback(() => {
@@ -456,7 +412,6 @@ function App() {
     setKeyboardReady(false);
     setLockState(undefined);
     setConnectionPhase("idle");
-    setConnectionProgress(undefined);
   }, []);
 
   const connectModalOpen =
@@ -476,8 +431,6 @@ function App() {
               connectionError={connectionError}
               onConnectionError={setConnectionError}
               connectionPhase={connectionPhase}
-              connectionProgress={connectionProgress}
-              connectedDeviceName={connectedDeviceName}
               lockState={lockState}
               onCancelConnection={cancelConnection}
               footer={
@@ -505,10 +458,7 @@ function App() {
                 onDisconnect={disconnect}
                 onResetSettings={resetSettings}
               />
-              <Keyboard
-                onStartupProgress={onKeyboardStartupProgress}
-                onReady={setKeyboardReady}
-              />
+              <Keyboard onReady={setKeyboardReady} />
               {conn.conn && (
                 <AppFooter
                   variant="floating"

@@ -44,7 +44,6 @@ import IdlePanel from "./IdlePanel";
 import LightingControl from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
 import { useSub } from "../usePubSub";
-import type { ConnectionProgress } from "../ConnectModal";
 
 type BehaviorMap = Record<number, GetBehaviorDetailsResponse>;
 
@@ -177,11 +176,10 @@ function useLayouts(): [
 }
 
 export interface KeyboardProps {
-  onStartupProgress?: (progress: ConnectionProgress) => void;
   onReady?: (ready: boolean) => void;
 }
 
-export default function Keyboard({ onStartupProgress, onReady }: KeyboardProps) {
+export default function Keyboard({ onReady }: KeyboardProps) {
   const [
     layouts,
     _setLayouts,
@@ -290,35 +288,9 @@ export default function Keyboard({ onStartupProgress, onReady }: KeyboardProps) 
       return;
     }
 
-    let progress: ConnectionProgress = {
-      labelKey: "welcome.connectProgressInitStart",
-      percent: 62,
-    };
-
-    if (keymap) {
-      progress = { labelKey: "welcome.connectProgressKeymap", percent: 72 };
-    }
-
-    if (layouts) {
-      progress = { labelKey: "welcome.connectProgressLayouts", percent: 80 };
-    }
-
-    if (behaviorsLoaded) {
-      progress = { labelKey: "welcome.connectProgressBehaviors", percent: 90 };
-    }
-
-    if (lightingLoaded) {
-      progress = { labelKey: "welcome.connectProgressLighting", percent: 96 };
-    }
-
     const ready = !!keymap && !!layouts && behaviorsLoaded && lightingLoaded;
-    if (ready) {
-      progress = { labelKey: "welcome.connectProgressReady", percent: 100 };
-    }
-
-    onStartupProgress?.(progress);
     onReady?.(ready);
-  }, [behaviorsLoaded, conn.conn, isUnlocked, keymap, layouts, lightingLoaded, onReady, onStartupProgress]);
+  }, [behaviorsLoaded, conn.conn, isUnlocked, keymap, layouts, lightingLoaded, onReady]);
 
   // Re-fetch when user opens the lighting tab
   useEffect(() => {
