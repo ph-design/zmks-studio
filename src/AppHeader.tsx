@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 
 export interface AppHeaderProps {
   connectedDeviceLabel?: string;
+  extraSaveEnabled?: boolean;
   onSave?: () => void | Promise<void>;
   onDiscard?: () => void | Promise<void>;
   onUndo?: () => Promise<void>;
@@ -31,6 +32,7 @@ export interface AppHeaderProps {
 
 export const AppHeader = ({
   connectedDeviceLabel,
+  extraSaveEnabled,
   canRedo,
   canUndo,
   onRedo,
@@ -175,7 +177,7 @@ export const AppHeader = ({
         <Tooltip label={t("common.save")}>
           <Button
             className="flex items-center justify-center p-1.5 rounded enabled:hover:bg-base-300 disabled:opacity-50"
-            isDisabled={!unsaved}
+            isDisabled={!unsaved && !extraSaveEnabled}
             onPress={onSave}
           >
             <Save className="inline-block w-4 mx-1" aria-label="Save" />

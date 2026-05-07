@@ -212,6 +212,7 @@ function App() {
   const connectionAbortRef = useRef(connectionAbort);
 
   const [lockState, setLockState] = useState<LockState | undefined>(undefined);
+  const [hasUnsavedLightingChanges, setHasUnsavedLightingChanges] = useState(false);
 
   useEffect(() => {
     connectionAbortRef.current = connectionAbort;
@@ -227,6 +228,7 @@ function App() {
     if (!conn.conn) {
       reset();
       setLockState(undefined);
+      setHasUnsavedLightingChanges(false);
       return;
     }
 
@@ -288,20 +290,47 @@ function App() {
     }
   }, [conn.conn, connectionPhase, keyboardReady, lockState]);
 
+  const markLightingChanged = useCallback(() => {
+    setHasUnsavedLightingChanges(true);
+  }, []);
+
   const save = useCallback(() => {
     async function doSave() {
       if (!conn.conn) {
         return;
       }
 
+      let saved = true;
       let resp = await call_rpc(conn.conn, { keymap: { saveChanges: true } });
       if (!resp.keymap?.saveChanges || resp.keymap?.saveChanges.err) {
+        saved = false;
         console.error(t("errors.failedToSave"), resp.keymap?.saveChanges);
+      }
+
+      if (hasUnsavedLightingChanges) {
+        const [stateResp, layerLedResp] = await Promise.allSettled([
+          call_rpc(conn.conn, { lighting: { saveState: true } }),
+          call_rpc(conn.conn, { lighting: { saveLayerLedState: true } }),
+        ]);
+
+        if (stateResp.status !== "fulfilled" || !stateResp.value.lighting?.saveState) {
+          saved = false;
+          console.error(t("errors.failedToSave"), stateResp);
+        }
+
+        if (layerLedResp.status !== "fulfilled" || !layerLedResp.value.lighting?.saveLayerLedState) {
+          saved = false;
+          console.error(t("errors.failedToSave"), layerLedResp);
+        }
+      }
+
+      if (saved) {
+        setHasUnsavedLightingChanges(false);
       }
     }
 
     doSave();
-  }, [conn]);
+  }, [conn, hasUnsavedLightingChanges, t]);
 
   const discard = useCallback(() => {
     async function doDiscard() {
@@ -337,6 +366,7 @@ function App() {
       }
 
       reset();
+    setHasUnsavedLightingChanges(false);
       setConn({ conn: conn.conn });
     }
 
@@ -358,6 +388,7 @@ function App() {
       setConnectedDeviceName(undefined);
       setKeyboardReady(false);
       setLockState(undefined);
+      setHasUnsavedLightingChanges(false);
       setConnectionPhase("idle");
 
       try {
@@ -378,6 +409,7 @@ function App() {
       setConnectionError(undefined);
       setKeyboardReady(false);
       setLockState(undefined);
+      setHasUnsavedLightingChanges(false);
       setConnectionPhase("connecting");
       connect(t, setConn, setConnectedDeviceName, ac.signal, setConnectionError)
         .then((connected) => {
@@ -411,6 +443,7 @@ function App() {
     setConnectedDeviceName(undefined);
     setKeyboardReady(false);
     setLockState(undefined);
+    setHasUnsavedLightingChanges(false);
     setConnectionPhase("idle");
   }, []);
 
@@ -453,12 +486,13 @@ function App() {
                 canRedo={canRedo}
                 onUndo={undo}
                 onRedo={redo}
+                extraSaveEnabled={hasUnsavedLightingChanges}
                 onSave={save}
                 onDiscard={discard}
                 onDisconnect={disconnect}
                 onResetSettings={resetSettings}
               />
-              <Keyboard onReady={setKeyboardReady} />
+              <Keyboard onReady={setKeyboardReady} onLightingChanged={markLightingChanged} />
               {conn.conn && (
                 <AppFooter
                   variant="floating"

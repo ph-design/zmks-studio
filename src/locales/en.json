@@ -167,10 +167,30 @@
     "capsLock": {
       "title": "CapsLock Indicator",
       "enabled": "Enabled",
-      "onColor": "On Color",
-      "offColor": "Off Color",
+      "onColor": "Active Color",
+      "offColor": "Inactive Color",
       "keyPosition": "Key Position: {{pos}}",
       "notConfigured": "CapsLock indicator not configured in firmware"
+    },
+    "connection": {
+      "title": "Connection",
+      "usbColor": "USB Color",
+      "btColor": "Bluetooth Color"
+    },
+    "indicator": {
+      "keyPosition": "Position",
+      "layer": "Layer",
+      "anyLayer": "Any layer",
+      "currentLayer": "Current layer",
+      "scope": "Scope",
+      "selectKey": "Select Key",
+      "pickHint": "Click a key on the keyboard...",
+      "positionLabel": "Key {{pos}}",
+      "clickKeyHint": "Click a key above to choose it",
+      "showOnAllLayers": "Show on all layers",
+      "changeKey": "Change",
+      "apply": "Apply",
+      "clear": "Clear"
     }
   },
   "behavior": {

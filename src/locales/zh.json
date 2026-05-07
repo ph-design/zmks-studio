@@ -167,10 +167,30 @@
     "capsLock": {
       "title": "大写指示灯",
       "enabled": "启用",
-      "onColor": "亮灯颜色",
-      "offColor": "灭灯颜色",
+      "onColor": "激活颜色",
+      "offColor": "默认颜色",
       "keyPosition": "按键位置: {{pos}}",
       "notConfigured": "固件未配置 CapsLock 指示灯"
+    },
+    "connection": {
+      "title": "连接指示灯",
+      "usbColor": "USB 颜色",
+      "btColor": "蓝牙颜色"
+    },
+    "indicator": {
+      "keyPosition": "位置",
+      "layer": "层",
+      "anyLayer": "任意层",
+      "currentLayer": "当前层",
+      "scope": "范围",
+      "selectKey": "选择按键",
+      "pickHint": "在键盘上点击一个按键...",
+      "positionLabel": "按键 {{pos}}",
+      "clickKeyHint": "点击上方键盘选择按键",
+      "showOnAllLayers": "在所有层显示",
+      "changeKey": "修改",
+      "apply": "应用",
+      "clear": "清除"
     }
   },
   "behavior": {

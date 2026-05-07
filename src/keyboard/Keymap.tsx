@@ -1,3 +1,5 @@
+import type { RefObject } from "react";
+
 import {
   PhysicalLayout,
   Keymap as KeymapMsg,
@@ -31,6 +33,7 @@ export interface KeymapProps {
   scale: LayoutZoom;
   selectedLayerIndex: number;
   selectedKeyPosition: number | undefined;
+  fitContainerRef?: RefObject<HTMLElement>;
   onKeyPositionClicked: (keyPosition: number) => void;
 }
 
@@ -41,6 +44,7 @@ export const Keymap = ({
   scale,
   selectedLayerIndex,
   selectedKeyPosition,
+  fitContainerRef,
   onKeyPositionClicked,
 }: KeymapProps) => {
   if (!keymap.layers[selectedLayerIndex]) {
@@ -132,6 +136,7 @@ export const Keymap = ({
       oneU={48}
       hoverZoom={true}
       zoom={scale}
+      fitContainerRef={fitContainerRef}
       selectedPosition={selectedKeyPosition}
       onPositionClicked={onKeyPositionClicked}
     />

@@ -1,6 +1,7 @@
 import {
   CSSProperties,
   PropsWithChildren,
+  RefObject,
   useLayoutEffect,
   useRef,
   useState,
@@ -35,6 +36,7 @@ interface PhysicalLayoutProps {
   oneU?: number;
   hoverZoom?: boolean;
   zoom?: LayoutZoom;
+  fitContainerRef?: RefObject<HTMLElement>;
   onPositionClicked?: (position: number, event: React.MouseEvent) => void;
 }
 
@@ -77,24 +79,29 @@ export const PhysicalLayout = ({
   oneU = 48,
   hoverZoom,
   zoom,
+  fitContainerRef,
   onPositionClicked,
 }: PhysicalLayoutProps) => {
   const ref = useRef<HTMLDivElement>(null);
+  const hasMeasuredScaleRef = useRef(false);
   const [scale, setScale] = useState(1);
+  const [animateScale, setAnimateScale] = useState(false);
 
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
 
-    const parent = element.parentElement;
-    if (!parent) return;
+    const fitElement = fitContainerRef?.current ?? element.parentElement;
+    if (!fitElement) return;
+    let animationFrame: number | undefined;
+    let rafId: number | undefined;
 
     const calculateScale = () => {
       if (zoom === "auto") {
         const padding = Math.min(window.innerWidth, window.innerHeight) * 0.05; // Padding when in auto mode
         const newScale = Math.min(
-          parent.clientWidth / (element.clientWidth + 2 * padding),
-          parent.clientHeight / (element.clientHeight + 2 * padding),
+          fitElement.clientWidth / (element.clientWidth + 2 * padding),
+          fitElement.clientHeight / (element.clientHeight + 2 * padding),
         );
         setScale(newScale);
       } else {
@@ -102,19 +109,38 @@ export const PhysicalLayout = ({
       }
     };
 
+    if (!hasMeasuredScaleRef.current) {
+      setAnimateScale(false);
+    }
+
     calculateScale(); // Initial calculation
+    if (!hasMeasuredScaleRef.current) {
+      hasMeasuredScaleRef.current = true;
+      animationFrame = requestAnimationFrame(() => setAnimateScale(true));
+    }
 
     const resizeObserver = new ResizeObserver(() => {
-      calculateScale();
+      // Throttle: only recalc once per frame to avoid layout thrashing
+      if (rafId !== undefined) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = undefined;
+        calculateScale();
+      });
     });
 
     resizeObserver.observe(element);
-    resizeObserver.observe(parent);
+    resizeObserver.observe(fitElement);
 
     return () => {
+      if (animationFrame !== undefined) {
+        cancelAnimationFrame(animationFrame);
+      }
+      if (rafId !== undefined) {
+        cancelAnimationFrame(rafId);
+      }
       resizeObserver.disconnect();
     };
-  }, [zoom]);
+  }, [zoom, fitContainerRef]);
 
   // TODO: Add a bit of padding for rotation when supported
   const rightMost = positions
@@ -153,7 +179,7 @@ export const PhysicalLayout = ({
         width: rightMost * oneU + "px",
         transform: `scale(${scale})`,
         transformOrigin: "center center",
-        transition: "transform 240ms ease",
+        transition: animateScale ? "transform 240ms ease" : "none",
         willChange: "transform",
       }}
       ref={ref}

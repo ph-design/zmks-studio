@@ -56,7 +56,7 @@ export const PhysicalLayoutPicker = ({
           }}
         </SelectValue>
       </Button>
-      <Popover className="min-w-[var(--trigger-width)] max-h-4 shadow-md text-base-content rounded border-base-content bg-base-100">
+      <Popover className="min-w-[var(--trigger-width)] max-h-80 shadow-md text-base-content rounded border-base-content bg-base-100 overflow-auto">
         <ListBox items={layouts}>
           {(l) => (
             <ListBoxItem

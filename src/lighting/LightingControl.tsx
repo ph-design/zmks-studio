@@ -1,7 +1,7 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Label } from "react-aria-components";
 import { useTranslation } from "react-i18next";
-import { AlertTriangle, Sun, Lightbulb, Lock, Layers } from "lucide-react";
+import { AlertTriangle, Sun, Lightbulb, Lock, Layers, Wifi } from "lucide-react";
 
 import { ConnectionContext } from "../rpc/ConnectionContext";
 import { LockStateContext } from "../rpc/LockStateContext";
@@ -12,9 +12,13 @@ import type {
   RgbUnderglowState,
   BacklightState,
   CapsLockIndicatorState,
+  ConnectionIndicatorState,
   GetLayerLedColorsResponse,
+  SetCapsLockIndicatorRequest,
+  SetConnectionIndicatorRequest,
 } from "@zmkfirmware/zmk-studio-ts-client/lighting";
 import type { Keymap } from "@zmkfirmware/zmk-studio-ts-client/keymap";
+import type { IndicatorPositionDraft } from "../keyboard/Keyboard";
 
 import HsbColorPicker, {
   type HsbColor,
@@ -22,7 +26,9 @@ import HsbColorPicker, {
   hsbToRgb,
 } from "./HsbColorPicker";
 
-type LightSource = "rgb" | "backlight" | "capslock" | "layerLed";
+type LightSource = "rgb" | "backlight" | "capslock" | "connection" | "layerLed";
+
+const ANY_LAYER_ID = 0xff;
 
 export interface LightingControlProps {
   hasLayerLed?: boolean;
@@ -39,10 +45,33 @@ export interface LightingControlProps {
   setBacklightState: React.Dispatch<React.SetStateAction<BacklightState | null>>;
   capsLockState: CapsLockIndicatorState | null;
   setCapsLockState: React.Dispatch<React.SetStateAction<CapsLockIndicatorState | null>>;
+  connectionState?: ConnectionIndicatorState | null;
+  setConnectionState?: React.Dispatch<React.SetStateAction<ConnectionIndicatorState | null>>;
   hasRgb: boolean;
   hasBacklight: boolean;
   hasCapsLock: boolean;
+  hasConnection?: boolean;
+  indicatorPositionDraft?: IndicatorPositionDraft;
+  onSourceChange?: (source: LightSource) => void;
+  onClearIndicator?: () => void;
+  onLightingChanged?: () => void;
 }
+
+const capsLockIndicatorFieldOrder: (keyof SetCapsLockIndicatorRequest)[] = [
+  "enabled",
+  "offColor",
+  "onColor",
+  "keyPosition",
+  "layerId",
+];
+
+const connectionIndicatorFieldOrder: (keyof SetConnectionIndicatorRequest)[] = [
+  "enabled",
+  "usbColor",
+  "btColor",
+  "keyPosition",
+  "layerId",
+];
 
 export default function LightingControl({
   hasLayerLed,
@@ -59,9 +88,16 @@ export default function LightingControl({
   setBacklightState,
   capsLockState,
   setCapsLockState,
+  connectionState,
+  setConnectionState,
   hasRgb,
   hasBacklight,
   hasCapsLock,
+  hasConnection,
+  indicatorPositionDraft,
+  onSourceChange,
+  onClearIndicator,
+  onLightingChanged,
 }: LightingControlProps) {
   const { t } = useTranslation();
   const conn = useContext(ConnectionContext);
@@ -76,11 +112,32 @@ export default function LightingControl({
   const [capsOnHsb, setCapsOnHsb] = useState<HsbColor>({ h: 0, s: 100, b: 100 });
   const [capsOffHsb, setCapsOffHsb] = useState<HsbColor>({ h: 0, s: 0, b: 0 });
 
+  const [connUsbHsb, setConnUsbHsb] = useState<HsbColor>({ h: 0, s: 0, b: 100 });
+  const [connBtHsb, setConnBtHsb] = useState<HsbColor>({ h: 240, s: 100, b: 100 });
+
+  const capsInitialized = useRef(false);
+  const connInitialized = useRef(false);
+
+  if (!capsLockState) {
+    capsInitialized.current = false;
+  }
+  if (!connectionState) {
+    connInitialized.current = false;
+  }
+
   useEffect(() => {
-    if (!capsLockState) return;
+    if (!capsLockState || capsInitialized.current) return;
+    capsInitialized.current = true;
     setCapsOnHsb(rgbToHsb(capsLockState.onColor));
     setCapsOffHsb(rgbToHsb(capsLockState.offColor));
   }, [capsLockState]);
+
+  useEffect(() => {
+    if (!connectionState || connInitialized.current) return;
+    connInitialized.current = true;
+    setConnUsbHsb(rgbToHsb(connectionState.usbColor));
+    setConnBtHsb(rgbToHsb(connectionState.btColor));
+  }, [connectionState]);
 
   useEffect(() => {
     if (!selectedLedPositions || selectedLedPositions.size === 0 || !ledData || !keymap) return;
@@ -123,6 +180,10 @@ export default function LightingControl({
     }
   }, [hasRgb, hasBacklight, hasLayerLed]);
 
+  useEffect(() => {
+    onSourceChange?.(selectedSource);
+  }, [selectedSource, onSourceChange]);
+
   const setRgbProp = useCallback(
     async (props: Partial<RgbUnderglowState>) => {
       if (!conn.conn) return;
@@ -132,12 +193,13 @@ export default function LightingControl({
         });
         if (resp.lighting?.setRgbUnderglowState) {
           setRgbState((prev) => (prev ? { ...prev, ...props } : prev));
+          onLightingChanged?.();
         }
       } catch (e) {
         console.error("Failed to set RGB state", e);
       }
     },
-    [conn]
+    [conn, setRgbState, onLightingChanged]
   );
 
   const setBlProp = useCallback(
@@ -149,29 +211,79 @@ export default function LightingControl({
         });
         if (resp.lighting?.setBacklightState) {
           setBacklightState((prev) => (prev ? { ...prev, ...props } : prev));
+          onLightingChanged?.();
         }
       } catch (e) {
         console.error("Failed to set backlight state", e);
       }
     },
-    [conn]
+    [conn, setBacklightState, onLightingChanged]
   );
 
   const setCapsLockProp = useCallback(
-    async (props: Partial<{ enabled: boolean; offColor: number; onColor: number }>) => {
-      if (!conn.conn) return;
+    async (props: Partial<SetCapsLockIndicatorRequest>) => {
+      if (!conn.conn) return false;
+      const applied: Partial<SetCapsLockIndicatorRequest> = {};
       try {
-        const resp = await call_rpc(conn.conn, {
-          lighting: { setCapsLockIndicator: props },
-        });
-        if (resp.lighting?.setCapsLockIndicator) {
-          setCapsLockState((prev) => (prev ? { ...prev, ...props } : prev));
+        for (const field of capsLockIndicatorFieldOrder) {
+          const value = props[field];
+          if (value === undefined) continue;
+
+          const request = { [field]: value } as Partial<SetCapsLockIndicatorRequest>;
+          const resp = await call_rpc(conn.conn, {
+            lighting: { setCapsLockIndicator: request },
+          });
+          if (!resp.lighting?.setCapsLockIndicator) {
+            console.error("Failed to set CapsLock indicator", resp);
+            return false;
+          }
+          Object.assign(applied, request);
         }
+
+        if (Object.keys(applied).length > 0) {
+          setCapsLockState((prev) => (prev ? { ...prev, ...applied } : prev));
+          onLightingChanged?.();
+        }
+        return true;
       } catch (e) {
         console.error("Failed to set CapsLock indicator", e);
+        return false;
       }
     },
-    [conn]
+    [conn, setCapsLockState, onLightingChanged]
+  );
+
+  const setConnectionProp = useCallback(
+    async (props: Partial<SetConnectionIndicatorRequest>) => {
+      if (!conn.conn) return false;
+      const applied: Partial<SetConnectionIndicatorRequest> = {};
+      try {
+        for (const field of connectionIndicatorFieldOrder) {
+          const value = props[field];
+          if (value === undefined) continue;
+
+          const request = { [field]: value } as Partial<SetConnectionIndicatorRequest>;
+          const resp = await call_rpc(conn.conn, {
+            lighting: { setConnectionIndicator: request },
+          });
+          if (!resp.lighting?.setConnectionIndicator) {
+            console.error("Failed to set Connection indicator", resp);
+            return false;
+          }
+          Object.assign(applied, request);
+        }
+
+        if (Object.keys(applied).length > 0) {
+          setConnectionState?.((prev) => (prev ? { ...prev, ...applied } : prev));
+          onLightingChanged?.();
+        }
+        return true;
+      } catch (e) {
+        console.error("Failed to set Connection indicator", e);
+        return false;
+      }
+    },
+    [conn, setConnectionState, onLightingChanged]
   );
 
   const effectNames = useMemo(() => {
@@ -187,7 +299,7 @@ export default function LightingControl({
     return null;
   }
 
-  if (!hasRgb && !hasBacklight && !hasCapsLock && !hasLayerLed) {
+  if (!hasRgb && !hasBacklight && !hasCapsLock && !hasConnection && !hasLayerLed) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 px-8">
         <AlertTriangle className="w-8 h-8 text-warning" />
@@ -204,7 +316,84 @@ export default function LightingControl({
   const isRgbSelected = selectedSource === "rgb" && hasRgb;
   const isBlSelected = selectedSource === "backlight" && hasBacklight;
   const isCapsSelected = selectedSource === "capslock" && hasCapsLock;
+  const isConnSelected = selectedSource === "connection" && !!hasConnection;
   const isLayerLedSelected = selectedSource === "layerLed" && hasLayerLed;
+
+  const selectedLayerId = keymap?.layers[selectedLayerIndex ?? 0]?.id;
+  const capsStoredAllLayers = capsLockState?.layerId === ANY_LAYER_ID;
+  const connStoredAllLayers = connectionState?.layerId === ANY_LAYER_ID;
+
+  const resolvedIndicatorLayerId = (isCapsSelected && capsStoredAllLayers) || (isConnSelected && connStoredAllLayers)
+    ? ANY_LAYER_ID
+    : selectedLayerId ?? 0;
+
+  useEffect(() => {
+    if (!indicatorPositionDraft) return;
+
+    const draft = indicatorPositionDraft;
+    let cancelled = false;
+    async function applyIndicatorPosition() {
+      const position = { keyPosition: draft.keyPosition, layerId: resolvedIndicatorLayerId };
+      let ok = false;
+      if (isCapsSelected) {
+        ok = await setCapsLockProp(position);
+      } else if (isConnSelected) {
+        ok = await setConnectionProp(position);
+      }
+
+      if (ok && !cancelled) {
+        onClearIndicator?.();
+      }
+    }
+
+    applyIndicatorPosition();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedIndicatorLayerId, indicatorPositionDraft, isCapsSelected, isConnSelected, onClearIndicator, setCapsLockProp, setConnectionProp]);
+
+  const setIndicatorAllLayers = (allLayers: boolean) => {
+    async function apply() {
+      const layerId = allLayers ? ANY_LAYER_ID : selectedLayerId;
+      if (layerId === undefined) return;
+
+      let ok = false;
+      if (isCapsSelected) {
+        ok = await setCapsLockProp({ layerId });
+      } else if (isConnSelected) {
+        ok = await setConnectionProp({ layerId });
+      }
+      if (ok) {
+        onClearIndicator?.();
+      }
+    }
+
+    apply();
+  };
+
+  const renderIndicatorScopeSelect = (allLayers: boolean) => (
+    <label className="flex items-center gap-1.5 text-sm text-base-content/60 whitespace-nowrap">
+      <span>{t("lighting.indicator.scope")}</span>
+      <select
+        value={allLayers ? "any" : "current"}
+        onChange={(e) => setIndicatorAllLayers(e.currentTarget.value === "any")}
+        disabled={!isUnlocked || (!allLayers && selectedLayerId === undefined)}
+        className="h-7 rounded border border-base-300 bg-base-100 px-2 text-sm text-base-content focus:outline-none focus:border-primary"
+      >
+        <option value="current">{t("lighting.indicator.currentLayer")}</option>
+        <option value="any">{t("lighting.indicator.anyLayer")}</option>
+      </select>
+    </label>
+  );
+
+  const renderIndicatorPosition = (position: IndicatorPositionDraft) => (
+    <>
+      <span className="text-sm text-base-content/60">
+        {t("lighting.indicator.positionLabel", { pos: position.keyPosition })}
+      </span>
+      {renderIndicatorScopeSelect(position.layerId === ANY_LAYER_ID)}
+    </>
+  );
 
   return (
     <div className="flex gap-0 min-h-0 h-full">
@@ -247,6 +436,19 @@ export default function LightingControl({
           >
             <Lock className="w-4 h-4 flex-shrink-0" />
             <span>{t("lighting.capsLock.title")}</span>
+          </button>
+        )}
+        {hasConnection && (
+          <button
+            onClick={() => setSelectedSource("connection")}
+            className={`flex items-center gap-2 px-3 py-2 rounded text-sm cursor-pointer transition-colors text-left ${
+              isConnSelected
+                ? "bg-primary text-primary-content"
+                : "text-base-content hover:bg-base-300"
+            }`}
+          >
+            <Wifi className="w-4 h-4 flex-shrink-0" />
+            <span>{t("lighting.connection.title")}</span>
           </button>
         )}
         {hasLayerLed && (
@@ -401,7 +603,7 @@ export default function LightingControl({
 
         {isCapsSelected && capsLockState && (
           <>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setCapsLockProp({ enabled: true })}
                 disabled={!isUnlocked}
@@ -424,7 +626,26 @@ export default function LightingControl({
               >
                 {t("lighting.off")}
               </button>
+
+              <span className="w-px h-5 bg-base-300 mx-1.5" />
+              {indicatorPositionDraft || capsLockState.enabled || capsLockState.keyPosition > 0 || capsLockState.layerId !== 0 ? (
+                renderIndicatorPosition(
+                  indicatorPositionDraft ? { keyPosition: indicatorPositionDraft.keyPosition, layerId: resolvedIndicatorLayerId } : {
+                    keyPosition: capsLockState.keyPosition,
+                    layerId: capsLockState.layerId,
+                  }
+                )
+              ) : (
+                <>
+                  <span className="text-sm text-base-content/60">
+                    {t("lighting.indicator.clickKeyHint")}
+                  </span>
+                  {renderIndicatorScopeSelect(!!capsStoredAllLayers)}
+                </>
+              )}
             </div>
+
+            <div className="border-t border-base-300 my-2" />
 
             <div className={`flex gap-4 ${!capsLockState.enabled ? "opacity-40 pointer-events-none" : ""}`}>
               <div className="flex-1 flex flex-col gap-2">
@@ -454,11 +675,84 @@ export default function LightingControl({
                 />
               </div>
             </div>
-            {capsLockState.keyPosition > 0 && (
-              <div className="text-sm text-base-content/50">
-                {t("lighting.capsLock.keyPosition", { pos: capsLockState.keyPosition })}
+          </>
+        )}
+
+        {isConnSelected && connectionState && (
+          <>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setConnectionProp({ enabled: true })}
+                disabled={!isUnlocked}
+                className={`px-3 py-1.5 rounded text-sm cursor-pointer transition-colors whitespace-nowrap ${
+                  connectionState.enabled
+                    ? "bg-primary text-primary-content"
+                    : "text-base-content hover:bg-base-300"
+                }`}
+              >
+                {t("lighting.on")}
+              </button>
+              <button
+                onClick={() => setConnectionProp({ enabled: false })}
+                disabled={!isUnlocked}
+                className={`px-3 py-1.5 rounded text-sm cursor-pointer transition-colors whitespace-nowrap ${
+                  !connectionState.enabled
+                    ? "bg-primary text-primary-content"
+                    : "text-base-content hover:bg-base-300"
+                }`}
+              >
+                {t("lighting.off")}
+              </button>
+
+              {/* Position */}
+              <span className="w-px h-5 bg-base-300 mx-1.5" />
+              {indicatorPositionDraft || connectionState.enabled || connectionState.keyPosition > 0 || connectionState.layerId !== 0 ? (
+                renderIndicatorPosition(
+                  indicatorPositionDraft ? { keyPosition: indicatorPositionDraft.keyPosition, layerId: resolvedIndicatorLayerId } : {
+                    keyPosition: connectionState.keyPosition,
+                    layerId: connectionState.layerId,
+                  }
+                )
+              ) : (
+                <>
+                  <span className="text-sm text-base-content/60">
+                    {t("lighting.indicator.clickKeyHint")}
+                  </span>
+                  {renderIndicatorScopeSelect(!!connStoredAllLayers)}
+                </>
+              )}
+            </div>
+
+            <div className="border-t border-base-300 my-2" />
+
+            <div className={`flex gap-4 ${!connectionState.enabled ? "opacity-40 pointer-events-none" : ""}`}>
+              <div className="flex-1 flex flex-col gap-2">
+                <Label className="text-sm text-base-content/60 font-medium">
+                  {t("lighting.connection.usbColor")}
+                </Label>
+                <HsbColorPicker
+                  hsb={connUsbHsb}
+                  onHsbChanged={(hsb) => {
+                    setConnUsbHsb(hsb);
+                    setConnectionProp({ usbColor: hsbToRgb(hsb) });
+                  }}
+                  disabled={!isUnlocked}
+                />
               </div>
-            )}
+              <div className="flex-1 flex flex-col gap-2">
+                <Label className="text-sm text-base-content/60 font-medium">
+                  {t("lighting.connection.btColor")}
+                </Label>
+                <HsbColorPicker
+                  hsb={connBtHsb}
+                  onHsbChanged={(hsb) => {
+                    setConnBtHsb(hsb);
+                    setConnectionProp({ btColor: hsbToRgb(hsb) });
+                  }}
+                  disabled={!isUnlocked}
+                />
+              </div>
+            </div>
           </>
         )}
 

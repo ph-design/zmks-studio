@@ -1,5 +1,7 @@
+import type { RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Lock, Wifi } from "lucide-react";
 
 import {
   PhysicalLayout,
@@ -22,6 +24,9 @@ export interface LayerLedMapProps {
   ledData: GetLayerLedColorsResponse | null;
   selectedPositions: Set<number>;
   onSelectionChanged: (positions: Set<number>) => void;
+  fitContainerRef?: RefObject<HTMLElement>;
+  indicatorPositions?: Set<number>;
+  activeSource?: string;
 }
 
 export default function LayerLedMap({
@@ -32,6 +37,9 @@ export default function LayerLedMap({
   ledData,
   selectedPositions,
   onSelectionChanged,
+  fitContainerRef,
+  indicatorPositions,
+  activeSource,
 }: LayerLedMapProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -146,9 +154,14 @@ export default function LayerLedMap({
 
   const positions = useMemo(() => {
     return layout.keys.map((k, i) => {
-      const color = getKeyColor(i);
+      const color = activeSource === "layerLed" ? getKeyColor(i) : 0;
       const bgColor = color !== 0 ? colorToHex(color) : undefined;
       const header: string | undefined = undefined;
+      const isIndicator = indicatorPositions?.has(i);
+      const IndicatorIcon = activeSource === "connection" ? Wifi : Lock;
+      const indicatorTitle = activeSource === "connection"
+        ? t("lighting.connection.title")
+        : t("lighting.capsLock.title");
 
       return {
         id: `led-${i}`,
@@ -163,20 +176,28 @@ export default function LayerLedMap({
         children: (
           <>
             <div
-              className="absolute inset-[2px] rounded transition-all duration-300"
+              className="absolute inset-[2px] rounded transition-colors duration-300"
               style={{
                 backgroundColor: bgColor ?? "transparent",
                 opacity: bgColor ? 1 : 0,
               }}
             />
-            {!bgColor && (
+            {isIndicator && (
+              <span
+                className="absolute bottom-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-sm border border-base-content/15 bg-base-100/95 text-base-content/50"
+                title={indicatorTitle}
+              >
+                <IndicatorIcon className="h-3 w-3" aria-hidden />
+              </span>
+            )}
+            {!bgColor && !isIndicator && (
               <span className="text-xs opacity-30">—</span>
             )}
           </>
         ),
       };
     });
-  }, [layout, getKeyColor, selectedLayerIndex]);
+  }, [layout, getKeyColor, activeSource, indicatorPositions, t]);
 
   if (!ledData) {
     return (
@@ -207,7 +228,8 @@ export default function LayerLedMap({
         oneU={48}
         hoverZoom={true}
         zoom={scale}
-        selectedPositions={selectedPositions}
+        fitContainerRef={fitContainerRef}
+        selectedPositions={activeSource === "layerLed" ? selectedPositions : new Set()}
         onPositionClicked={handlePositionClicked}
       />
 

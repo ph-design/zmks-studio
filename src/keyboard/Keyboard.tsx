@@ -25,6 +25,7 @@ import type {
   RgbUnderglowState,
   BacklightState,
   CapsLockIndicatorState,
+  ConnectionIndicatorState,
 } from "@zmkfirmware/zmk-studio-ts-client/lighting";
 
 import { LayerPicker } from "./LayerPicker";
@@ -46,6 +47,11 @@ import LayerLedMap from "../lighting/LayerLedMap";
 import { useSub } from "../usePubSub";
 
 type BehaviorMap = Record<number, GetBehaviorDetailsResponse>;
+
+export interface IndicatorPositionDraft {
+  keyPosition: number;
+  layerId: number;
+}
 
 function useBehaviors(): [BehaviorMap, boolean] {
   let connection = useContext(ConnectionContext);
@@ -177,9 +183,10 @@ function useLayouts(): [
 
 export interface KeyboardProps {
   onReady?: (ready: boolean) => void;
+  onLightingChanged?: () => void;
 }
 
-export default function Keyboard({ onReady }: KeyboardProps) {
+export default function Keyboard({ onReady, onLightingChanged }: KeyboardProps) {
   const [
     layouts,
     _setLayouts,
@@ -214,13 +221,51 @@ export default function Keyboard({ onReady }: KeyboardProps) {
   const [rgbState, setRgbState] = useState<RgbUnderglowState | null>(null);
   const [backlightState, setBacklightState] = useState<BacklightState | null>(null);
   const [capsLockState, setCapsLockState] = useState<CapsLockIndicatorState | null>(null);
+  const [connectionState, setConnectionState] = useState<ConnectionIndicatorState | null>(null);
   const [hasRgb, setHasRgb] = useState(false);
   const [hasBacklight, setHasBacklight] = useState(false);
   const [hasCapsLock, setHasCapsLock] = useState(false);
+  const [hasConnection, setHasConnection] = useState(false);
   const [lightingLoaded, setLightingLoaded] = useState(false);
+  const [indicatorPositionDraft, setIndicatorPositionDraft] = useState<IndicatorPositionDraft | undefined>(undefined);
+  const [lightingSource, setLightingSource] = useState<string>("rgb");
+
+  const handleIndicatorPick = useCallback(
+    (positions: Set<number>) => {
+      if (lightingSource !== "capslock" && lightingSource !== "connection") {
+        return false;
+      }
+
+      const first = positions.values().next().value;
+      if (first !== undefined) {
+        setIndicatorPositionDraft({ keyPosition: first, layerId: 0 });
+      }
+      return true;
+    },
+    [lightingSource]
+  );
+
+  const handleLightingSourceChanged = useCallback((source: string) => {
+    setLightingSource(source);
+    setIndicatorPositionDraft(undefined);
+    setSelectedLedPositions(new Set());
+  }, []);
+
+  const indicatorPositions = useMemo(() => {
+    const set = new Set<number>();
+    if (indicatorPositionDraft !== undefined) {
+      set.add(indicatorPositionDraft.keyPosition);
+    } else if (lightingSource === "capslock" && capsLockState?.enabled && capsLockState.keyPosition !== undefined) {
+      set.add(capsLockState.keyPosition);
+    } else if (lightingSource === "connection" && connectionState?.enabled && connectionState.keyPosition !== undefined) {
+      set.add(connectionState.keyPosition);
+    }
+    return set;
+  }, [lightingSource, capsLockState?.enabled, capsLockState?.keyPosition, connectionState?.enabled, connectionState?.keyPosition, indicatorPositionDraft]);
 
   const conn = useContext(ConnectionContext);
   const lockState = useContext(LockStateContext);
+  const layoutFitRef = useRef<HTMLDivElement>(null);
   const undoRedo = useContext(UndoRedoContext);
   const isUnlocked = lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
 
@@ -233,20 +278,24 @@ export default function Keyboard({ onReady }: KeyboardProps) {
     setRgbState(null);
     setBacklightState(null);
     setCapsLockState(null);
+    setConnectionState(null);
+    setIndicatorPositionDraft(undefined);
     setHasRgb(false);
     setHasBacklight(false);
     setHasCapsLock(false);
+    setHasConnection(false);
     setLightingLoaded(false);
   }, [conn]);
 
   const fetchAllLighting = useCallback(async (ignore?: { current: boolean }) => {
     if (!conn.conn) return;
 
-    const [ledResp, rgbResp, blResp, capsResp] = await Promise.allSettled([
+    const [ledResp, rgbResp, blResp, capsResp, connResp] = await Promise.allSettled([
       call_rpc(conn.conn, { lighting: { getLayerLedColors: true } }),
       call_rpc(conn.conn, { lighting: { getRgbUnderglowState: true } }),
       call_rpc(conn.conn, { lighting: { getBacklightState: true } }),
       call_rpc(conn.conn, { lighting: { getCapsLockIndicator: true } }),
+      call_rpc(conn.conn, { lighting: { getConnectionIndicator: true } }),
     ]);
 
     if (ignore?.current) return;
@@ -266,6 +315,10 @@ export default function Keyboard({ onReady }: KeyboardProps) {
     if (capsResp.status === "fulfilled" && capsResp.value.lighting?.getCapsLockIndicator) {
       setCapsLockState(capsResp.value.lighting.getCapsLockIndicator);
       setHasCapsLock(true);
+    }
+    if (connResp.status === "fulfilled" && connResp.value.lighting?.getConnectionIndicator) {
+      setConnectionState(connResp.value.lighting.getConnectionIndicator);
+      setHasConnection(true);
     }
     setLightingLoaded(true);
   }, [conn]);
@@ -341,12 +394,13 @@ export default function Keyboard({ onReady }: KeyboardProps) {
           await call_rpc(conn.conn, {
             lighting: { setLayerLedBinding: { layerId, keyPosition: pos, color } },
           });
+          onLightingChanged?.();
         } catch (e) {
           console.error("Failed to set layer LED binding", e);
         }
       }
     },
-    [conn, keymap, ledData, selectedLayerIndex]
+    [conn, keymap, ledData, onLightingChanged, selectedLayerIndex]
   );
 
   const handleLayerLedEnabledChanged = useCallback(
@@ -356,14 +410,17 @@ export default function Keyboard({ onReady }: KeyboardProps) {
         if (draft) draft.enabled = enabled;
       }));
       try {
-        await call_rpc(conn.conn, {
+        const resp = await call_rpc(conn.conn, {
           lighting: { setLayerLedEnabled: { enabled } },
         });
+        if (resp.lighting?.setLayerLedEnabled) {
+          onLightingChanged?.();
+        }
       } catch (e) {
         console.error("Failed to set layer LED enabled", e);
       }
     },
-    [conn]
+    [conn, onLightingChanged]
   );
 
   useEffect(() => {
@@ -704,7 +761,7 @@ export default function Keyboard({ onReady }: KeyboardProps) {
         )}
       </div>
       {layouts && keymap && behaviors && (
-        <div className="p-2 col-start-2 row-start-1 grid items-center justify-center relative min-w-0">
+        <div ref={layoutFitRef} className="p-2 col-start-2 row-start-1 grid items-center justify-center relative min-w-0">
           {bottomTab === "lighting" ? (
             <LayerLedMap
               keymap={keymap}
@@ -713,7 +770,14 @@ export default function Keyboard({ onReady }: KeyboardProps) {
               selectedLayerIndex={selectedLayerIndex}
               ledData={ledData}
               selectedPositions={selectedLedPositions}
-              onSelectionChanged={setSelectedLedPositions}
+              onSelectionChanged={(sel) => {
+                if (!handleIndicatorPick(sel)) {
+                  setSelectedLedPositions(sel);
+                }
+              }}
+              fitContainerRef={layoutFitRef}
+              indicatorPositions={indicatorPositions}
+              activeSource={lightingSource}
             />
           ) : (
             <KeymapComp
@@ -723,6 +787,7 @@ export default function Keyboard({ onReady }: KeyboardProps) {
               scale={keymapScale}
               selectedLayerIndex={selectedLayerIndex}
               selectedKeyPosition={selectedKeyPosition}
+              fitContainerRef={layoutFitRef}
               onKeyPositionClicked={setSelectedKeyPosition}
             />
           )}
@@ -777,9 +842,16 @@ export default function Keyboard({ onReady }: KeyboardProps) {
                 setBacklightState={setBacklightState}
                 capsLockState={capsLockState}
                 setCapsLockState={setCapsLockState}
+                connectionState={connectionState}
+                setConnectionState={setConnectionState}
                 hasRgb={hasRgb}
                 hasBacklight={hasBacklight}
                 hasCapsLock={hasCapsLock}
+                hasConnection={hasConnection}
+                indicatorPositionDraft={indicatorPositionDraft}
+                onSourceChange={handleLightingSourceChanged}
+                onClearIndicator={() => setIndicatorPositionDraft(undefined)}
+                onLightingChanged={onLightingChanged}
               />
             )}
         </BottomPanel>
