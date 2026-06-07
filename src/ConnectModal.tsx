@@ -36,6 +36,7 @@ export interface ConnectModalProps {
   connectionError?: string;
   onConnectionError?: (message: string | undefined) => void;
   connectionPhase?: ConnectionPhase;
+  loadProgress?: number;
   lockState?: LockState;
   onCancelConnection?: () => void;
   footer?: ReactNode;
@@ -261,19 +262,41 @@ function FlowStep({
   );
 }
 
-function ConnectingStep({ onCancel }: { onCancel?: () => void }) {
+function ConnectingStep({
+  onCancel,
+  initializing = false,
+  progress,
+}: {
+  onCancel?: () => void;
+  initializing?: boolean;
+  progress?: number;
+}) {
   const { t } = useTranslation();
+
+  // Determinate bar during initialization; indeterminate during the handshake.
+  const determinate = initializing && progress !== undefined;
+  const pct = Math.round(Math.min(1, Math.max(0, progress ?? 0)) * 100);
 
   return (
     <FlowStep
       icon={<LoaderCircle className="size-7 animate-spin" />}
-      title={t("welcome.connectingTitle")}
-      body={t("welcome.connectingDescription")}
+      title={t(initializing ? "welcome.initializingTitle" : "welcome.connectingTitle")}
+      body={t(initializing ? "welcome.initializingDescription" : "welcome.connectingDescription")}
     >
       <div className="grid gap-2">
         <div className="h-2 overflow-hidden rounded-full bg-base-300">
-          <div className="h-full w-1/3 rounded-full bg-primary animate-[connect-progress_1.4s_ease-in-out_infinite]" />
+          {determinate ? (
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+              style={{ width: `${pct}%` }}
+            />
+          ) : (
+            <div className="h-full w-1/3 rounded-full bg-primary animate-[connect-progress_1.4s_ease-in-out_infinite]" />
+          )}
         </div>
+        {determinate && (
+          <p className="text-xs opacity-60">{pct}%</p>
+        )}
       </div>
       <Button
         className="mx-auto rounded-md px-3 py-2 text-sm transition-colors hover:bg-base-300"
@@ -648,6 +671,7 @@ export const ConnectModal = ({
   connectionError,
   onConnectionError,
   connectionPhase = "idle",
+  loadProgress,
   lockState,
   onCancelConnection,
   footer,
@@ -686,9 +710,14 @@ export const ConnectModal = ({
   }
   const displayView = !open && liveView === "options" ? lastFlowView.current : liveView;
   const isDesktopClient = !!window.__TAURI_INTERNALS__;
+  // Opaque backdrop past device selection so the loading editor isn't seen behind it.
+  const backdropClassName =
+    displayView === "options"
+      ? "backdrop:bg-[rgba(0,0,0,0.5)]"
+      : "backdrop:bg-base-100";
 
   return (
-    <GenericModal ref={dialog} className="w-[min(92vw,42rem)] max-h-[90vh] overflow-y-auto">
+    <GenericModal ref={dialog} backdropClassName={backdropClassName} className="w-[min(92vw,42rem)] max-h-[90vh] overflow-y-auto">
       <div className="flex items-start justify-between gap-4">
         <div className="grid grid-cols-[auto_1fr] items-center gap-3">
           <img src="/zmk.svg" alt="ZMK Logo" className="size-10 rounded-md" />
@@ -735,7 +764,11 @@ export const ConnectModal = ({
         />
         <div className="space-y-4">
           {displayView === "progress" && (
-            <ConnectingStep onCancel={onCancelConnection} />
+            <ConnectingStep
+              onCancel={onCancelConnection}
+              initializing={connectionPhase === "initializing"}
+              progress={loadProgress}
+            />
           )}
           {displayView === "unlock" && <UnlockStep />}
           {displayView === "options" && (

@@ -36,6 +36,9 @@
     "connectionErrorHelpGeneric": "Refresh the device list and try again. If it still fails, use the desktop client or reconnect the keyboard.",
     "connectingTitle": "Connecting to keyboard",
     "connectingDescription": "Keep the keyboard connected. The editor will open automatically when it is ready.",
+    "initializingTitle": "Loading keyboard",
+    "initializingDescription": "Reading keymap, behaviors and lighting. The editor opens when everything is ready.",
+    "unknownDevice": "Unknown device",
     "cancelConnection": "Cancel connection",
     "scanningDevices": "Scanning for devices...",
     "noDevices": "No devices found. Make sure Studio is enabled on the keyboard and try refreshing.",
@@ -272,10 +275,9 @@
   "hid": {
     "tabs": {
       "input": "Input",
-      "controls": "Controls",
-      "functions": "Functions",
-      "symbols": "Symbols",
+      "navigation": "Navigation",
       "media": "Media",
+      "shortcuts": "Shortcuts",
       "keypad": "Keypad",
       "other": "Other"
     },
@@ -284,7 +286,8 @@
       "noKeys": "No keys found",
       "resultsFound": "results found",
       "modifiersTitle": "Modifiers",
-      "implicitModifiers": "Implicit Modifiers"
+      "implicitModifiers": "Implicit Modifiers",
+      "rarelyUsed": "Rarely used"
     }
   },
   "parameters": {
@@ -302,6 +305,8 @@
   },
   "errors": {
     "failedToConnect": "Failed to connect to the chosen device",
+    "connectionLost": "Connection lost — the keyboard was disconnected.",
+    "loadTimeout": "Timed out while loading keyboard data. Please reconnect.",
     "failedFirstRpc": "Failed first RPC call",
     "failedToSave": "Failed to save changes",
     "failedToDiscard": "Failed to discard changes",

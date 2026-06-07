@@ -11,34 +11,18 @@ import {
   Volume1,
   Sun,
   SunDim,
+  ChevronRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   hid_usage_from_page_and_id,
   hid_usage_page_get_ids,
-  hid_usage_get_label,
+  hid_usage_get_labels,
 } from "../hid-usages";
 import type { HidUsagePage } from "./HidUsagePicker";
 
-function shortenKeyLabel(fullLabel: string): string {
-  if (fullLabel.startsWith("Keyboard ")) {
-    return fullLabel.slice(9);
-  }
-  if (fullLabel.startsWith("Keypad ")) {
-    const rest = fullLabel.slice(7).split(" and ")[0];
-    return "KP " + rest;
-  }
-  if (fullLabel.length > 8) {
-    const words = fullLabel.split(/[\s/,-]+/);
-    if (words.length >= 2) {
-      if (words[0].length <= 4) {
-        return words[0] + " " + words.slice(1).map(w => w[0]).join("");
-      }
-      return words.map(w => w.substring(0, 3)).join("");
-    }
-    return fullLabel.substring(0, 7);
-  }
-  return fullLabel;
+function dePrefix(s: string): string {
+  return s.replace(/^(Keyboard|Keypad|AC|AL) /, "");
 }
 
 interface KeyTab {
@@ -47,69 +31,61 @@ interface KeyTab {
   filter: (pageId: number, usageId: number) => boolean;
 }
 
+const P12_MEDIA = new Set([
+  0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xcd, 0xe2, 0xe9, 0xea, 0x6f, 0x70,
+]);
+const P12_SHORTCUTS = new Set([
+  0x21a, 0x21b, 0x21c, 0x21d, 0x21e, 0x21f, 0x279,
+  0x201, 0x202, 0x203, 0x207, 0x208,
+  0x22d, 0x22e,
+  0x223, 0x224, 0x225, 0x226, 0x227, 0x22a, 0x221,
+  0x192, 0x196, 0x18a, 0x1b4, 0x18e, 0x19e, 0x19f,
+]);
+
+const P12_SHOWN_OTHER = new Set([0x30, 0x32]);
+
 const KEY_TABS: KeyTab[] = [
   {
     id: "input",
     label: "Input",
+
     filter: (page, id) =>
       page === 7 &&
-      ((id >= 0x04 && id <= 0x1d) ||
-        (id >= 0x1e && id <= 0x27) ||
-        id === 0x28 ||
-        id === 0x29 ||
-        id === 0x2a ||
-        id === 0x2b ||
-        id === 0x2c ||
-        id === 0x39),
-  },
-  {
-    id: "controls",
-    label: "Controls",
-    filter: (page, id) =>
-      page === 7 &&
-      ((id >= 0x49 && id <= 0x52) ||
-        id === 0x46 ||
-        id === 0x47 ||
-        id === 0x48 ||
-        id === 0x65 ||
+      ((id >= 0x04 && id <= 0x45) ||
+        id === 0x64 ||
+        (id >= 0x68 && id <= 0x73) ||
         (id >= 0xe0 && id <= 0xe7)),
   },
   {
-    id: "functions",
-    label: "Functions",
-    filter: (page, id) =>
-      page === 7 &&
-      ((id >= 0x3a && id <= 0x45) ||
-        (id >= 0x68 && id <= 0x73)),
-  },
-  {
-    id: "symbols",
-    label: "Symbols",
-    filter: (page, id) =>
-      page === 7 &&
-      ((id >= 0x2d && id <= 0x38) ||
-        id === 0x64 ||
-        id === 0x32),
+    id: "navigation",
+    label: "Navigation",
+    filter: (page, id) => page === 7 && id >= 0x46 && id <= 0x52,
   },
   {
     id: "media",
     label: "Media",
     filter: (page, id) =>
-      page === 12 &&
-      (id === 0xcd ||
-        id === 0xb5 ||
-        id === 0xb6 ||
-        id === 0xb7 ||
-        id === 0xe2 ||
-        id === 0xe9 ||
-        id === 0xea ||
-        id === 0x6f ||
-        id === 0x70),
+      (page === 7 && id >= 0x7f && id <= 0x81) || (page === 12 && P12_MEDIA.has(id)),
+  },
+  {
+    id: "shortcuts",
+    label: "Shortcuts",
+    filter: (page, id) =>
+      (page === 7 && ((id >= 0x74 && id <= 0x7e) || id === 0x65)) ||
+      (page === 12 && P12_SHORTCUTS.has(id)),
   },
   {
     id: "keypad",
     label: "Keypad",
-    filter: (page, id) => page === 7 && id >= 0x54 && id <= 0x63,
+    filter: (page, id) =>
+      page === 7 &&
+      (id === 0x53 ||
+        (id >= 0x54 && id <= 0x63) ||
+        id === 0x67 ||
+        id === 0x85 ||
+        id === 0x86 ||
+        id === 0xb0 ||
+        id === 0xb1),
   },
   {
     id: "other",
@@ -117,6 +93,19 @@ const KEY_TABS: KeyTab[] = [
     filter: () => false,
   },
 ];
+
+
+function isRareUsage(page: number, id: number): boolean {
+  if (page === 7) {
+    return (
+      id <= 0x03 ||
+      (id >= 0x82 && id <= 0x84) ||
+      (id >= 0x87 && id <= 0xa4) ||
+      (id >= 0xb2 && id <= 0xdd)
+    );
+  }
+  return page === 12 && !P12_SHOWN_OTHER.has(id);
+}
 
 enum Mods {
   LeftControl = 0x01,
@@ -190,6 +179,36 @@ const MEDIA_ICONS: Record<number, LucideIcon> = {
   0x70: SunDim,
 };
 
+// One key cell in the grid.
+const KeyButton = ({
+  k,
+  selected,
+  onClick,
+}: {
+  k: KeyGridItem;
+  selected: boolean;
+  onClick: () => void;
+}) => {
+  const spanClass = k.colSpan === 3 ? "col-span-3" : k.colSpan === 2 ? "col-span-2" : "";
+  const MediaIcon = k.pageId === 12 ? MEDIA_ICONS[k.usageId] : undefined;
+  return (
+    <button
+      data-selected={selected ? "true" : undefined}
+      onClick={onClick}
+      title={k.rawName}
+      className={`${spanClass} h-[3.2rem] rounded text-sm font-medium cursor-pointer transition-colors flex items-center justify-center ${
+        selected ? "bg-primary text-primary-content" : "bg-base-100 text-base-content hover:bg-base-300"
+      }`}
+    >
+      {MediaIcon ? (
+        <MediaIcon size={18} />
+      ) : (
+        <span className="truncate px-1 leading-tight text-center">{k.displayLabel}</span>
+      )}
+    </button>
+  );
+};
+
 export interface HidUsageGridProps {
   value?: number;
   usagePages: HidUsagePage[];
@@ -204,6 +223,7 @@ export const HidUsageGrid = ({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("input");
   const [filter, setFilter] = useState("");
+  const [showRare, setShowRare] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
   const mods = useMemo(() => {
@@ -225,26 +245,17 @@ export const HidUsageGrid = ({
             continue;
           }
         }
-        const label =
-          hid_usage_get_label(page.id, usage.Id) || usage.Name;
-        const short = shortenKeyLabel(label);
-        const colSpan: 1 | 2 | 3 = short.length > 7 ? 3 : short.length > 3 ? 2 : 1;
-        let displayLabel = short;
-        if (colSpan > 1) {
-          if (label.startsWith("Keyboard ")) {
-            displayLabel = label.slice(9);
-          } else if (label.startsWith("Keypad ")) {
-            displayLabel = "KP " + label.slice(7).split(" and ")[0];
-          } else {
-            displayLabel = label;
-          }
-        }
+        // The grid has room (cells span 1–3 cols), so show the most readable
+        // name available: full `long` when curated, else the de-prefixed name.
+        const labels = hid_usage_get_labels(page.id, usage.Id);
+        const display = dePrefix(labels.long || labels.short || usage.Name);
+        const colSpan: 1 | 2 | 3 = display.length > 7 ? 3 : display.length > 3 ? 2 : 1;
         keys.push({
           usageValue: hid_usage_from_page_and_id(page.id, usage.Id),
-          label,
+          label: display,
           rawName: usage.Name,
-          shortLabel: short,
-          displayLabel,
+          shortLabel: dePrefix(labels.short || usage.Name),
+          displayLabel: display,
           pageId: page.id,
           usageId: usage.Id,
           colSpan,
@@ -317,6 +328,14 @@ export const HidUsageGrid = ({
   }, [tabKeys, activeTab, filter, isSearching, allKeys]);
 
   const selectedUsageValue = value !== undefined ? mask_mods(value) : undefined;
+
+  // Auto-expand the rare section if the currently-bound key lives in it.
+  const forceShowRare = useMemo(() => {
+    if (selectedUsageValue === undefined) return false;
+    const k = (tabKeys["other"] || []).find((x) => x.usageValue === selectedUsageValue);
+    return !!k && isRareUsage(k.pageId, k.usageId);
+  }, [selectedUsageValue, tabKeys]);
+  const rareOpen = showRare || forceShowRare;
 
   const handleKeyClick = useCallback(
     (usageValue: number) => {
@@ -391,36 +410,66 @@ export const HidUsageGrid = ({
           </div>
         </div>
 
-        <div key={isSearching ? "search" : activeTab} ref={gridRef} className="grid grid-cols-[repeat(auto-fill,minmax(3.2rem,1fr))] gap-1.5 overflow-y-auto max-h-52 pr-1 animate-fade-in">
-          {filteredKeys.map((key) => {
-            const spanClass = key.colSpan === 3 ? "col-span-3" : key.colSpan === 2 ? "col-span-2" : "";
-            const isSelected = selectedUsageValue === key.usageValue;
-            const MediaIcon = key.pageId === 12 ? MEDIA_ICONS[key.usageId] : undefined;
-            return (
-              <button
-                key={key.usageValue}
-                data-selected={isSelected ? "true" : undefined}
-                onClick={() => handleKeyClick(key.usageValue)}
-                title={key.rawName}
-                className={`${spanClass} h-[3.2rem] rounded text-sm font-medium cursor-pointer transition-colors flex items-center justify-center ${isSelected
-                    ? "bg-primary text-primary-content"
-                    : "bg-base-100 text-base-content hover:bg-base-300"
-                  }`}
+        {(() => {
+          const isOther = activeTab === "other" && !isSearching;
+          const shown = isOther
+            ? filteredKeys.filter((k) => !isRareUsage(k.pageId, k.usageId))
+            : filteredKeys;
+          const rare = isOther
+            ? filteredKeys.filter((k) => isRareUsage(k.pageId, k.usageId))
+            : [];
+          return (
+            <>
+              <div
+                key={isSearching ? "search" : activeTab}
+                ref={gridRef}
+                className="grid grid-cols-[repeat(auto-fill,minmax(3.2rem,1fr))] gap-1.5 overflow-y-auto max-h-52 pr-1 animate-fade-in"
               >
-                {MediaIcon ? (
-                  <MediaIcon size={18} />
-                ) : (
-                  <span className="truncate px-1 leading-tight text-center">{key.displayLabel}</span>
+                {shown.map((key) => (
+                  <KeyButton
+                    key={key.usageValue}
+                    k={key}
+                    selected={selectedUsageValue === key.usageValue}
+                    onClick={() => handleKeyClick(key.usageValue)}
+                  />
+                ))}
+                {shown.length === 0 && rare.length === 0 && (
+                  <div className="col-span-full text-center text-base-content/50 py-4 text-sm">
+                    {t("hid.general.noKeys")}
+                  </div>
                 )}
-              </button>
-            );
-          })}
-          {filteredKeys.length === 0 && (
-            <div className="col-span-full text-center text-base-content/50 py-4 text-sm">
-              {t("hid.general.noKeys")}
-            </div>
-          )}
-        </div>
+              </div>
+
+              {rare.length > 0 && (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    aria-expanded={rareOpen}
+                    onClick={() => setShowRare((v) => !v)}
+                    className="flex items-center gap-1 text-sm text-base-content/50 hover:text-base-content/80 transition-colors cursor-pointer"
+                  >
+                    <ChevronRight
+                      className={`w-3.5 h-3.5 transition-transform ${rareOpen ? "rotate-90" : ""}`}
+                    />
+                    {t("hid.general.rarelyUsed", "Rarely used")} ({rare.length})
+                  </button>
+                  {rareOpen && (
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(3.2rem,1fr))] gap-1.5 overflow-y-auto max-h-52 pr-1 mt-2 animate-fade-in">
+                      {rare.map((key) => (
+                        <KeyButton
+                          key={key.usageValue}
+                          k={key}
+                          selected={selectedUsageValue === key.usageValue}
+                          onClick={() => handleKeyClick(key.usageValue)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       <div className="flex-shrink-0 w-40">

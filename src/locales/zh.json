@@ -36,6 +36,9 @@
     "connectionErrorHelpGeneric": "请刷新设备列表后重试；如果仍然失败，建议使用桌面客户端或重新连接键盘。",
     "connectingTitle": "正在连接键盘",
     "connectingDescription": "请保持键盘连接，完成后将自动进入编辑界面。",
+    "initializingTitle": "正在加载键盘",
+    "initializingDescription": "正在读取键位、行为和灯光，全部就绪后将进入编辑界面。",
+    "unknownDevice": "未知设备",
     "cancelConnection": "取消连接",
     "scanningDevices": "正在扫描设备...",
     "noDevices": "未发现设备，请确认键盘已开启 Studio 并尝试刷新。",
@@ -272,10 +275,9 @@
   "hid": {
     "tabs": {
       "input": "输入",
-      "controls": "控制",
-      "functions": "功能",
-      "symbols": "符号",
+      "navigation": "导航",
       "media": "媒体",
+      "shortcuts": "快捷",
       "keypad": "小键盘",
       "other": "其他"
     },
@@ -284,7 +286,8 @@
       "noKeys": "未找到按键",
       "resultsFound": "个结果",
       "modifiersTitle": "修饰键",
-      "implicitModifiers": "隐式修饰键"
+      "implicitModifiers": "隐式修饰键",
+      "rarelyUsed": "罕见"
     }
   },
   "parameters": {
@@ -302,6 +305,8 @@
   },
   "errors": {
     "failedToConnect": "无法连接到所选设备",
+    "connectionLost": "连接已断开——键盘已断开连接。",
+    "loadTimeout": "加载键盘数据超时，请重新连接。",
     "failedFirstRpc": "第一个 RPC 调用失败",
     "failedToSave": "保存更改失败",
     "failedToDiscard": "放弃更改失败",

@@ -76,6 +76,7 @@ async function listen_for_notifications(
   signal: AbortSignal
 ): Promise<void> {
   let reader = notification_stream.getReader();
+  const pub = usePub();
   const onAbort = () => {
     reader.cancel().catch(() => {});
   };
@@ -86,7 +87,6 @@ async function listen_for_notifications(
         break;
       }
 
-      let pub = usePub();
       let { done, value } = await reader.read();
       if (done) {
         break;
@@ -172,25 +172,22 @@ async function connect(
     return false;
   }
 
+  const onConnectionDropped = () => {
+    if (signal.aborted) {
+      return;
+    }
+
+    // Stream ended without a user disconnect: the keyboard went away.
+    setConnectionError(i18n.t("errors.connectionLost"));
+    setConnectedDeviceName(undefined);
+    setConn({ conn: null });
+  };
+
   listen_for_notifications(conn.notification_readable, signal)
-    .then(() => {
-      if (signal.aborted) {
-        return;
-      }
+    .then(onConnectionDropped)
+    .catch(onConnectionDropped);
 
-      setConnectedDeviceName(undefined);
-      setConn({ conn: null });
-    })
-    .catch((_e) => {
-      if (signal.aborted) {
-        return;
-      }
-
-      setConnectedDeviceName(undefined);
-      setConn({ conn: null });
-    });
-
-  setConnectedDeviceName(details.name);
+  setConnectedDeviceName(details.name || i18n.t("welcome.unknownDevice"));
   setConnectionError(undefined);
   setConn({ conn });
   return true;
@@ -209,6 +206,7 @@ function App() {
   const [connectionError, setConnectionError] = useState<string | undefined>();
   const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>("idle");
   const [keyboardReady, setKeyboardReady] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
   const connectionAbortRef = useRef(connectionAbort);
 
   const [lockState, setLockState] = useState<LockState | undefined>(undefined);
@@ -401,6 +399,20 @@ function App() {
     doDisconnect();
   }, [conn]);
 
+  // Give up if initialization stalls past 10s instead of spinning forever.
+  useEffect(() => {
+    if (connectionPhase !== "initializing" || keyboardReady) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setConnectionError(i18n.t("errors.loadTimeout"));
+      disconnect();
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, [connectionPhase, keyboardReady, disconnect]);
+
   const onConnect = useCallback(
     (t: RpcTransport) => {
       const ac = new AbortController();
@@ -464,6 +476,7 @@ function App() {
               connectionError={connectionError}
               onConnectionError={setConnectionError}
               connectionPhase={connectionPhase}
+              loadProgress={loadProgress}
               lockState={lockState}
               onCancelConnection={cancelConnection}
               footer={
@@ -492,7 +505,7 @@ function App() {
                 onDisconnect={disconnect}
                 onResetSettings={resetSettings}
               />
-              <Keyboard onReady={setKeyboardReady} onLightingChanged={markLightingChanged} />
+              <Keyboard onReady={setKeyboardReady} onProgress={setLoadProgress} onLightingChanged={markLightingChanged} />
               {conn.conn && (
                 <AppFooter
                   variant="floating"

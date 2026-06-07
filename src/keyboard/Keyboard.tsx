@@ -46,6 +46,7 @@ import { OtherPanel } from "./OtherPanel";
 import LightingControl from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
 import { useSub } from "../usePubSub";
+import { LoaderCircle } from "lucide-react";
 
 type BehaviorMap = Record<number, GetBehaviorDetailsResponse>;
 
@@ -184,10 +185,11 @@ function useLayouts(): [
 
 export interface KeyboardProps {
   onReady?: (ready: boolean) => void;
+  onProgress?: (value: number) => void;
   onLightingChanged?: () => void;
 }
 
-export default function Keyboard({ onReady, onLightingChanged }: KeyboardProps) {
+export default function Keyboard({ onReady, onProgress, onLightingChanged }: KeyboardProps) {
   const [
     layouts,
     _setLayouts,
@@ -339,12 +341,17 @@ export default function Keyboard({ onReady, onLightingChanged }: KeyboardProps) 
   useEffect(() => {
     if (!conn.conn || !isUnlocked) {
       onReady?.(false);
+      onProgress?.(0);
       return;
     }
 
-    const ready = !!keymap && !!layouts && behaviorsLoaded && lightingLoaded;
+    const stages = [!!keymap, !!layouts, behaviorsLoaded, lightingLoaded];
+    const loadedCount = stages.filter(Boolean).length;
+    onProgress?.(loadedCount / stages.length);
+
+    const ready = loadedCount === stages.length;
     onReady?.(ready);
-  }, [behaviorsLoaded, conn.conn, isUnlocked, keymap, layouts, lightingLoaded, onReady]);
+  }, [behaviorsLoaded, conn.conn, isUnlocked, keymap, layouts, lightingLoaded, onReady, onProgress]);
 
   // Re-fetch when user opens the lighting tab
   useEffect(() => {
@@ -761,7 +768,7 @@ export default function Keyboard({ onReady, onLightingChanged }: KeyboardProps) 
           </div>
         )}
       </div>
-      {layouts && keymap && behaviors && (
+      {layouts && keymap && behaviorsLoaded ? (
         <div ref={layoutFitRef} className="p-2 col-start-2 row-start-1 grid items-center justify-center relative min-w-0">
           {bottomTab === "lighting" ? (
             <LayerLedMap
@@ -810,8 +817,17 @@ export default function Keyboard({ onReady, onLightingChanged }: KeyboardProps) 
             <option value={2}>200%</option>
           </select>
         </div>
+      ) : (
+        (conn.conn && isUnlocked) ? (
+          <div className="p-2 col-start-2 row-start-1 grid items-center justify-center min-w-0">
+            <div className="flex flex-col items-center gap-3 opacity-70">
+              <LoaderCircle className="size-8 animate-spin" />
+              <span className="text-sm">{t("welcome.initializingTitle")}</span>
+            </div>
+          </div>
+        ) : null
       )}
-      {layouts && keymap && (
+      {layouts && keymap && behaviorsLoaded && (
         <BottomPanel bottomTab={bottomTab} setBottomTab={setBottomTab} t={t}>
             {bottomTab === "keymap" ? (
               selectedBinding ? (
