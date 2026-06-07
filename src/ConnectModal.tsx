@@ -130,6 +130,7 @@ function ConnectionErrorNotice({
     }, 220);
 
     return () => window.clearTimeout(closeTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message]);
 
   const dismiss = useCallback(() => {
@@ -515,7 +516,7 @@ function SimpleDevicePicker({
     let ignore = false;
 
     if (selectedTransport.connect) {
-      async function connectTransport() {
+      const connectTransport = async () => {
         try {
           const transport = await selectedTransport?.connect?.();
 
@@ -534,17 +535,17 @@ function SimpleDevicePicker({
             setSelectedTransport(undefined);
           }
         }
-      }
+      };
 
       connectTransport();
     } else {
-      async function loadAvailableDevices() {
+      const loadAvailableDevices = async () => {
         const devices = await selectedTransport?.pick_and_connect?.list();
 
         if (!ignore) {
           setAvailableDevices(devices);
         }
-      }
+      };
 
       loadAvailableDevices();
     }
@@ -587,7 +588,7 @@ function SimpleDevicePicker({
   );
 }
 
-function noTransportsOptionsPrompt() {
+function NoTransportsOptionsPrompt() {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-3 rounded-md border border-base-300 p-4">
@@ -710,11 +711,10 @@ export const ConnectModal = ({
   }
   const displayView = !open && liveView === "options" ? lastFlowView.current : liveView;
   const isDesktopClient = !!window.__TAURI_INTERNALS__;
-  // Opaque backdrop past device selection so the loading editor isn't seen behind it.
   const backdropClassName =
     displayView === "options"
       ? "backdrop:bg-[rgba(0,0,0,0.5)]"
-      : "backdrop:bg-base-100";
+      : "backdrop:bg-[rgba(0,0,0,0.72)]";
 
   return (
     <GenericModal ref={dialog} backdropClassName={backdropClassName} className="w-[min(92vw,42rem)] max-h-[90vh] overflow-y-auto">
@@ -775,7 +775,7 @@ export const ConnectModal = ({
             <>
               {haveTransports
                 ? <ConnectOptions transports={transports} onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} open={open} />
-                : noTransportsOptionsPrompt()}
+                : <NoTransportsOptionsPrompt />}
               {!isDesktopClient && <ClientRecommendation />}
             </>
           )}

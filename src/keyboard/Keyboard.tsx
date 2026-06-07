@@ -46,7 +46,6 @@ import { OtherPanel } from "./OtherPanel";
 import LightingControl from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
 import { useSub } from "../usePubSub";
-import { LoaderCircle } from "lucide-react";
 
 type BehaviorMap = Record<number, GetBehaviorDetailsResponse>;
 
@@ -820,9 +819,9 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
       ) : (
         (conn.conn && isUnlocked) ? (
           <div className="p-2 col-start-2 row-start-1 grid items-center justify-center min-w-0">
-            <div className="flex flex-col items-center gap-3 opacity-70">
-              <LoaderCircle className="size-8 animate-spin" />
-              <span className="text-sm">{t("welcome.initializingTitle")}</span>
+            <div className="flex flex-col items-center gap-3 animate-fade-in">
+              <div className="size-8 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin" />
+              <span className="text-sm text-base-content/60">{t("welcome.initializingTitle")}</span>
             </div>
           </div>
         ) : null
