@@ -18,6 +18,21 @@ import {
   hid_usage_page_and_id_from_usage,
   hid_usage_get_label,
 } from "../hid-usages";
+import {
+  BUILTIN_LAYER_TAP,
+  BUILTIN_MOD_TAP,
+  builtinNameForShape,
+  findBuiltinHoldTap,
+  holdTapPresets,
+  isHoldTapShape,
+  isLayerTapShape,
+  isUserPreset,
+} from "./holdTapUtils";
+
+interface HoldTapMode {
+  id: number;
+  label: string;
+}
 
 const DISPLAY_NAME_OVERRIDES: Record<string, string> = {
   z_so_off: "Soft Off",
@@ -43,7 +58,7 @@ function validateBinding(
     return true;
   }
 
-  let matchingSet = metadata.find((s) =>
+  const matchingSet = metadata.find((s) =>
     validateValue(layerIds, param1, s.param1)
   );
 
@@ -175,19 +190,51 @@ export const BehaviorBindingPicker = ({
   const [param1, setParam1] = useState<number | undefined>(binding.param1);
   const [param2, setParam2] = useState<number | undefined>(binding.param2);
 
-  const categorized = useMemo(
-    () => categorizeBehaviors(behaviors),
+  const [contextBuiltinId, setContextBuiltinId] = useState<number | undefined>(
+    undefined
+  );
+
+  const selectedBehavior = useMemo(
+    () => behaviors.find((b) => b.id == behaviorId),
+    [behaviorId, behaviors]
+  );
+
+  const hasModBuiltin = useMemo(
+    () => behaviors.some((b) => b.displayName === BUILTIN_MOD_TAP),
     [behaviors]
   );
+  const hasLayerBuiltin = useMemo(
+    () => behaviors.some((b) => b.displayName === BUILTIN_LAYER_TAP),
+    [behaviors]
+  );
+  const isModePreset = useCallback(
+    (b: GetBehaviorDetailsResponse) =>
+      isUserPreset(b) && isHoldTapShape(b) && (hasModBuiltin || hasLayerBuiltin),
+    [hasModBuiltin, hasLayerBuiltin]
+  );
+
+  const categorized = useMemo(
+    () => categorizeBehaviors(behaviors.filter((b) => !isModePreset(b))),
+    [behaviors, isModePreset]
+  );
+
+  const anchorId = useMemo(() => {
+    if (selectedBehavior && isModePreset(selectedBehavior)) {
+      if (contextBuiltinId !== undefined) return contextBuiltinId;
+      const builtin = findBuiltinHoldTap(behaviors, builtinNameForShape(selectedBehavior));
+      if (builtin) return builtin.id;
+    }
+    return behaviorId;
+  }, [selectedBehavior, behaviors, behaviorId, isModePreset, contextBuiltinId]);
 
   const currentCategory = useMemo(() => {
     for (const cat of BEHAVIOR_CATEGORIES) {
-      if (categorized[cat.id]?.some((b) => b.id === behaviorId)) {
+      if (categorized[cat.id]?.some((b) => b.id === anchorId)) {
         return cat.id;
       }
     }
     return "other";
-  }, [categorized, behaviorId]);
+  }, [categorized, anchorId]);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState(currentCategory);
   const [browsing, setBrowsing] = useState(false);
@@ -203,10 +250,17 @@ export const BehaviorBindingPicker = ({
     [behaviorId, behaviors]
   );
 
-  const selectedBehavior = useMemo(
-    () => behaviors.find((b) => b.id == behaviorId),
-    [behaviorId, behaviors]
-  );
+  // All modes (Default + ht_* presets) independent of param shape.
+  const holdTapModes = useMemo<HoldTapMode[]>(() => {
+    if (!selectedBehavior || !isHoldTapShape(selectedBehavior)) return [];
+    const contextName = behaviors.find((b) => b.id === contextBuiltinId)?.displayName;
+    const builtinName = contextName ?? builtinNameForShape(selectedBehavior);
+    const builtin = findBuiltinHoldTap(behaviors, builtinName);
+    const list: HoldTapMode[] = [];
+    if (builtin) list.push({ id: builtin.id, label: t("binding.modeDefault", "Default") });
+    for (const p of holdTapPresets(behaviors)) list.push({ id: p.id, label: p.displayName });
+    return list;
+  }, [selectedBehavior, behaviors, contextBuiltinId, t]);
 
   useEffect(() => {
     if (
@@ -239,12 +293,23 @@ export const BehaviorBindingPicker = ({
         param2: param2 || 0,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [behaviorId, param1, param2]);
 
   useEffect(() => {
     setBehaviorId(binding.behaviorId);
     setParam1(binding.param1);
     setParam2(binding.param2);
+
+    const b = behaviors.find((x) => x.id === binding.behaviorId);
+    if (!b || !isHoldTapShape(b)) {
+      setContextBuiltinId(undefined);
+    } else if (!isUserPreset(b)) {
+      setContextBuiltinId(b.id);
+    } else {
+      setContextBuiltinId(findBuiltinHoldTap(behaviors, builtinNameForShape(b))?.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [binding]);
 
   const handleBehaviorSelect = useCallback(
@@ -253,8 +318,25 @@ export const BehaviorBindingPicker = ({
       setParam1(0);
       setParam2(0);
       setBrowsing(false);
+      const b = behaviors.find((x) => x.id === id);
+      setContextBuiltinId(b && isHoldTapShape(b) ? id : undefined);
     },
-    []
+    [behaviors]
+  );
+
+  // Reset params only on param-shape change; same-shape keeps them and commits via validateBinding.
+  const handleModeSelect = useCallback(
+    (id: number) => {
+      const next = behaviors.find((b) => b.id === id);
+      const prev = behaviors.find((b) => b.id === behaviorId);
+      setBehaviorId(id);
+      setBrowsing(false);
+      if (!next || !prev || isLayerTapShape(next) !== isLayerTapShape(prev)) {
+        setParam1(0);
+        setParam2(0);
+      }
+    },
+    [behaviors, behaviorId]
   );
 
   const handleCategorySelect = useCallback(
@@ -300,6 +382,7 @@ export const BehaviorBindingPicker = ({
       { id: 7, min: 4, max: hidParam.hidUsage.keyboardMax },
       { id: 12, max: hidParam.hidUsage.consumerMax },
     ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [param1Values, param2Values]);
 
   const availableCategories = useMemo(
@@ -308,8 +391,9 @@ export const BehaviorBindingPicker = ({
   );
 
   const categoryBehaviors = categorized[selectedCategoryId] || [];
-
-  const isBehaviorInCategory = !browsing && categoryBehaviors.some((b) => b.id === behaviorId);
+  const isHoldTapBinding = !!selectedBehavior && isHoldTapShape(selectedBehavior);
+  const isBehaviorInCategory =
+    !browsing && (categoryBehaviors.some((b) => b.id === behaviorId) || isHoldTapBinding);
 
   const [hoveredBehaviorId, setHoveredBehaviorId] = useState<number | null>(null);
   const hoveredBehavior = categoryBehaviors.find((b) => b.id === hoveredBehaviorId);
@@ -335,7 +419,7 @@ export const BehaviorBindingPicker = ({
             key={b.id}
             onClick={() => handleBehaviorSelect(b.id)}
             onMouseEnter={() => setHoveredBehaviorId(b.id)}
-            className={`px-3 py-1.5 rounded text-sm text-left cursor-pointer transition-colors whitespace-nowrap ${behaviorId === b.id
+            className={`px-3 py-1.5 rounded text-sm text-left cursor-pointer transition-colors whitespace-nowrap ${anchorId === b.id
               ? "bg-primary text-primary-content"
               : "text-base-content hover:bg-base-300"
               }`}
@@ -356,7 +440,7 @@ export const BehaviorBindingPicker = ({
                 <span className="text-lg font-semibold text-base-content">{DISPLAY_NAME_OVERRIDES[hoveredBehavior.displayName] ?? hoveredBehavior.displayName}</span>
                 <span className="text-sm text-base-content/60 leading-relaxed">{t(`behaviorDesc.${hoveredBehavior.displayName}`, '')}</span>
               </>) : (
-                <span className="text-sm text-base-content/40">{t('selectBehaviorHint', '将鼠标悬停在左侧行为上查看说明')}</span>
+                <span className="text-sm text-base-content/40">{t('selectBehaviorHint', 'Hover over a behavior on the left to see its description')}</span>
               )}
             </div>
           </div>
@@ -368,6 +452,9 @@ export const BehaviorBindingPicker = ({
             usagePages={hidUsagePages}
             onParam1Changed={setParam1}
             onParam2Changed={setParam2}
+            modes={holdTapModes}
+            currentBehaviorId={behaviorId}
+            onModeChange={handleModeSelect}
           />
         )}
 
@@ -381,6 +468,9 @@ export const BehaviorBindingPicker = ({
                 usagePages={hidUsagePages}
                 onLayerChanged={setParam1}
                 onHidChanged={setParam2}
+                modes={holdTapModes}
+                currentBehaviorId={behaviorId}
+                onModeChange={handleModeSelect}
               />
             )}
             {!hasLayerId(param1Values) && (
@@ -460,21 +550,107 @@ function getHidLabel(value?: number): string {
   return hid_usage_get_label(page, id) || "?";
 }
 
+const SlotButton = ({
+  caption,
+  value,
+  active,
+  onClick,
+  className = "flex-1",
+}: {
+  caption: string;
+  value: string;
+  active: boolean;
+  onClick: () => void;
+  className?: string;
+}) => (
+  <button
+    onClick={onClick}
+    className={`${className} flex flex-col items-center gap-0.5 px-3 py-2.5 rounded cursor-pointer transition-colors ${
+      active ? "ring-2 ring-primary bg-base-100" : "bg-base-300 hover:bg-base-100"
+    }`}
+  >
+    <span className="text-sm text-base-content/50">{caption}</span>
+    <span className="text-base font-semibold text-base-content truncate max-w-full">
+      {value}
+    </span>
+  </button>
+);
+
+const ModeButton = ({
+  modes,
+  value,
+  active,
+  onClick,
+}: {
+  modes: HoldTapMode[];
+  value: number;
+  active: boolean;
+  onClick: () => void;
+}) => {
+  const { t } = useTranslation();
+  const current = modes.find((m) => m.id === value);
+  if (modes.length < 2 || !current) return null;
+  return (
+    <>
+      <span className="text-base-content/30 text-lg">+</span>
+      <SlotButton
+        caption={t("binding.mode", "Mode")}
+        value={current.label}
+        active={active}
+        onClick={onClick}
+        className="shrink-0 w-40"
+      />
+    </>
+  );
+};
+
+const ModeOptions = ({
+  modes,
+  value,
+  onChange,
+}: {
+  modes: HoldTapMode[];
+  value: number;
+  onChange: (id: number) => void;
+}) => (
+  <div className="flex gap-1.5 flex-wrap animate-fade-in">
+    {modes.map((m) => (
+      <button
+        key={m.id}
+        onClick={() => onChange(m.id)}
+        className={`px-4 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors ${
+          value === m.id
+            ? "bg-primary text-primary-content"
+            : "bg-base-100 text-base-content hover:bg-base-300"
+        }`}
+      >
+        {m.label}
+      </button>
+    ))}
+  </div>
+);
+
 const DualHidPicker = ({
   param1,
   param2,
   usagePages,
   onParam1Changed,
   onParam2Changed,
+  modes,
+  currentBehaviorId,
+  onModeChange,
 }: {
   param1?: number;
   param2?: number;
   usagePages: { id: number; min?: number; max?: number }[];
   onParam1Changed: (value?: number) => void;
   onParam2Changed: (value?: number) => void;
+  modes: HoldTapMode[];
+  currentBehaviorId: number;
+  onModeChange: (id: number) => void;
 }) => {
   const { t } = useTranslation();
-  const [activeSlot, setActiveSlot] = useState<1 | 2>(1);
+  const [activeSlot, setActiveSlot] = useState<1 | 2 | "mode">(1);
 
   const slot1Label = getHidLabel(param1);
   const slot2Label = getHidLabel(param2);
@@ -483,7 +659,7 @@ const DualHidPicker = ({
     (value?: number) => {
       if (activeSlot === 1) {
         onParam1Changed(value);
-      } else {
+      } else if (activeSlot === 2) {
         onParam2Changed(value);
       }
     },
@@ -493,38 +669,36 @@ const DualHidPicker = ({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2 items-center">
-        <button
+        <SlotButton
+          caption={t("binding.hold")}
+          value={slot1Label}
+          active={activeSlot === 1}
           onClick={() => setActiveSlot(1)}
-          className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2 rounded cursor-pointer transition-colors ${activeSlot === 1
-            ? "ring-2 ring-primary bg-base-100"
-            : "bg-base-300 hover:bg-base-100"
-            }`}
-        >
-          <span className="text-sm text-base-content/50">{t("binding.hold")}</span>
-          <span className="text-base font-semibold text-base-content truncate max-w-full">
-            {slot1Label}
-          </span>
-        </button>
+        />
         <span className="text-base-content/30 text-lg">+</span>
-        <button
+        <SlotButton
+          caption={t("binding.tap")}
+          value={slot2Label}
+          active={activeSlot === 2}
           onClick={() => setActiveSlot(2)}
-          className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded cursor-pointer transition-colors ${activeSlot === 2
-            ? "ring-2 ring-primary bg-base-100"
-            : "bg-base-300 hover:bg-base-100"
-            }`}
-        >
-          <span className="text-sm text-base-content/50">{t("binding.tap")}</span>
-          <span className="text-base font-semibold text-base-content truncate max-w-full">
-            {slot2Label}
-          </span>
-        </button>
+        />
+        <ModeButton
+          modes={modes}
+          value={currentBehaviorId}
+          active={activeSlot === "mode"}
+          onClick={() => setActiveSlot("mode")}
+        />
       </div>
 
-      <HidUsageGrid
-        value={activeSlot === 1 ? param1 : param2}
-        usagePages={usagePages}
-        onValueChanged={handleValueChanged}
-      />
+      {activeSlot === "mode" ? (
+        <ModeOptions modes={modes} value={currentBehaviorId} onChange={onModeChange} />
+      ) : (
+        <HidUsageGrid
+          value={activeSlot === 1 ? param1 : param2}
+          usagePages={usagePages}
+          onValueChanged={handleValueChanged}
+        />
+      )}
     </div>
   );
 };
@@ -536,6 +710,9 @@ const LayerHidDualPicker = ({
   usagePages,
   onLayerChanged,
   onHidChanged,
+  modes,
+  currentBehaviorId,
+  onModeChange,
 }: {
   layerParam?: number;
   hidParam?: number;
@@ -543,9 +720,12 @@ const LayerHidDualPicker = ({
   usagePages: { id: number; min?: number; max?: number }[];
   onLayerChanged: (value?: number) => void;
   onHidChanged: (value?: number) => void;
+  modes: HoldTapMode[];
+  currentBehaviorId: number;
+  onModeChange: (id: number) => void;
 }) => {
   const { t } = useTranslation();
-  const [activeSlot, setActiveSlot] = useState<"hold" | "tap">("tap");
+  const [activeSlot, setActiveSlot] = useState<"hold" | "tap" | "mode">("tap");
 
   const holdLabel = layers.find((l) => l.id === layerParam)?.name || "—";
   const tapLabel = getHidLabel(hidParam);
@@ -553,34 +733,30 @@ const LayerHidDualPicker = ({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2 items-center">
-        <button
+        <SlotButton
+          caption={t("binding.hold")}
+          value={holdLabel}
+          active={activeSlot === "hold"}
           onClick={() => setActiveSlot("hold")}
-          className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2 rounded cursor-pointer transition-colors ${activeSlot === "hold"
-            ? "ring-2 ring-primary bg-base-100"
-            : "bg-base-300 hover:bg-base-100"
-            }`}
-        >
-          <span className="text-sm text-base-content/50">{t("binding.hold")}</span>
-          <span className="text-base font-semibold text-base-content truncate max-w-full">
-            {holdLabel}
-          </span>
-        </button>
+        />
         <span className="text-base-content/30 text-lg">+</span>
-        <button
+        <SlotButton
+          caption={t("binding.tap")}
+          value={tapLabel}
+          active={activeSlot === "tap"}
           onClick={() => setActiveSlot("tap")}
-          className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded cursor-pointer transition-colors ${activeSlot === "tap"
-            ? "ring-2 ring-primary bg-base-100"
-            : "bg-base-300 hover:bg-base-100"
-            }`}
-        >
-          <span className="text-sm text-base-content/50">{t("binding.tap")}</span>
-          <span className="text-base font-semibold text-base-content truncate max-w-full">
-            {tapLabel}
-          </span>
-        </button>
+        />
+        <ModeButton
+          modes={modes}
+          value={currentBehaviorId}
+          active={activeSlot === "mode"}
+          onClick={() => setActiveSlot("mode")}
+        />
       </div>
 
-      {activeSlot === "hold" ? (
+      {activeSlot === "mode" ? (
+        <ModeOptions modes={modes} value={currentBehaviorId} onChange={onModeChange} />
+      ) : activeSlot === "hold" ? (
         <div className="flex gap-1.5 flex-wrap">
           {layers.map(({ name, id }) => (
             <button

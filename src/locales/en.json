@@ -95,23 +95,23 @@
     "layout": "Layout",
     "tab": {
       "keymap": "Keymap",
-      "lighting": "Lighting"
+      "lighting": "Lighting",
+      "other": "Other"
     },
     "zoom": {
       "auto": "Auto"
     },
     "errors": {
-      "setActiveLayout": "Failed to set the active physical layout",
-      "setBinding": "Failed to set binding",
-      "notConnected": "Not connected",
-      "noKeymap": "No keymap loaded"
+      "notConnected": "Not connected"
     }
   },
   "binding": {
-    "layer": "Layer",
-    "noParametersRequired": "No parameters required",
     "hold": "Hold",
-    "tap": "Tap"
+    "tap": "Tap",
+    "layer": "Layer",
+    "mode": "Mode",
+    "modeDefault": "Default",
+    "noParametersRequired": "No parameters required"
   },
   "selectBehaviorHint": "Hover over a behavior on the left to see its description",
   "behaviorDesc": {
@@ -203,6 +203,70 @@
       "system": "System",
       "mouse": "Mouse",
       "other": "Other"
+    }
+  },
+  "holdTap": {
+    "tappingTermMs": "Tapping Term (ms)",
+    "quickTapMs": "Quick Tap (ms)",
+    "requirePriorIdleMs": "Prior Idle (ms)",
+    "flavorLabel": "Flavor",
+    "retroTap": "Retro Tap",
+    "holdWhileUndecided": "Immediate Hold",
+    "holdWhileUndecidedLinger": "Keep Holding",
+    "holdTriggerOnRelease": "Decide on Release",
+    "flavor": {
+      "holdPreferred": "Hold Preferred",
+      "balanced": "Balanced",
+      "tapPreferred": "Tap Preferred",
+      "tapUnlessInterrupted": "Tap Unless Interrupted"
+    },
+    "flavorDesc": {
+      "holdPreferred": "Fires the hold as soon as the term passes or another key is pressed. Best for modifiers.",
+      "balanced": "If you press and release another key while holding, it resolves to a hold; release this key first and it taps. Fits how most modifiers are used.",
+      "tapPreferred": "Only holds if you truly keep it pressed past the term. Fewest typing misfires.",
+      "tapUnlessInterrupted": "Taps by default, holds only when interrupted by another key."
+    },
+    "term": {
+      "sensitive": "Sensitive",
+      "standard": "Standard",
+      "relaxed": "Relaxed"
+    },
+    "advanced": "Advanced",
+    "ms": "ms",
+    "on": "On",
+    "off": "Off",
+    "desc": {
+      "retroTap": "Held past the term without pressing another key? Still send the tap on release.",
+      "holdWhileUndecided": "Activate the hold immediately while deciding instead of waiting. Useful for mouse modifiers.",
+      "holdWhileUndecidedLinger": "Keep the hold active until just after the tap is sent. Only matters with Immediate Hold.",
+      "holdTriggerOnRelease": "Delay the positional hold decision until the key is released.",
+      "quickTapMs": "Press the key again within this time after a tap to tap again — e.g. tap-then-hold Backspace to repeat.",
+      "requirePriorIdleMs": "If you pressed another key within this time, resolve to a tap — avoids accidental holds while typing fast."
+    },
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "resetDefault": "Restore default",
+    "loading": "Loading…",
+    "section": {
+      "userPresets": "User Presets"
+    },
+    "scope": {
+      "builtin": "Firmware-wide default"
+    },
+    "empty": {
+      "builtinHint": "Your firmware does not register Mod-Tap or Layer-Tap.",
+      "userPresets": "No user presets defined",
+      "userPresetsHint": "Define hold-tap variants with names like `ht_*` in your .keymap to manage them here."
+    },
+    "applyTitle": "Apply a preset",
+    "applyHint": "Copy a preset's settings onto {{name}}.",
+    "saveFailed": "Save failed or timed out. Please try again."
+  },
+  "other": {
+    "tab": "Other",
+    "feature": {
+      "tapHold": "Tap-Hold"
     }
   },
   "hid": {

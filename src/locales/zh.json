@@ -95,23 +95,23 @@
     "layout": "布局",
     "tab": {
       "keymap": "键位",
-      "lighting": "灯光"
+      "lighting": "灯光",
+      "other": "其他"
     },
     "zoom": {
       "auto": "自动"
     },
     "errors": {
-      "setActiveLayout": "设置活动物理布局失败",
-      "setBinding": "设置按键绑定失败",
-      "notConnected": "未连接",
-      "noKeymap": "未加载键名映射"
+      "notConnected": "未连接"
     }
   },
   "binding": {
-    "layer": "层级",
-    "noParametersRequired": "无需参数",
     "hold": "长按",
-    "tap": "点击"
+    "tap": "点击",
+    "layer": "层",
+    "mode": "模式",
+    "modeDefault": "默认",
+    "noParametersRequired": "无需设置参数"
   },
   "selectBehaviorHint": "将鼠标悬停在左侧行为上查看说明",
   "behaviorDesc": {
@@ -203,6 +203,70 @@
       "system": "系统",
       "mouse": "鼠标",
       "other": "其他"
+    }
+  },
+  "holdTap": {
+    "tappingTermMs": "判定时长 (ms)",
+    "quickTapMs": "快速点击 (ms)",
+    "requirePriorIdleMs": "空闲等待 (ms)",
+    "flavorLabel": "判定模式",
+    "retroTap": "松手也点击",
+    "holdWhileUndecided": "立即按住",
+    "holdWhileUndecidedLinger": "按住不松开",
+    "holdTriggerOnRelease": "松手再判定",
+    "flavor": {
+      "holdPreferred": "倾向长按",
+      "balanced": "平衡",
+      "tapPreferred": "倾向点击",
+      "tapUnlessInterrupted": "打断才长按"
+    },
+    "flavorDesc": {
+      "holdPreferred": "超过判定时长或按下其它键就立刻触发长按，适合修饰键。",
+      "balanced": "按住期间把另一个键按下并松开，就判定为长按；先松开本键则为点击。贴合多数修饰键的用法。",
+      "tapPreferred": "只有真正按住超过判定时长才长按，打字误触最少。",
+      "tapUnlessInterrupted": "默认点击，只有被其它键打断时才长按。"
+    },
+    "term": {
+      "sensitive": "灵敏",
+      "standard": "标准",
+      "relaxed": "沉稳"
+    },
+    "advanced": "高级",
+    "ms": "ms",
+    "on": "开",
+    "off": "关",
+    "desc": {
+      "retroTap": "按住超过判定时长却没按其它键时，松手仍发送点击。",
+      "holdWhileUndecided": "判定期间立即激活长按而不等待，适合鼠标修饰键。",
+      "holdWhileUndecidedLinger": "保持长按直到点击发出之后才松开，仅在“立即按住”开启时有意义。",
+      "holdTriggerOnRelease": "延迟到松手时再做位置判定。",
+      "quickTapMs": "点击后在此时间内再次按住会继续点击——例如退格键点一下再按住可连续删除。",
+      "requirePriorIdleMs": "若在此时间内刚按过其它键，则只点击不长按——快速打字时避免误触长按。"
+    },
+    "save": "保存",
+    "saving": "保存中…",
+    "cancel": "取消",
+    "resetDefault": "恢复默认",
+    "loading": "加载中…",
+    "section": {
+      "userPresets": "用户预设"
+    },
+    "scope": {
+      "builtin": "固件默认"
+    },
+    "empty": {
+      "builtinHint": "固件未注册 Mod-Tap 或 Layer-Tap。",
+      "userPresets": "未定义用户预设",
+      "userPresetsHint": "在 .keymap 中定义 `ht_*` 命名的 hold-tap 变体即可在此管理。"
+    },
+    "applyTitle": "套用预设",
+    "applyHint": "把某个预设的设置同步到 {{name}}。",
+    "saveFailed": "保存失败或超时，请重试。"
+  },
+  "other": {
+    "tab": "其他",
+    "feature": {
+      "tapHold": "Tap-Hold"
     }
   },
   "hid": {

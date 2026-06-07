@@ -42,6 +42,7 @@ import { deserializeLayoutZoom, LayoutZoom } from "./PhysicalLayout";
 import { useLocalStorageState } from "../misc/useLocalStorageState";
 import { useTranslation } from "react-i18next";
 import IdlePanel from "./IdlePanel";
+import { OtherPanel } from "./OtherPanel";
 import LightingControl from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
 import { useSub } from "../usePubSub";
@@ -211,7 +212,7 @@ export default function Keyboard({ onReady, onLightingChanged }: KeyboardProps) 
   const [selectedKeyPosition, setSelectedKeyPosition] = useState<
     number | undefined
   >(undefined);
-  const [bottomTab, setBottomTab] = useState<"keymap" | "lighting">("keymap");
+  const [bottomTab, setBottomTab] = useState<"keymap" | "lighting" | "other">("keymap");
   const [behaviors, behaviorsLoaded] = useBehaviors();
 
   const [ledData, setLedData] = useState<GetLayerLedColorsResponse | null>(null);
@@ -826,6 +827,8 @@ export default function Keyboard({ onReady, onLightingChanged }: KeyboardProps) 
               ) : (
                 <IdlePanel />
               )
+            ) : bottomTab === "other" ? (
+              <OtherPanel behaviors={Object.values(behaviors)} />
             ) : (
               <LightingControl
                 hasLayerLed={hasLayerLed}
@@ -867,7 +870,7 @@ function BottomPanel({
   children,
 }: {
   bottomTab: string;
-  setBottomTab: (tab: "keymap" | "lighting") => void;
+  setBottomTab: (tab: "keymap" | "lighting" | "other") => void;
   t: (key: string) => string;
   children: React.ReactNode;
 }) {
@@ -911,6 +914,16 @@ function BottomPanel({
           onClick={() => setBottomTab("lighting")}
         >
           {t("keyboard.tab.lighting")}
+        </button>
+        <button
+          className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+            bottomTab === "other"
+              ? "text-primary border-b-2 border-primary"
+              : "text-base-content/50 hover:text-base-content/70"
+          }`}
+          onClick={() => setBottomTab("other")}
+        >
+          {t("other.tab")}
         </button>
       </div>
       <div
