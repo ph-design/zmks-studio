@@ -84,9 +84,9 @@ function useBehaviors(): [BehaviorMap, boolean] {
         requestId: 0,
       };
 
-      let behavior_list = await call_rpc(connection.conn, get_behaviors);
-      if (!ignore) {
-        let behavior_map: BehaviorMap = {};
+      const behavior_map: BehaviorMap = {};
+      try {
+        const behavior_list = await call_rpc(connection.conn, get_behaviors);
         for (let behaviorId of behavior_list.behaviors?.listAllBehaviors
           ?.behaviors || []) {
           if (ignore) {
@@ -96,19 +96,25 @@ function useBehaviors(): [BehaviorMap, boolean] {
             behaviors: { getBehaviorDetails: { behaviorId } },
             requestId: 0,
           };
-          let behavior_details = await call_rpc(connection.conn, details_req);
-          let dets: GetBehaviorDetailsResponse | undefined =
-            behavior_details?.behaviors?.getBehaviorDetails;
+          try {
+            const behavior_details = await call_rpc(connection.conn, details_req);
+            const dets: GetBehaviorDetailsResponse | undefined =
+              behavior_details?.behaviors?.getBehaviorDetails;
 
-          if (dets) {
-            behavior_map[dets.id] = dets;
+            if (dets) {
+              behavior_map[dets.id] = dets;
+            }
+          } catch (e) {
+            console.error("Failed to load behavior", behaviorId, e);
           }
         }
+      } catch (e) {
+        console.error("Failed to list behaviors", e);
+      }
 
-        if (!ignore) {
-          setBehaviors(behavior_map);
-          setLoaded(true);
-        }
+      if (!ignore) {
+        setBehaviors(behavior_map);
+        setLoaded(true);
       }
     }
 

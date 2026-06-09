@@ -296,7 +296,7 @@ function ConnectingStep({
           )}
         </div>
         {determinate && (
-          <p className="text-xs opacity-60">{pct}%</p>
+          <p className="text-sm opacity-60">{pct}%</p>
         )}
       </div>
       <Button

@@ -399,7 +399,7 @@ function App() {
     doDisconnect();
   }, [conn]);
 
-  // Give up if initialization stalls past 10s instead of spinning forever.
+  // Give up if initialization stalls past 60s instead of spinning forever.
   useEffect(() => {
     if (connectionPhase !== "initializing" || keyboardReady) {
       return;
@@ -408,7 +408,7 @@ function App() {
     const timer = setTimeout(() => {
       setConnectionError(i18n.t("errors.loadTimeout"));
       disconnect();
-    }, 10000);
+    }, 60000);
 
     return () => clearTimeout(timer);
   }, [connectionPhase, keyboardReady, disconnect]);
