@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/ph-design/zmks-studio/compare/v0.1.0...v0.2.0) (2026-06-09)
+
+
+### Miscellaneous Chores
+
+* release 0.2.0 ([9b82ee2](https://github.com/ph-design/zmks-studio/commit/9b82ee225b041269cde4087917529532f954d0b5))
+
 ## [0.1.0](https://github.com/ph-design/zmk-studio/compare/v0.0.4...v0.1.0) (2026-03-23)
 
 
