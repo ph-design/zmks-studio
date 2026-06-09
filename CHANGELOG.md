@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/ph-design/zmks-studio/compare/v0.2.0...v0.2.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* harden keyboard connection loading ([fb89d7c](https://github.com/ph-design/zmks-studio/commit/fb89d7ca75df156eb944852b9802fdb4f771c57c))
+
 ## [0.2.0](https://github.com/ph-design/zmks-studio/compare/v0.1.0...v0.2.0) (2026-06-09)
 
 
