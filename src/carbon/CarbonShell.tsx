@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronRight, Keyboard as KeyboardIcon, Layers, Zap, Link2,
   Settings, Sun, Moon, Save, Undo2, Redo2, RotateCcw, LogOut,
-  Plus, Trash2, Pencil, Check, X, Lock, Unlock, Copy, Cpu, Info, FileText, Lightbulb, Wifi,
+  Plus, Trash2, Pencil, Check, X, Lock, Unlock, Copy, Cpu, Info, FileText, Lightbulb, Wifi, Gauge,
 } from "lucide-react";
 
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
@@ -86,7 +86,7 @@ export function CarbonShell(props: CarbonShellProps) {
   const layerCount = model.keymap?.layers.length ?? 0;
 
   const NAV: { id: NavId; label: string; icon: React.ReactNode }[] = [
-    { id: "keyboard", label: t("carbon.nav.keyboard", "Keyboard"), icon: <KeyboardIcon size={16} /> },
+    { id: "keyboard", label: t("carbon.nav.quick", "Quick settings"), icon: <Gauge size={16} /> },
     { id: "layers", label: t("carbon.nav.map", "Map"), icon: <Layers size={16} /> },
     { id: "behaviors", label: t("carbon.nav.behaviors", "Behaviors"), icon: <Zap size={16} /> },
     { id: "lighting", label: t("carbon.nav.lighting", "Lighting"), icon: <Lightbulb size={16} /> },
@@ -206,7 +206,7 @@ export function CarbonShell(props: CarbonShellProps) {
             {!isUnlocked ? (
               <LockedNotice th={th} t={t} />
             ) : activeNav === "layers" ? (
-              <LayersView model={model} th={th} t={t} />
+              <LayersView model={model} th={th} t={t} deviceName={deviceName} />
             ) : activeNav === "lighting" ? (
               <LightingView model={model} th={th} t={t} />
             ) : activeNav === "behaviors" ? (
@@ -214,7 +214,10 @@ export function CarbonShell(props: CarbonShellProps) {
                 <OtherPanel behaviors={model.behaviorList} th={th} />
               </div>
             ) : activeNav === "keyboard" ? (
-              <DeviceInfoView model={model} th={th} t={t} deviceName={deviceName} />
+              <QuickSettingsView model={model} th={th} t={t} deviceName={deviceName}
+                setting={setting} setSetting={setSetting} lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
+                defaultNav={defaultNav} setDefaultNav={setDefaultNav}
+                navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))} />
             ) : activeNav === "settings" ? (
               <SettingsView th={th} t={t} setting={setting} setSetting={setSetting} lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
@@ -266,12 +269,17 @@ function LockedNotice({ th, t }: { th: CarbonTheme; t: (k: string, d: string) =>
 }
 
 // ─── Layers view (secondary sidebar + canvas + binding drawer) ─────────────────
-function LayersView({ model, th, t }: { model: ReturnType<typeof useKeyboardModel>; th: CarbonTheme; t: (k: string, d: string) => string }) {
+function LayersView({ model, th, t, deviceName }: { model: ReturnType<typeof useKeyboardModel>; th: CarbonTheme; t: (k: string, d: string) => string; deviceName: string }) {
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   // Frontend-only "soft lock": marks a layer read-only in the UI. Not a ZMK
   // firmware feature — it only gates editing in this client, no backend calls.
-  const [lockedIds, setLockedIds] = useState<Set<number>>(new Set());
+  // Persisted per device (keyed by name) so locks survive reloads.
+  const [lockedMap, setLockedMap] = useLocalStorageState<Record<string, number[]>>(
+    "zmk-studio-locked-layers",
+    {},
+    { deserialize: (s) => JSON.parse(s) }
+  );
   // Live input feedback: highlight on-screen keys as they're physically pressed.
   const pressedUsages = usePressedKeys(true);
   const km = model.keymap;
@@ -282,13 +290,14 @@ function LayersView({ model, th, t }: { model: ReturnType<typeof useKeyboardMode
 
   const canAdd = (km.availableLayers || 0) > 0;
   const currentLayer = km.layers[model.selectedLayerIndex];
+  const lockedIds = new Set(lockedMap[deviceName] || []);
   const currentLocked = currentLayer ? lockedIds.has(currentLayer.id) : false;
 
   const toggleLock = (id: number) =>
-    setLockedIds((prev) => {
-      const n = new Set(prev);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
+    setLockedMap((prev) => {
+      const set = new Set(prev[deviceName] || []);
+      set.has(id) ? set.delete(id) : set.add(id);
+      return { ...prev, [deviceName]: Array.from(set) };
     });
 
   const bottomAction = (icon: React.ReactNode, label: string, onClick: () => void, opts?: { color?: string; disabled?: boolean }) => (
@@ -540,22 +549,51 @@ function LightingView({ model, th, t }: { model: ReturnType<typeof useKeyboardMo
   );
 }
 
-// ─── Device info ───────────────────────────────────────────────────────────────
-function DeviceInfoView({ model, th, t, deviceName }: { model: ReturnType<typeof useKeyboardModel>; th: CarbonTheme; t: (k: string, d: string) => string; deviceName: string }) {
+// ─── Quick settings (device info + a few streamlined controls) ─────────────────
+function QuickSettingsView({ model, th, t, deviceName, setting, setSetting, lang, setLang, defaultNav, setDefaultNav, navOptions }: {
+  model: ReturnType<typeof useKeyboardModel>; th: CarbonTheme; t: (k: string, d: string) => string; deviceName: string;
+  setting: string; setSetting: (s: "dark" | "light" | "system") => void;
+  lang: string; setLang: (l: string) => void;
+  defaultNav: NavId; setDefaultNav: (n: NavId) => void;
+  navOptions: { id: NavId; label: string }[];
+}) {
   const rows: [string, string][] = [
     [t("carbon.deviceName", "Device name"), deviceName],
     [t("carbon.layoutCount", "Physical layouts"), String(model.layouts?.length ?? 0)],
     [t("carbon.layerCount", "Layers"), String(model.keymap?.layers.length ?? 0)],
   ];
+  const seg = (opts: { id: string; label: string }[], value: string, onChange: (v: string) => void) => (
+    <div style={{ display: "inline-flex", border: `1px solid ${th.borderStrong}` }}>
+      {opts.map((o, i) => (
+        <button key={o.id} onClick={() => onChange(o.id)}
+          style={{ padding: "7px 14px", fontSize: 13, cursor: "pointer", border: "none", borderLeft: i ? `1px solid ${th.border}` : "none", background: value === o.id ? th.interactive : th.fieldBg, color: value === o.id ? "#fff" : th.textSecondary, fontFamily: "var(--font-sans)" }}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+  const block = (label: string, node: React.ReactNode) => (
+    <div style={{ padding: "16px 0", borderBottom: `1px solid ${th.border}` }}>
+      <div style={{ fontSize: 14, color: th.textPrimary, fontWeight: 500, marginBottom: 8 }}>{label}</div>
+      {node}
+    </div>
+  );
   return (
-    <div style={{ flex: 1, overflow: "auto", padding: 24 }} className="custom-scrollbar">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+    <div style={{ flex: 1, overflow: "auto", padding: 24, maxWidth: 560 }} className="custom-scrollbar">
+      {/* Device summary */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <div style={{ width: 48, height: 48, background: th.layer2, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Cpu size={24} style={{ color: th.interactive }} />
         </div>
-        <div style={{ fontSize: 18, fontWeight: 600, color: th.textPrimary }}>{deviceName}</div>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: th.textPrimary }}>{deviceName}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, fontSize: 12, color: th.success }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: th.success }} />
+            {t("carbon.statusConnected", "Device connected")}
+          </div>
+        </div>
       </div>
-      <div style={{ border: `1px solid ${th.border}`, maxWidth: 480 }}>
+      <div style={{ border: `1px solid ${th.border}` }}>
         {rows.map(([k, v], i) => (
           <div key={k} style={{ display: "flex", padding: "10px 16px", borderBottom: i < rows.length - 1 ? `1px solid ${th.border}` : "none", background: i % 2 === 0 ? th.layer1 : th.bg }}>
             <span style={{ width: 140, fontSize: 13, color: th.textHelper, flexShrink: 0 }}>{k}</span>
@@ -563,12 +601,36 @@ function DeviceInfoView({ model, th, t, deviceName }: { model: ReturnType<typeof
           </div>
         ))}
       </div>
-      {model.layouts && model.layouts.length > 1 && (
-        <div style={{ marginTop: 20, maxWidth: 480 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: th.textPrimary, marginBottom: 8 }}>{t("carbon.activeLayout", "Active layout")}</div>
+
+      {model.layouts && model.layouts.length > 1 &&
+        block(t("carbon.activeLayout", "Active layout"), (
           <PhysicalLayoutPicker layouts={model.layouts} selectedPhysicalLayoutIndex={model.selectedPhysicalLayoutIndex} onPhysicalLayoutClicked={model.doSelectPhysicalLayout} />
+        ))}
+
+      {/* Quick controls — streamlined duplicates of the most-used settings */}
+      <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: th.textHelper, paddingTop: 12 }}>
+        {t("carbon.quickControls", "QUICK CONTROLS")}
+      </div>
+      {block(t("carbon.theme", "Theme"), seg([
+        { id: "system", label: t("carbon.themeSystem", "System") },
+        { id: "light", label: t("carbon.lightTheme", "Light") },
+        { id: "dark", label: t("carbon.darkTheme", "Dark") },
+      ], setting, (v) => setSetting(v as "dark" | "light" | "system")))}
+      {block(t("carbon.language", "Language"), seg([
+        { id: "en", label: "English" },
+        { id: "zh", label: "中文" },
+      ], lang.startsWith("zh") ? "zh" : "en", setLang))}
+      <div style={{ padding: "16px 0" }}>
+        <div style={{ fontSize: 14, color: th.textPrimary, fontWeight: 500, marginBottom: 8 }}>{t("carbon.defaultView", "Default view")}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {navOptions.map((o) => (
+            <button key={o.id} onClick={() => setDefaultNav(o.id)}
+              style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", background: defaultNav === o.id ? th.interactive : th.fieldBg, color: defaultNav === o.id ? "#fff" : th.textSecondary, border: `1px solid ${defaultNav === o.id ? th.interactive : th.borderStrong}`, fontFamily: "var(--font-sans)" }}>
+              {o.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

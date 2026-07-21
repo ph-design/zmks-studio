@@ -329,6 +329,7 @@
   "carbon": {
     "nav": {
       "keyboard": "键盘",
+      "quick": "快速设置",
       "layers": "图层",
       "map": "映射",
       "behaviors": "按键行为",
@@ -356,6 +357,7 @@
     "addLayer": "添加图层",
     "model": "型号",
     "clickKeyHint": "点击任意按键以编辑其绑定",
+    "quickControls": "快捷控制",
     "editBinding": "编辑绑定",
     "close": "关闭",
     "clearSearch": "清除",

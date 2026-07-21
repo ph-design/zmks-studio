@@ -329,6 +329,7 @@
   "carbon": {
     "nav": {
       "keyboard": "Keyboard",
+      "quick": "Quick settings",
       "layers": "Layers",
       "map": "Map",
       "behaviors": "Behaviors",
@@ -356,6 +357,7 @@
     "addLayer": "Add layer",
     "model": "Model",
     "clickKeyHint": "Click any key to edit its binding",
+    "quickControls": "Quick controls",
     "editBinding": "Edit binding",
     "close": "Close",
     "clearSearch": "Clear",

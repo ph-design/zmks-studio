@@ -111,9 +111,11 @@ function isDarkFor(setting: ThemeSetting): boolean {
  * the inline-styled shell.
  */
 export function useCarbonTheme() {
+  // Default to "system" so a first-time visitor follows the browser/OS theme
+  // (an explicit user choice from Settings is still persisted and wins).
   const [setting, setSetting] = useLocalStorageState<ThemeSetting>(
     STORAGE_KEY,
-    "dark",
+    "system",
   );
 
   const dark = isDarkFor(setting);
