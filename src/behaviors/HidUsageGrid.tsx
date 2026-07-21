@@ -196,7 +196,7 @@ const KeyButton = ({
       data-selected={selected ? "true" : undefined}
       onClick={onClick}
       title={k.rawName}
-      className={`${spanClass} h-[3.2rem] rounded text-sm font-medium cursor-pointer transition-colors flex items-center justify-center ${
+      className={`${spanClass} h-[3.4rem] rounded text-sm font-medium cursor-pointer transition-colors flex items-center justify-center ${
         selected ? "bg-primary text-primary-content" : "bg-base-100 text-base-content hover:bg-base-300"
       }`}
     >
@@ -362,18 +362,18 @@ export const HidUsageGrid = ({
   );
 
   return (
-    <div className="flex gap-3 min-h-0 flex-1">
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
+    <div className="flex min-h-0 flex-1">
+      <div className="flex-1 flex flex-col min-w-0 p-3">
+        <div className="flex items-center gap-2 mb-2 flex-wrap flex-shrink-0">
           {!isSearching && (
             <div className="flex gap-1 flex-wrap">
               {availableTabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3 py-1 rounded text-sm transition-colors cursor-pointer ${activeTab === tab.id
-                      ? "bg-primary text-primary-content"
-                      : "bg-base-300 text-base-content hover:bg-base-100"
+                  className={`px-3 h-8 text-sm transition-colors cursor-pointer border-b-2 ${activeTab === tab.id
+                      ? "border-primary text-base-content font-medium"
+                      : "border-transparent text-base-content/60 hover:text-base-content hover:border-base-content/30"
                     }`}
                 >
                   {t(`hid.tabs.${tab.id}`)}
@@ -392,7 +392,7 @@ export const HidUsageGrid = ({
               placeholder={t("hid.general.filter")}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="pl-7 pr-2 py-1 rounded bg-base-300 text-base-content text-sm w-32 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="pl-7 pr-2 py-1 bg-base-100 border border-base-300 text-base-content text-sm w-40 focus:outline-none focus:border-primary"
             />
             <svg
               className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-base-content/50"
@@ -419,11 +419,11 @@ export const HidUsageGrid = ({
             ? filteredKeys.filter((k) => isRareUsage(k.pageId, k.usageId))
             : [];
           return (
-            <>
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
               <div
                 key={isSearching ? "search" : activeTab}
                 ref={gridRef}
-                className="grid grid-cols-[repeat(auto-fill,minmax(3.2rem,1fr))] gap-1.5 overflow-y-auto max-h-52 pr-1 animate-fade-in"
+                className="grid grid-cols-[repeat(auto-fill,minmax(3.4rem,1fr))] gap-1.5 animate-fade-in"
               >
                 {shown.map((key) => (
                   <KeyButton
@@ -454,7 +454,7 @@ export const HidUsageGrid = ({
                     {t("hid.general.rarelyUsed", "Rarely used")} ({rare.length})
                   </button>
                   {rareOpen && (
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(3.2rem,1fr))] gap-1.5 overflow-y-auto max-h-52 pr-1 mt-2 animate-fade-in">
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(3.4rem,1fr))] gap-1.5 overflow-y-auto max-h-52 pr-1 mt-2 animate-fade-in">
                       {rare.map((key) => (
                         <KeyButton
                           key={key.usageValue}
@@ -467,12 +467,12 @@ export const HidUsageGrid = ({
                   )}
                 </div>
               )}
-            </>
+            </div>
           );
         })()}
       </div>
 
-      <div className="flex-shrink-0 w-40">
+      <div className="flex-shrink-0 w-44 border-l border-base-300 p-3 overflow-y-auto custom-scrollbar">
         <div className="text-sm text-base-content/60 mb-2 font-medium">
           {t("hid.general.modifiersTitle")}
         </div>

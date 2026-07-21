@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Label } from "react-aria-components";
 import { useTranslation } from "react-i18next";
+import { ChevronRight } from "lucide-react";
 
 export interface HsbColor {
   h: number; // 0-359
@@ -268,12 +269,30 @@ interface HsbColorPickerProps {
   disabled?: boolean;
 }
 
+// Friendly preset palette: pick a color chip, then dial brightness. The full
+// HSB/hex controls live behind "Advanced" for power users.
+const SWATCHES: { h: number; s: number }[] = [
+  { h: 0, s: 100 },
+  { h: 25, s: 100 },
+  { h: 50, s: 100 },
+  { h: 100, s: 100 },
+  { h: 140, s: 100 },
+  { h: 180, s: 100 },
+  { h: 210, s: 100 },
+  { h: 240, s: 100 },
+  { h: 275, s: 100 },
+  { h: 315, s: 100 },
+  { h: 340, s: 60 },
+  { h: 0, s: 0 },
+];
+
 export default function HsbColorPicker({
   hsb,
   onHsbChanged,
   disabled,
 }: HsbColorPickerProps) {
   const { t } = useTranslation();
+  const [advanced, setAdvanced] = useState(false);
 
   const previewColor = useMemo(
     () => hsbToCssColor(hsb.h, hsb.s, hsb.b),
@@ -302,41 +321,41 @@ export default function HsbColorPicker({
     [hsb.h, hsb.s]
   );
 
+  const pickSwatch = (sw: { h: number; s: number }) =>
+    onHsbChanged({ h: sw.h, s: sw.s, b: hsb.b === 0 ? 100 : hsb.b });
+
+  const swatchActive = (sw: { h: number; s: number }) => {
+    if (sw.s === 0) return hsb.s <= 8;
+    const dh = Math.min(Math.abs(hsb.h - sw.h), 360 - Math.abs(hsb.h - sw.h));
+    return dh <= 12 && Math.abs(hsb.s - sw.s) <= 18;
+  };
+
   return (
-    <div className="flex flex-col gap-2">
-      {/* Color preview + hex input */}
-      <div className="flex items-center gap-3">
-        <Label className="text-sm text-base-content/60 w-10 shrink-0">
-          {t("lighting.color")}
-        </Label>
-        <div
-          className="flex-1 h-8 rounded border border-base-300"
-          style={{ backgroundColor: previewColor }}
-        />
-        <HexInput hsb={hsb} disabled={disabled} onHsbChanged={onHsbChanged} />
+    <div className="flex flex-col gap-3">
+      {/* Preset color chips — the main, intuitive way to choose a color */}
+      <div className={`grid grid-cols-6 gap-1.5 ${disabled ? "opacity-40 pointer-events-none" : ""}`}>
+        {SWATCHES.map((sw, i) => {
+          const active = swatchActive(sw);
+          return (
+            <button
+              key={i}
+              type="button"
+              aria-label={`color-${i}`}
+              onClick={() => pickSwatch(sw)}
+              className={`h-8 w-full cursor-pointer border transition-shadow ${
+                active
+                  ? "border-primary ring-2 ring-primary ring-inset"
+                  : "border-base-300 hover:border-base-content/50"
+              }`}
+              style={{ backgroundColor: hsbToCssColor(sw.h, sw.s, 100) }}
+            />
+          );
+        })}
       </div>
 
-      {/* H / S / B sliders with editable inputs */}
+      {/* Brightness — a single, familiar slider */}
       <ColorSliderRow
-        label={t("lighting.hue")}
-        value={hsb.h}
-        min={0}
-        max={359}
-        disabled={disabled}
-        trackStyle={hueTrack}
-        onChange={(h) => onHsbChanged({ ...hsb, h })}
-      />
-      <ColorSliderRow
-        label={t("lighting.sat")}
-        value={hsb.s}
-        min={0}
-        max={100}
-        disabled={disabled}
-        trackStyle={satTrack}
-        onChange={(s) => onHsbChanged({ ...hsb, s })}
-      />
-      <ColorSliderRow
-        label={t("lighting.brt")}
+        label={t("lighting.brt", "Brightness")}
         value={hsb.b}
         min={0}
         max={100}
@@ -344,6 +363,45 @@ export default function HsbColorPicker({
         trackStyle={brtTrack}
         onChange={(b) => onHsbChanged({ ...hsb, b })}
       />
+
+      {/* Advanced — precise HSB + hex for power users */}
+      <button
+        type="button"
+        aria-expanded={advanced}
+        onClick={() => setAdvanced((v) => !v)}
+        className="flex items-center gap-1 text-sm text-base-content/50 hover:text-base-content/80 transition-colors cursor-pointer w-fit"
+      >
+        <ChevronRight className={`w-3.5 h-3.5 transition-transform ${advanced ? "rotate-90" : ""}`} />
+        {t("lighting.advanced", "Advanced")}
+      </button>
+
+      {advanced && (
+        <div className="flex flex-col gap-2 animate-fade-in">
+          <ColorSliderRow
+            label={t("lighting.hue")}
+            value={hsb.h}
+            min={0}
+            max={359}
+            disabled={disabled}
+            trackStyle={hueTrack}
+            onChange={(h) => onHsbChanged({ ...hsb, h })}
+          />
+          <ColorSliderRow
+            label={t("lighting.sat")}
+            value={hsb.s}
+            min={0}
+            max={100}
+            disabled={disabled}
+            trackStyle={satTrack}
+            onChange={(s) => onHsbChanged({ ...hsb, s })}
+          />
+          <div className="flex items-center gap-3">
+            <Label className="text-sm text-base-content/60 w-10 shrink-0">{t("lighting.color")}</Label>
+            <div className="flex-1 h-7 border border-base-300" style={{ backgroundColor: previewColor }} />
+            <HexInput hsb={hsb} disabled={disabled} onHsbChanged={onHsbChanged} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

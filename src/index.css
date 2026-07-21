@@ -1,17 +1,56 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  @font-face {
-    font-family: "Inter";
-    src: url("/Inter.woff2") format("woff2");
-    font-display: fallback;
-  }
+/* ───────────────────────────────────────────────────────────────────────────
+   IBM Carbon Design tokens. Light = :root, dark = .dark (toggled on <html> by
+   src/carbon/theme.ts). Values are HSL triplets so Tailwind's /alpha modifiers
+   (bg-primary/10, base-content/40, …) keep working for existing panels.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --font-size: 14px;
+
+  /* Light */
+  --background: 0 0% 100%; /* #ffffff page */
+  --base-100: 0 0% 96%; /* #f4f4f4 panels/cards */
+  --base-200: 0 0% 88%; /* #e0e0e0 hover / layer 2 */
+  --base-300: 0 0% 88%; /* #e0e0e0 borders */
+  --base-content: 0 0% 9%; /* #161616 text */
+  --primary: 219 99% 53%; /* #0f62fe interactive */
+  --primary-content: 0 0% 100%; /* #ffffff on primary */
+  --secondary: 0 0% 88%; /* #e0e0e0 */
+  --accent: 219 99% 53%;
+  --success: 137 63% 39%; /* #24a148 */
+  --warning: 45 100% 35%; /* #b28600 */
+  --error: 357 76% 49%; /* #da1e28 */
+}
+
+.dark {
+  --background: 0 0% 9%; /* #161616 page */
+  --base-100: 0 0% 15%; /* #262626 panels/cards */
+  --base-200: 0 0% 22%; /* #393939 hover / layer 2 */
+  --base-300: 0 0% 22%; /* #393939 borders */
+  --base-content: 0 0% 96%; /* #f4f4f4 text */
+  --primary: 219 99% 53%; /* #0f62fe */
+  --primary-content: 0 0% 100%;
+  --secondary: 0 0% 22%; /* #393939 */
+  --accent: 219 99% 53%;
+  --success: 137 49% 50%; /* #42be65 */
+  --warning: 47 88% 53%; /* #f1c21b */
+  --error: 357 95% 64%; /* #fa4d56 */
 }
 
 html {
-  color-scheme: light dark;
+  font-size: var(--font-size);
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 #root {
@@ -22,11 +61,15 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-
   width: 100vw;
   height: 100vh;
+  font-family: var(--font-sans);
+  background-color: hsl(var(--background));
+  color: hsl(var(--base-content));
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ── Animations preserved from main (used by ConnectModal & panels) ────────── */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -201,57 +244,18 @@ body {
   animation: device-row-in 0.16s ease-out;
 }
 
-@keyframes footer-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+/* Carbon custom scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--base-300)) transparent;
 }
-
-.app-footer {
-  color: inherit;
-  font-size: 0.875rem;
-  text-align: center;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-
-.app-footer-content {
-  opacity: 0.78;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--base-300));
 }
-
-.app-footer-modal {
-  margin-top: 1rem;
-  border-top: 1px solid light-dark(#e5e6e6, #15191e);
-  padding-top: 0.75rem;
-}
-
-.app-footer-floating {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  z-index: 50;
-  display: grid;
-  justify-content: center;
-  min-width: min(100vw, 48rem);
-  max-width: 100vw;
-  padding: 0.25rem 1rem;
-  background-color: light-dark(rgba(242, 242, 242, 0.94), rgba(25, 30, 36, 0.94));
-  backdrop-filter: blur(12px);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
-  transition: opacity 0.24s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: footer-slide-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.app-footer-floating-visible {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.app-footer-floating-hidden {
-  pointer-events: none;
-  opacity: 0;
-  transform: translateX(-50%) translateY(100%);
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }

@@ -1,4 +1,3 @@
-import { AppHeader } from "./AppHeader";
 import i18n from "./i18n";
 import { I18nextProvider, useTranslation } from "react-i18next";
 
@@ -25,15 +24,15 @@ import {
   connect as tauri_serial_connect,
   list_devices as serial_list_devices,
 } from "./tauri/serial";
-import Keyboard from "./keyboard/Keyboard";
 import { UndoRedoContext, useUndoRedo } from "./undoRedo";
 import { usePub, useSub } from "./usePubSub";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import { LockStateContext } from "./rpc/LockStateContext";
 import { valueAfter } from "./misc/async";
-import { AppFooter } from "./AppFooter";
 import { AboutModal } from "./AboutModal";
 import { LicenseNoticeModal } from "./misc/LicenseNoticeModal";
+import { CarbonShell } from "./carbon/CarbonShell";
+import { useCarbonTheme } from "./carbon/theme";
 
 declare global {
   interface Window {
@@ -195,6 +194,7 @@ async function connect(
 
 function App() {
   const { t } = useTranslation();
+  const carbon = useCarbonTheme();
   const [conn, setConn] = useState<ConnectionState>({ conn: null });
   const [connectedDeviceName, setConnectedDeviceName] = useState<
     string | undefined
@@ -479,41 +479,35 @@ function App() {
               loadProgress={loadProgress}
               lockState={lockState}
               onCancelConnection={cancelConnection}
-              footer={
-                <AppFooter
-                  variant="modal"
-                  onShowAbout={() => setShowAbout(true)}
-                  onShowLicenseNotice={() => setShowLicenseNotice(true)}
-                />
-              }
             />
             <AboutModal open={showAbout} onClose={() => setShowAbout(false)} />
             <LicenseNoticeModal
               open={showLicenseNotice}
               onClose={() => setShowLicenseNotice(false)}
             />
-            <div className="relative bg-base-100 text-base-content h-full max-h-[100vh] w-full max-w-[100vw] inline-grid grid-cols-[auto] grid-rows-[auto_1fr] overflow-hidden">
-              <AppHeader
-                connectedDeviceLabel={connectedDeviceName}
+            {conn.conn ? (
+              <CarbonShell
+                carbon={carbon}
+                connectedDeviceName={connectedDeviceName}
+                onDisconnect={disconnect}
+                onResetSettings={resetSettings}
+                onSave={save}
+                onDiscard={discard}
                 canUndo={canUndo}
                 canRedo={canRedo}
                 onUndo={undo}
                 onRedo={redo}
                 extraSaveEnabled={hasUnsavedLightingChanges}
-                onSave={save}
-                onDiscard={discard}
-                onDisconnect={disconnect}
-                onResetSettings={resetSettings}
+                onReady={setKeyboardReady}
+                onProgress={setLoadProgress}
+                onLightingChanged={markLightingChanged}
+                onShowAbout={() => setShowAbout(true)}
+                onShowLicense={() => setShowLicenseNotice(true)}
               />
-              <Keyboard onReady={setKeyboardReady} onProgress={setLoadProgress} onLightingChanged={markLightingChanged} />
-              {conn.conn && (
-                <AppFooter
-                  variant="floating"
-                  onShowAbout={() => setShowAbout(true)}
-                  onShowLicenseNotice={() => setShowLicenseNotice(true)}
-                />
-              )}
-            </div>
+            ) : (
+              // Carbon-toned backdrop behind the connect modal
+              <div style={{ height: "100vh", width: "100vw", background: carbon.theme.bg }} />
+            )}
           </UndoRedoContext.Provider>
         </LockStateContext.Provider>
       </ConnectionContext.Provider>

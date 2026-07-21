@@ -3,9 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
-  useLayoutEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
@@ -27,24 +25,15 @@ import type {
   CapsLockIndicatorState,
   ConnectionIndicatorState,
 } from "@zmkfirmware/zmk-studio-ts-client/lighting";
+import { produce } from "immer";
 
-import { LayerPicker } from "./LayerPicker";
-import { PhysicalLayoutPicker } from "./PhysicalLayoutPicker";
-import { Keymap as KeymapComp } from "./Keymap";
 import { useConnectedDeviceData } from "../rpc/useConnectedDeviceData";
 import { ConnectionContext } from "../rpc/ConnectionContext";
 import { UndoRedoContext } from "../undoRedo";
-import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
-import { produce } from "immer";
 import { LockStateContext } from "../rpc/LockStateContext";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
-import { deserializeLayoutZoom, LayoutZoom } from "./PhysicalLayout";
+import { deserializeLayoutZoom, LayoutZoom } from "../keyboard/PhysicalLayout";
 import { useLocalStorageState } from "../misc/useLocalStorageState";
-import { useTranslation } from "react-i18next";
-import IdlePanel from "./IdlePanel";
-import { OtherPanel } from "./OtherPanel";
-import LightingControl from "../lighting/LightingControl";
-import LayerLedMap from "../lighting/LayerLedMap";
 import { useSub } from "../usePubSub";
 
 type BehaviorMap = Record<number, GetBehaviorDetailsResponse>;
@@ -54,6 +43,18 @@ export interface IndicatorPositionDraft {
   layerId: number;
 }
 
+export interface KeyboardModelCallbacks {
+  onReady?: (ready: boolean) => void;
+  onProgress?: (value: number) => void;
+  onLightingChanged?: () => void;
+}
+
+/*
+ * All keyboard data + RPC orchestration, lifted verbatim from the original
+ * `src/keyboard/Keyboard.tsx` so the Carbon shell's multiple views (layers /
+ * keymap canvas / binding drawer / lighting / device info) share one source of
+ * truth. No RPC behaviour changed — only relocated out of the presentation.
+ */
 function useBehaviors(): [BehaviorMap, boolean] {
   let connection = useContext(ConnectionContext);
   let lockState = useContext(LockStateContext);
@@ -188,20 +189,18 @@ function useLayouts(): [
   ];
 }
 
-export interface KeyboardProps {
-  onReady?: (ready: boolean) => void;
-  onProgress?: (value: number) => void;
-  onLightingChanged?: () => void;
-}
-
-export default function Keyboard({ onReady, onProgress, onLightingChanged }: KeyboardProps) {
+export function useKeyboardModel({
+  onReady,
+  onProgress,
+  onLightingChanged,
+}: KeyboardModelCallbacks) {
   const [
     layouts,
     _setLayouts,
     selectedPhysicalLayoutIndex,
     setSelectedPhysicalLayoutIndex,
   ] = useLayouts();
-  const { t } = useTranslation();
+
   const [keymap, setKeymap] = useConnectedDeviceData<Keymap>(
     { keymap: { getKeymap: true } },
     (keymap) => {
@@ -211,31 +210,40 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
     true
   );
 
-  const [keymapScale, setKeymapScale] = useLocalStorageState<LayoutZoom>("keymapScale", "auto", {
-    deserialize: deserializeLayoutZoom,
-  });
+  const [keymapScale, setKeymapScale] = useLocalStorageState<LayoutZoom>(
+    "keymapScale",
+    "auto",
+    { deserialize: deserializeLayoutZoom }
+  );
 
   const [selectedLayerIndex, setSelectedLayerIndex] = useState<number>(0);
   const [selectedKeyPosition, setSelectedKeyPosition] = useState<
     number | undefined
   >(undefined);
-  const [bottomTab, setBottomTab] = useState<"keymap" | "lighting" | "other">("keymap");
   const [behaviors, behaviorsLoaded] = useBehaviors();
 
   const [ledData, setLedData] = useState<GetLayerLedColorsResponse | null>(null);
-  const [selectedLedPositions, setSelectedLedPositions] = useState<Set<number>>(new Set());
+  const [selectedLedPositions, setSelectedLedPositions] = useState<Set<number>>(
+    new Set()
+  );
   const [hasLayerLed, setHasLayerLed] = useState(false);
 
   const [rgbState, setRgbState] = useState<RgbUnderglowState | null>(null);
-  const [backlightState, setBacklightState] = useState<BacklightState | null>(null);
-  const [capsLockState, setCapsLockState] = useState<CapsLockIndicatorState | null>(null);
-  const [connectionState, setConnectionState] = useState<ConnectionIndicatorState | null>(null);
+  const [backlightState, setBacklightState] = useState<BacklightState | null>(
+    null
+  );
+  const [capsLockState, setCapsLockState] =
+    useState<CapsLockIndicatorState | null>(null);
+  const [connectionState, setConnectionState] =
+    useState<ConnectionIndicatorState | null>(null);
   const [hasRgb, setHasRgb] = useState(false);
   const [hasBacklight, setHasBacklight] = useState(false);
   const [hasCapsLock, setHasCapsLock] = useState(false);
   const [hasConnection, setHasConnection] = useState(false);
   const [lightingLoaded, setLightingLoaded] = useState(false);
-  const [indicatorPositionDraft, setIndicatorPositionDraft] = useState<IndicatorPositionDraft | undefined>(undefined);
+  const [indicatorPositionDraft, setIndicatorPositionDraft] = useState<
+    IndicatorPositionDraft | undefined
+  >(undefined);
   const [lightingSource, setLightingSource] = useState<string>("rgb");
 
   const handleIndicatorPick = useCallback(
@@ -263,19 +271,34 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
     const set = new Set<number>();
     if (indicatorPositionDraft !== undefined) {
       set.add(indicatorPositionDraft.keyPosition);
-    } else if (lightingSource === "capslock" && capsLockState?.enabled && capsLockState.keyPosition !== undefined) {
+    } else if (
+      lightingSource === "capslock" &&
+      capsLockState?.enabled &&
+      capsLockState.keyPosition !== undefined
+    ) {
       set.add(capsLockState.keyPosition);
-    } else if (lightingSource === "connection" && connectionState?.enabled && connectionState.keyPosition !== undefined) {
+    } else if (
+      lightingSource === "connection" &&
+      connectionState?.enabled &&
+      connectionState.keyPosition !== undefined
+    ) {
       set.add(connectionState.keyPosition);
     }
     return set;
-  }, [lightingSource, capsLockState?.enabled, capsLockState?.keyPosition, connectionState?.enabled, connectionState?.keyPosition, indicatorPositionDraft]);
+  }, [
+    lightingSource,
+    capsLockState?.enabled,
+    capsLockState?.keyPosition,
+    connectionState?.enabled,
+    connectionState?.keyPosition,
+    indicatorPositionDraft,
+  ]);
 
   const conn = useContext(ConnectionContext);
   const lockState = useContext(LockStateContext);
-  const layoutFitRef = useRef<HTMLDivElement>(null);
   const undoRedo = useContext(UndoRedoContext);
-  const isUnlocked = lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
+  const isUnlocked =
+    lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
 
   useEffect(() => {
     setSelectedLayerIndex(0);
@@ -295,41 +318,60 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
     setLightingLoaded(false);
   }, [conn]);
 
-  const fetchAllLighting = useCallback(async (ignore?: { current: boolean }) => {
-    if (!conn.conn) return;
+  const fetchAllLighting = useCallback(
+    async (ignore?: { current: boolean }) => {
+      if (!conn.conn) return;
 
-    const [ledResp, rgbResp, blResp, capsResp, connResp] = await Promise.allSettled([
-      call_rpc(conn.conn, { lighting: { getLayerLedColors: true } }),
-      call_rpc(conn.conn, { lighting: { getRgbUnderglowState: true } }),
-      call_rpc(conn.conn, { lighting: { getBacklightState: true } }),
-      call_rpc(conn.conn, { lighting: { getCapsLockIndicator: true } }),
-      call_rpc(conn.conn, { lighting: { getConnectionIndicator: true } }),
-    ]);
+      const [ledResp, rgbResp, blResp, capsResp, connResp] =
+        await Promise.allSettled([
+          call_rpc(conn.conn, { lighting: { getLayerLedColors: true } }),
+          call_rpc(conn.conn, { lighting: { getRgbUnderglowState: true } }),
+          call_rpc(conn.conn, { lighting: { getBacklightState: true } }),
+          call_rpc(conn.conn, { lighting: { getCapsLockIndicator: true } }),
+          call_rpc(conn.conn, { lighting: { getConnectionIndicator: true } }),
+        ]);
 
-    if (ignore?.current) return;
+      if (ignore?.current) return;
 
-    if (ledResp.status === "fulfilled" && ledResp.value.lighting?.getLayerLedColors) {
-      setLedData(ledResp.value.lighting.getLayerLedColors);
-      setHasLayerLed(true);
-    }
-    if (rgbResp.status === "fulfilled" && rgbResp.value.lighting?.getRgbUnderglowState) {
-      setRgbState(rgbResp.value.lighting.getRgbUnderglowState);
-      setHasRgb(true);
-    }
-    if (blResp.status === "fulfilled" && blResp.value.lighting?.getBacklightState) {
-      setBacklightState(blResp.value.lighting.getBacklightState);
-      setHasBacklight(true);
-    }
-    if (capsResp.status === "fulfilled" && capsResp.value.lighting?.getCapsLockIndicator) {
-      setCapsLockState(capsResp.value.lighting.getCapsLockIndicator);
-      setHasCapsLock(true);
-    }
-    if (connResp.status === "fulfilled" && connResp.value.lighting?.getConnectionIndicator) {
-      setConnectionState(connResp.value.lighting.getConnectionIndicator);
-      setHasConnection(true);
-    }
-    setLightingLoaded(true);
-  }, [conn]);
+      if (
+        ledResp.status === "fulfilled" &&
+        ledResp.value.lighting?.getLayerLedColors
+      ) {
+        setLedData(ledResp.value.lighting.getLayerLedColors);
+        setHasLayerLed(true);
+      }
+      if (
+        rgbResp.status === "fulfilled" &&
+        rgbResp.value.lighting?.getRgbUnderglowState
+      ) {
+        setRgbState(rgbResp.value.lighting.getRgbUnderglowState);
+        setHasRgb(true);
+      }
+      if (
+        blResp.status === "fulfilled" &&
+        blResp.value.lighting?.getBacklightState
+      ) {
+        setBacklightState(blResp.value.lighting.getBacklightState);
+        setHasBacklight(true);
+      }
+      if (
+        capsResp.status === "fulfilled" &&
+        capsResp.value.lighting?.getCapsLockIndicator
+      ) {
+        setCapsLockState(capsResp.value.lighting.getCapsLockIndicator);
+        setHasCapsLock(true);
+      }
+      if (
+        connResp.status === "fulfilled" &&
+        connResp.value.lighting?.getConnectionIndicator
+      ) {
+        setConnectionState(connResp.value.lighting.getConnectionIndicator);
+        setHasConnection(true);
+      }
+      setLightingLoaded(true);
+    },
+    [conn]
+  );
 
   useEffect(() => {
     setLightingLoaded(false);
@@ -340,7 +382,9 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
 
     const ignore = { current: false };
     fetchAllLighting(ignore);
-    return () => { ignore.current = true; };
+    return () => {
+      ignore.current = true;
+    };
   }, [conn, isUnlocked, fetchAllLighting]);
 
   useEffect(() => {
@@ -356,19 +400,18 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
 
     const ready = loadedCount === stages.length;
     onReady?.(ready);
-  }, [behaviorsLoaded, conn.conn, isUnlocked, keymap, layouts, lightingLoaded, onReady, onProgress]);
+  }, [
+    behaviorsLoaded,
+    conn.conn,
+    isUnlocked,
+    keymap,
+    layouts,
+    lightingLoaded,
+    onReady,
+    onProgress,
+  ]);
 
-  // Re-fetch when user opens the lighting tab
-  useEffect(() => {
-    if (!conn.conn || !isUnlocked || bottomTab !== "lighting") {
-      return;
-    }
-    const ignore = { current: false };
-    fetchAllLighting(ignore);
-    return () => { ignore.current = true; };
-  }, [bottomTab]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Hot-update via notifications (always active, not just on lighting tab)
+  // Hot-update via notifications (always active)
   useSub(
     "rpc_notification.lighting.rgbUnderglowStateChanged",
     (state: RgbUnderglowState) => setRgbState(state)
@@ -385,22 +428,26 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
       const layerId = keymap.layers[layerIdx]?.id;
       if (layerId === undefined) return;
 
-      setLedData(produce((draft) => {
-        if (!draft) return;
-        let layerConfig = draft.layers.find((l) => l.layerId === layerId);
-        if (!layerConfig) {
-          layerConfig = { layerId, bindings: [] };
-          draft.layers.push(layerConfig);
-        }
-        for (const pos of positions) {
-          const existing = layerConfig.bindings.find((b) => b.keyPosition === pos);
-          if (existing) {
-            existing.color = color;
-          } else {
-            layerConfig.bindings.push({ keyPosition: pos, color });
+      setLedData(
+        produce((draft) => {
+          if (!draft) return;
+          let layerConfig = draft.layers.find((l) => l.layerId === layerId);
+          if (!layerConfig) {
+            layerConfig = { layerId, bindings: [] };
+            draft.layers.push(layerConfig);
           }
-        }
-      }));
+          for (const pos of positions) {
+            const existing = layerConfig.bindings.find(
+              (b) => b.keyPosition === pos
+            );
+            if (existing) {
+              existing.color = color;
+            } else {
+              layerConfig.bindings.push({ keyPosition: pos, color });
+            }
+          }
+        })
+      );
 
       for (const pos of positions) {
         try {
@@ -419,9 +466,11 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
   const handleLayerLedEnabledChanged = useCallback(
     async (enabled: boolean) => {
       if (!conn.conn) return;
-      setLedData(produce((draft) => {
-        if (draft) draft.enabled = enabled;
-      }));
+      setLedData(
+        produce((draft) => {
+          if (draft) draft.enabled = enabled;
+        })
+      );
       try {
         const resp = await call_rpc(conn.conn, {
           lighting: { setLayerLedEnabled: { enabled } },
@@ -460,7 +509,7 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
     performSetRequest();
   }, [selectedPhysicalLayoutIndex]);
 
-  let doSelectPhysicalLayout = useCallback(
+  const doSelectPhysicalLayout = useCallback(
     (i: number) => {
       let oldLayout = selectedPhysicalLayoutIndex;
       undoRedo?.(async () => {
@@ -474,7 +523,7 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
     [undoRedo, selectedPhysicalLayoutIndex]
   );
 
-  let doUpdateBinding = useCallback(
+  const doUpdateBinding = useCallback(
     (binding: BehaviorBinding) => {
       if (!keymap || selectedKeyPosition === undefined) {
         console.error(
@@ -536,8 +585,12 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
     [conn, keymap, undoRedo, selectedLayerIndex, selectedKeyPosition]
   );
 
-  let selectedBinding = useMemo(() => {
-    if (keymap == null || selectedKeyPosition == null || !keymap.layers[selectedLayerIndex]) {
+  const selectedBinding = useMemo(() => {
+    if (
+      keymap == null ||
+      selectedKeyPosition == null ||
+      !keymap.layers[selectedLayerIndex]
+    ) {
       return null;
     }
 
@@ -694,6 +747,87 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
     });
   }, [conn, undoRedo, selectedLayerIndex]);
 
+  /*
+   * "Duplicate layer" is not a ZMK Studio RPC primitive — it's composed here
+   * from addLayer + a setLayerBinding per key position, using the exact same
+   * calls the rest of this hook already makes. No protocol/backend change.
+   */
+  const duplicateLayer = useCallback(() => {
+    if (!keymap) {
+      throw new Error("No keymap loaded");
+    }
+    const sourceIndex = selectedLayerIndex;
+    const sourceLayer = keymap.layers[sourceIndex];
+    const sourceBindings = sourceLayer.bindings.slice();
+    const newName = `${sourceLayer.name || `Layer ${sourceIndex}`} copy`;
+
+    async function doDuplicate(): Promise<number> {
+      if (!conn.conn) {
+        throw new Error("Not connected");
+      }
+
+      const addResp = await call_rpc(conn.conn, { keymap: { addLayer: {} } });
+      if (!addResp.keymap?.addLayer?.ok) {
+        throw new Error(
+          "Failed to add layer:" + addResp.keymap?.addLayer?.err
+        );
+      }
+      const { index: newIndex, layer: newLayer } = addResp.keymap.addLayer.ok;
+      if (!newLayer) {
+        throw new Error("Add layer returned no layer");
+      }
+
+      await call_rpc(conn.conn, {
+        keymap: { setLayerProps: { layerId: newLayer.id, name: newName } },
+      });
+
+      for (let pos = 0; pos < sourceBindings.length; pos++) {
+        await call_rpc(conn.conn, {
+          keymap: {
+            setLayerBinding: {
+              layerId: newLayer.id,
+              keyPosition: pos,
+              binding: sourceBindings[pos],
+            },
+          },
+        });
+      }
+
+      setKeymap(
+        produce((draft: any) => {
+          draft.layers.push({
+            ...newLayer,
+            name: newName,
+            bindings: sourceBindings.map((b) => ({ ...b })),
+          });
+          draft.availableLayers--;
+        })
+      );
+      setSelectedLayerIndex(newIndex);
+      return newIndex;
+    }
+
+    async function undoDuplicate(index: number) {
+      if (!conn.conn) return;
+      const resp = await call_rpc(conn.conn, {
+        keymap: { removeLayer: { layerIndex: index } },
+      });
+      if (resp.keymap?.removeLayer?.ok) {
+        setKeymap(
+          produce((draft: any) => {
+            draft.layers.splice(index, 1);
+            draft.availableLayers++;
+          })
+        );
+      }
+    }
+
+    undoRedo?.(async () => {
+      const index = await doDuplicate();
+      return () => undoDuplicate(index);
+    });
+  }, [conn, keymap, undoRedo, selectedLayerIndex]);
+
   const changeLayerName = useCallback(
     (id: number, oldName: string, newName: string) => {
       async function changeName(layerId: number, name: string) {
@@ -744,219 +878,69 @@ export default function Keyboard({ onReady, onProgress, onLightingChanged }: Key
     }
   }, [keymap, selectedLayerIndex]);
 
-  return (
-    <div className="grid grid-cols-[auto_1fr] grid-rows-[1fr_minmax(10em,auto)] bg-base-300 max-w-full min-w-0 min-h-0">
-      <div className="p-2 flex flex-col gap-2 bg-base-200 row-span-2">
-        {layouts && (
-          <div className="col-start-3 row-start-1 row-end-2">
-            <PhysicalLayoutPicker
-              layouts={layouts}
-              selectedPhysicalLayoutIndex={selectedPhysicalLayoutIndex}
-              onPhysicalLayoutClicked={doSelectPhysicalLayout}
-            />
-          </div>
-        )}
+  const dataReady = !!(layouts && keymap && behaviorsLoaded);
+  const behaviorList = useMemo(() => Object.values(behaviors), [behaviors]);
 
-        {keymap && (
-          <div className="col-start-1 row-start-1 row-end-2">
-            <LayerPicker
-              layers={keymap.layers}
-              selectedLayerIndex={selectedLayerIndex}
-              onLayerClicked={setSelectedLayerIndex}
-              onLayerMoved={moveLayer}
-              canAdd={(keymap.availableLayers || 0) > 0}
-              canRemove={(keymap.layers?.length || 0) > 1}
-              onAddClicked={addLayer}
-              onRemoveClicked={removeLayer}
-              onLayerNameChanged={changeLayerName}
-            />
-          </div>
-        )}
-      </div>
-      {layouts && keymap && behaviorsLoaded ? (
-        <div ref={layoutFitRef} className="p-2 col-start-2 row-start-1 grid items-center justify-center relative min-w-0">
-          {bottomTab === "lighting" ? (
-            <LayerLedMap
-              keymap={keymap}
-              layout={layouts[selectedPhysicalLayoutIndex]}
-              scale={keymapScale}
-              selectedLayerIndex={selectedLayerIndex}
-              ledData={ledData}
-              selectedPositions={selectedLedPositions}
-              onSelectionChanged={(sel) => {
-                if (!handleIndicatorPick(sel)) {
-                  setSelectedLedPositions(sel);
-                }
-              }}
-              fitContainerRef={layoutFitRef}
-              indicatorPositions={indicatorPositions}
-              activeSource={lightingSource}
-            />
-          ) : (
-            <KeymapComp
-              keymap={keymap}
-              layout={layouts[selectedPhysicalLayoutIndex]}
-              behaviors={behaviors}
-              scale={keymapScale}
-              selectedLayerIndex={selectedLayerIndex}
-              selectedKeyPosition={selectedKeyPosition}
-              fitContainerRef={layoutFitRef}
-              onKeyPositionClicked={setSelectedKeyPosition}
-            />
-          )}
-          <select
-            className="absolute top-2 right-2 h-8 rounded px-2"
-            value={keymapScale}
-            onChange={(e) => {
-              const value = deserializeLayoutZoom(e.target.value);
-              setKeymapScale(value);
-            }}
-          >
-            <option value="auto">{t("keyboard.zoom.auto")}</option>
-            <option value={0.25}>25%</option>
-            <option value={0.5}>50%</option>
-            <option value={0.75}>75%</option>
-            <option value={1}>100%</option>
-            <option value={1.25}>125%</option>
-            <option value={1.5}>150%</option>
-            <option value={2}>200%</option>
-          </select>
-        </div>
-      ) : (
-        (conn.conn && isUnlocked) ? (
-          <div className="p-2 col-start-2 row-start-1 grid items-center justify-center min-w-0">
-            <div className="flex flex-col items-center gap-3 animate-fade-in">
-              <div className="size-8 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin" />
-              <span className="text-sm text-base-content/60">{t("welcome.initializingTitle")}</span>
-            </div>
-          </div>
-        ) : null
-      )}
-      {layouts && keymap && behaviorsLoaded && (
-        <BottomPanel bottomTab={bottomTab} setBottomTab={setBottomTab} t={t}>
-            {bottomTab === "keymap" ? (
-              selectedBinding ? (
-                <BehaviorBindingPicker
-                  binding={selectedBinding}
-                  behaviors={Object.values(behaviors)}
-                  layers={keymap.layers.map(({ id, name }, li) => ({
-                    id,
-                    name: name || li.toLocaleString(),
-                  }))}
-                  onBindingChanged={doUpdateBinding}
-                />
-              ) : (
-                <IdlePanel />
-              )
-            ) : bottomTab === "other" ? (
-              <OtherPanel behaviors={Object.values(behaviors)} />
-            ) : (
-              <LightingControl
-                hasLayerLed={hasLayerLed}
-                selectedLedPositions={selectedLedPositions}
-                ledData={ledData}
-                selectedLayerIndex={selectedLayerIndex}
-                keymap={keymap}
-                onLayerLedColorChanged={handleLayerLedColorChanged}
-                layerLedEnabled={ledData?.enabled ?? true}
-                onLayerLedEnabledChanged={handleLayerLedEnabledChanged}
-                rgbState={rgbState}
-                setRgbState={setRgbState}
-                backlightState={backlightState}
-                setBacklightState={setBacklightState}
-                capsLockState={capsLockState}
-                setCapsLockState={setCapsLockState}
-                connectionState={connectionState}
-                setConnectionState={setConnectionState}
-                hasRgb={hasRgb}
-                hasBacklight={hasBacklight}
-                hasCapsLock={hasCapsLock}
-                hasConnection={hasConnection}
-                indicatorPositionDraft={indicatorPositionDraft}
-                onSourceChange={handleLightingSourceChanged}
-                onClearIndicator={() => setIndicatorPositionDraft(undefined)}
-                onLightingChanged={onLightingChanged}
-              />
-            )}
-        </BottomPanel>
-      )}
-    </div>
-  );
+  return {
+    // connection / lock
+    conn,
+    isUnlocked,
+    dataReady,
+    // keymap + layouts
+    keymap,
+    setKeymap,
+    layouts,
+    selectedPhysicalLayoutIndex,
+    doSelectPhysicalLayout,
+    // behaviors
+    behaviors,
+    behaviorsLoaded,
+    behaviorList,
+    // selection
+    selectedLayerIndex,
+    setSelectedLayerIndex,
+    selectedKeyPosition,
+    setSelectedKeyPosition,
+    selectedBinding,
+    // keymap mutations
+    doUpdateBinding,
+    moveLayer,
+    addLayer,
+    removeLayer,
+    duplicateLayer,
+    changeLayerName,
+    // zoom
+    keymapScale,
+    setKeymapScale,
+    // lighting
+    ledData,
+    hasLayerLed,
+    selectedLedPositions,
+    setSelectedLedPositions,
+    rgbState,
+    setRgbState,
+    backlightState,
+    setBacklightState,
+    capsLockState,
+    setCapsLockState,
+    connectionState,
+    setConnectionState,
+    hasRgb,
+    hasBacklight,
+    hasCapsLock,
+    hasConnection,
+    lightingSource,
+    handleLightingSourceChanged,
+    indicatorPositionDraft,
+    setIndicatorPositionDraft,
+    indicatorPositions,
+    handleIndicatorPick,
+    handleLayerLedColorChanged,
+    handleLayerLedEnabledChanged,
+    fetchAllLighting,
+    // pass-through so LightingControl's own RPC writes can mark lighting dirty
+    onLightingChanged,
+  };
 }
 
-function BottomPanel({
-  bottomTab,
-  setBottomTab,
-  t,
-  children,
-}: {
-  bottomTab: string;
-  setBottomTab: (tab: "keymap" | "lighting" | "other") => void;
-  t: (key: string) => string;
-  children: React.ReactNode;
-}) {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [height, setHeight] = useState<number | undefined>(undefined);
-
-  useLayoutEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-
-    const measure = () => {
-      setHeight(el.scrollHeight);
-    };
-
-    measure();
-
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [bottomTab]);
-
-  return (
-    <div className="col-start-2 row-start-2 bg-base-200 flex flex-col">
-      <div className="flex shrink-0">
-        <button
-          className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-            bottomTab === "keymap"
-              ? "text-primary border-b-2 border-primary"
-              : "text-base-content/50 hover:text-base-content/70"
-          }`}
-          onClick={() => setBottomTab("keymap")}
-        >
-          {t("keyboard.tab.keymap")}
-        </button>
-        <button
-          className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-            bottomTab === "lighting"
-              ? "text-primary border-b-2 border-primary"
-              : "text-base-content/50 hover:text-base-content/70"
-          }`}
-          onClick={() => setBottomTab("lighting")}
-        >
-          {t("keyboard.tab.lighting")}
-        </button>
-        <button
-          className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-            bottomTab === "other"
-              ? "text-primary border-b-2 border-primary"
-              : "text-base-content/50 hover:text-base-content/70"
-          }`}
-          onClick={() => setBottomTab("other")}
-        >
-          {t("other.tab")}
-        </button>
-      </div>
-      <div
-        className="overflow-hidden transition-[height] duration-300 ease-in-out"
-        style={{ height: height != null ? `${height}px` : "auto", minHeight: "15rem" }}
-      >
-        <div ref={contentRef} className="p-4">
-          <div key={bottomTab} className="animate-fade-in">
-            {children}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+export type KeyboardModel = ReturnType<typeof useKeyboardModel>;
