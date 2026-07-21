@@ -292,42 +292,39 @@ function App() {
     setHasUnsavedLightingChanges(true);
   }, []);
 
-  const save = useCallback(() => {
-    async function doSave() {
-      if (!conn.conn) {
-        return;
-      }
+  const save = useCallback(async (): Promise<boolean> => {
+    if (!conn.conn) {
+      return false;
+    }
 
-      let saved = true;
-      let resp = await call_rpc(conn.conn, { keymap: { saveChanges: true } });
-      if (!resp.keymap?.saveChanges || resp.keymap?.saveChanges.err) {
+    let saved = true;
+    let resp = await call_rpc(conn.conn, { keymap: { saveChanges: true } });
+    if (!resp.keymap?.saveChanges || resp.keymap?.saveChanges.err) {
+      saved = false;
+      console.error(t("errors.failedToSave"), resp.keymap?.saveChanges);
+    }
+
+    if (hasUnsavedLightingChanges) {
+      const [stateResp, layerLedResp] = await Promise.allSettled([
+        call_rpc(conn.conn, { lighting: { saveState: true } }),
+        call_rpc(conn.conn, { lighting: { saveLayerLedState: true } }),
+      ]);
+
+      if (stateResp.status !== "fulfilled" || !stateResp.value.lighting?.saveState) {
         saved = false;
-        console.error(t("errors.failedToSave"), resp.keymap?.saveChanges);
+        console.error(t("errors.failedToSave"), stateResp);
       }
 
-      if (hasUnsavedLightingChanges) {
-        const [stateResp, layerLedResp] = await Promise.allSettled([
-          call_rpc(conn.conn, { lighting: { saveState: true } }),
-          call_rpc(conn.conn, { lighting: { saveLayerLedState: true } }),
-        ]);
-
-        if (stateResp.status !== "fulfilled" || !stateResp.value.lighting?.saveState) {
-          saved = false;
-          console.error(t("errors.failedToSave"), stateResp);
-        }
-
-        if (layerLedResp.status !== "fulfilled" || !layerLedResp.value.lighting?.saveLayerLedState) {
-          saved = false;
-          console.error(t("errors.failedToSave"), layerLedResp);
-        }
-      }
-
-      if (saved) {
-        setHasUnsavedLightingChanges(false);
+      if (layerLedResp.status !== "fulfilled" || !layerLedResp.value.lighting?.saveLayerLedState) {
+        saved = false;
+        console.error(t("errors.failedToSave"), layerLedResp);
       }
     }
 
-    doSave();
+    if (saved) {
+      setHasUnsavedLightingChanges(false);
+    }
+    return saved;
   }, [conn, hasUnsavedLightingChanges, t]);
 
   const discard = useCallback(() => {

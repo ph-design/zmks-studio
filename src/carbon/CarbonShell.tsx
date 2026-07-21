@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ChevronRight, Keyboard as KeyboardIcon, Layers, Zap, Link2,
+  ChevronRight, ChevronUp, ChevronDown, Keyboard as KeyboardIcon, Layers, Zap,
   Settings, Sun, Moon, Save, Undo2, Redo2, RotateCcw, LogOut,
   Plus, Trash2, Pencil, Check, X, Lock, Unlock, Copy, Cpu, Info, FileText, Lightbulb, Wifi, Gauge,
 } from "lucide-react";
@@ -23,14 +23,14 @@ import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
 import LightingControl, { type LightSource } from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
 
-type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "combos" | "settings";
+type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "settings";
 
 export interface CarbonShellProps {
   carbon: ReturnType<typeof useCarbonTheme>;
   connectedDeviceName?: string;
   onDisconnect: () => void;
   onResetSettings: () => void;
-  onSave: () => void;
+  onSave: () => void | Promise<boolean>;
   onDiscard: () => void;
   canUndo: boolean;
   canRedo: boolean;
@@ -63,6 +63,33 @@ export function CarbonShell(props: CarbonShellProps) {
   const [activeNav, setActiveNav] = useState<NavId>(defaultNav);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // Transient toast for action feedback (save success/failure, etc.).
+  const [toast, setToast] = useState<{ type: "success" | "error"; title: string } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const showToast = (type: "success" | "error", title: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ type, title });
+    toastTimer.current = setTimeout(() => setToast(null), 3500);
+  };
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
+  const [saving, setSaving] = useState(false);
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const ok = await props.onSave();
+      // onSave returns a boolean when it reports an outcome; treat void as success.
+      showToast(ok === false ? "error" : "success",
+        ok === false ? t("carbon.saveFailed", "Save failed — please retry")
+          : t("carbon.saveSuccess", "Saved to keyboard"));
+    } catch {
+      showToast("error", t("carbon.saveFailed", "Save failed — please retry"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const goToNav = (id: NavId) => {
     setActiveNav(id);
     model.setSelectedKeyPosition(undefined);
@@ -90,7 +117,6 @@ export function CarbonShell(props: CarbonShellProps) {
     { id: "layers", label: t("carbon.nav.map", "Map"), icon: <Layers size={16} /> },
     { id: "behaviors", label: t("carbon.nav.behaviors", "Behaviors"), icon: <Zap size={16} /> },
     { id: "lighting", label: t("carbon.nav.lighting", "Lighting"), icon: <Lightbulb size={16} /> },
-    { id: "combos", label: t("carbon.nav.combos", "Combos"), icon: <Link2 size={16} /> },
     { id: "settings", label: t("carbon.nav.settings", "Settings"), icon: <Settings size={16} /> },
   ];
   const currentNav = NAV.find((n) => n.id === activeNav)!;
@@ -140,8 +166,8 @@ export function CarbonShell(props: CarbonShellProps) {
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, minWidth: 0 }}>
           {unsaved && (
-            <button onClick={props.onSave} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 12px", height: 32, background: th.interactive, color: "#fff", border: "none", cursor: "pointer", fontSize: 13, fontFamily: "var(--font-sans)", marginRight: 4, flexShrink: 0, whiteSpace: "nowrap" }}>
-              <Save size={13} />{t("carbon.saveToKeyboard", "Save to keyboard")}
+            <button onClick={handleSave} disabled={saving} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 12px", height: 32, background: th.interactive, color: "#fff", border: "none", cursor: saving ? "default" : "pointer", opacity: saving ? 0.7 : 1, fontSize: 13, fontFamily: "var(--font-sans)", marginRight: 4, flexShrink: 0, whiteSpace: "nowrap" }}>
+              <Save size={13} />{saving ? t("carbon.saving", "Saving…") : t("carbon.saveToKeyboard", "Save to keyboard")}
             </button>
           )}
           <button onClick={props.onUndo} disabled={!props.canUndo} title={t("carbon.undo", "Undo")} style={iconBtn(th, !props.canUndo)}><Undo2 size={15} /></button>
@@ -223,8 +249,6 @@ export function CarbonShell(props: CarbonShellProps) {
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
                 onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} onResetSettings={props.onResetSettings} />
-            ) : activeNav === "combos" ? (
-              <CombosPlaceholder th={th} t={t} />
             ) : null}
           </div>
         </main>
@@ -249,6 +273,19 @@ export function CarbonShell(props: CarbonShellProps) {
           )}
         </div>
       </footer>
+
+      {/* Toast — action feedback (auto-dismisses) */}
+      {toast && (
+        <div style={{ position: "fixed", right: 16, bottom: 44, zIndex: 50, display: "flex", alignItems: "flex-start", gap: 12, minWidth: 260, maxWidth: 360, padding: "12px 14px", background: toast.type === "success" ? th.successBg : th.errorBg, borderLeft: `3px solid ${toast.type === "success" ? th.success : th.error}`, boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }} className="animate-fade-in">
+          <span style={{ color: toast.type === "success" ? th.success : th.error, flexShrink: 0, marginTop: 1, display: "flex" }}>
+            {toast.type === "success" ? <Check size={16} /> : <X size={16} />}
+          </span>
+          <span style={{ flex: 1, fontSize: 13, color: th.textPrimary }}>{toast.title}</span>
+          <button onClick={() => setToast(null)} style={{ background: "none", border: "none", cursor: "pointer", color: th.iconSecondary, padding: 0, display: "flex" }}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -366,6 +403,8 @@ function LayersView({ model, th, t, deviceName }: { model: ReturnType<typeof use
         {/* Bottom action bar for the selected layer */}
         {currentLayer && (
           <div style={{ borderTop: `1px solid ${th.border}`, padding: "6px 0", flexShrink: 0 }}>
+            {bottomAction(<ChevronUp size={13} />, t("carbon.moveLayerUp", "Move up"), () => model.moveLayer(model.selectedLayerIndex, model.selectedLayerIndex - 1), { disabled: model.selectedLayerIndex <= 0 })}
+            {bottomAction(<ChevronDown size={13} />, t("carbon.moveLayerDown", "Move down"), () => model.moveLayer(model.selectedLayerIndex, model.selectedLayerIndex + 1), { disabled: model.selectedLayerIndex >= km.layers.length - 1 })}
             {bottomAction(<Copy size={13} />, t("carbon.duplicateLayer", "Duplicate layer"), model.duplicateLayer, { disabled: !canAdd })}
             {bottomAction(
               currentLocked ? <Unlock size={13} /> : <Lock size={13} />,
@@ -698,17 +737,6 @@ function SettingsView({ th, t, setting, setSetting, lang, setLang, defaultNav, s
           <RotateCcw size={14} />{t("carbon.factoryReset", "Restore stock settings")}
         </button>
       </div>
-    </div>
-  );
-}
-
-// ─── Combos placeholder (kept per user choice, backend support TBD) ─────────────
-function CombosPlaceholder({ th, t }: { th: CarbonTheme; t: (k: string, d: string) => string }) {
-  return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, textAlign: "center", padding: 48 }}>
-      <Link2 size={40} style={{ color: th.iconSecondary, opacity: 0.6 }} />
-      <div style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary }}>{t("carbon.combosTitle", "Combos")}</div>
-      <div style={{ fontSize: 13, color: th.textHelper, maxWidth: 340 }}>{t("carbon.combosDesc", "Combo editing is not yet wired to this firmware. Coming soon.")}</div>
     </div>
   );
 }
