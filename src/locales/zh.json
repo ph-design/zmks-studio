@@ -369,6 +369,7 @@
     "layoutCount": "物理布局",
     "layerCount": "图层数",
     "activeLayout": "当前布局",
+    "physicalLayout": "物理布局",
     "theme": "主题",
     "language": "语言",
     "about": "关于",

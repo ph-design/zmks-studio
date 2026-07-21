@@ -448,7 +448,7 @@ function LayersView({ model, th, t, deviceName }: { model: ReturnType<typeof use
         {/* Layout picker strip (only when multiple layouts) */}
         {model.layouts.length > 1 && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 24px", borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
-            <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: th.textHelper, fontWeight: 600 }}>{t("carbon.model", "Model")}</span>
+            <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: th.textHelper, fontWeight: 600 }}>{t("carbon.physicalLayout", "Layout")}</span>
             <PhysicalLayoutPicker layouts={model.layouts} selectedPhysicalLayoutIndex={model.selectedPhysicalLayoutIndex} onPhysicalLayoutClicked={model.doSelectPhysicalLayout} />
           </div>
         )}

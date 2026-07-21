@@ -369,6 +369,7 @@
     "layoutCount": "Physical layouts",
     "layerCount": "Layers",
     "activeLayout": "Active layout",
+    "physicalLayout": "Layout",
     "theme": "Theme",
     "language": "Language",
     "about": "About",
