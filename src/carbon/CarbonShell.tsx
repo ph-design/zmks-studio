@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronRight, ChevronUp, ChevronDown, Keyboard as KeyboardIcon, Layers, Zap,
   Settings, Sun, Moon, Save, Undo2, Redo2, RotateCcw, LogOut,
-  Plus, Trash2, Pencil, Check, X, Lock, Unlock, Copy, Cpu, Info, FileText, Lightbulb, Wifi, Gauge,
+  Plus, Minus, Trash2, Pencil, Check, X, Lock, Unlock, Copy, Cpu, Info, FileText, Lightbulb, Wifi, Gauge,
 } from "lucide-react";
 
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
@@ -95,7 +95,7 @@ export function CarbonShell(props: CarbonShellProps) {
     model.setSelectedKeyPosition(undefined);
   };
 
-  const [deviceInfo] = useConnectedDeviceData<{ name: string }>(
+  const [deviceInfo] = useConnectedDeviceData<{ name: string; serialNumber?: Uint8Array }>(
     { core: { getDeviceInfo: true } },
     (r) => r.core?.getDeviceInfo,
     true
@@ -108,7 +108,31 @@ export function CarbonShell(props: CarbonShellProps) {
   useSub("rpc_notification.keymap.unsavedChangesStatusChanged", (u) => setKeymapUnsaved(u));
   const unsaved = !!keymapUnsaved || props.extraSaveEnabled;
 
+  // Keyboard shortcuts: Ctrl/Cmd + S (save), Z (undo), Shift+Z / Y (redo).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!isUnlocked || !(e.ctrlKey || e.metaKey)) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      const k = e.key.toLowerCase();
+      if (k === "s") {
+        e.preventDefault();
+        if (unsaved) handleSave();
+      } else if (k === "z" && !e.shiftKey) {
+        if (props.canUndo) { e.preventDefault(); props.onUndo(); }
+      } else if ((k === "z" && e.shiftKey) || k === "y") {
+        if (props.canRedo) { e.preventDefault(); props.onRedo(); }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUnlocked, unsaved, props.canUndo, props.canRedo, props.onUndo, props.onRedo]);
+
   const deviceName = deviceInfo?.name || props.connectedDeviceName || "Keyboard";
+  const serialHex = deviceInfo?.serialNumber && deviceInfo.serialNumber.length > 0
+    ? Array.from(deviceInfo.serialNumber).map((b) => b.toString(16).padStart(2, "0")).join("")
+    : undefined;
   const keyCount = model.layouts?.[model.selectedPhysicalLayoutIndex]?.keys.length ?? 0;
   const layerCount = model.keymap?.layers.length ?? 0;
 
@@ -240,7 +264,7 @@ export function CarbonShell(props: CarbonShellProps) {
                 <OtherPanel behaviors={model.behaviorList} th={th} />
               </div>
             ) : activeNav === "keyboard" ? (
-              <QuickSettingsView model={model} th={th} t={t} deviceName={deviceName}
+              <QuickSettingsView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
                 setting={setting} setSetting={setSetting} lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))} />
@@ -360,32 +384,35 @@ function LayersView({ model, th, t, deviceName }: { model: ReturnType<typeof use
             const active = idx === model.selectedLayerIndex;
             const editing = editIdx === idx;
             const locked = lockedIds.has(l.id);
+            const layerLabel = l.name || `${t("carbon.layer", "Layer")} ${idx}`;
             return (
               <div key={l.id}
-                onClick={() => !editing && model.setSelectedLayerIndex(idx)}
-                style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 44, padding: "0 12px", cursor: "pointer", background: active ? th.selectedLayer : "transparent", borderLeft: `3px solid ${active ? th.interactive : "transparent"}` }}>
-                <div style={{ width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, background: active ? th.interactive : th.layer2, color: active ? "#fff" : th.textHelper, fontFamily: "var(--font-mono)", flexShrink: 0 }}>{idx}</div>
+                style={{ display: "flex", alignItems: "center", gap: 4, minHeight: 44, paddingRight: 10, background: active ? th.selectedLayer : "transparent", borderLeft: `3px solid ${active ? th.interactive : "transparent"}` }}>
                 {editing ? (
                   <input autoFocus value={editName} onChange={(e) => setEditName(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") { model.changeLayerName(l.id, l.name || "", editName); setEditIdx(null); }
                       if (e.key === "Escape") setEditIdx(null);
                     }}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ flex: 1, minWidth: 0, height: 28, padding: "0 6px", fontSize: 13, background: th.fieldBg, border: `1px solid ${th.interactive}`, color: th.textPrimary, outline: "none", fontFamily: "var(--font-sans)" }} />
+                    style={{ flex: 1, minWidth: 0, height: 28, margin: "0 6px 0 12px", padding: "0 6px", fontSize: 13, background: th.fieldBg, border: `1px solid ${th.interactive}`, color: th.textPrimary, outline: "none", fontFamily: "var(--font-sans)" }} />
                 ) : (
-                  <span style={{ flex: 1, fontSize: 13, color: active ? th.textPrimary : th.textSecondary, fontWeight: active ? 500 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {l.name || `${t("carbon.layer", "Layer")} ${idx}`}
-                  </span>
+                  // Real button so the row is Tab-focusable and Enter/Space works.
+                  <button onClick={() => model.setSelectedLayerIndex(idx)} aria-pressed={active} title={layerLabel}
+                    style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, height: 44, padding: "0 8px 0 9px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "var(--font-sans)" }}>
+                    <span style={{ width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, background: active ? th.interactive : th.layer2, color: active ? "#fff" : th.textHelper, fontFamily: "var(--font-mono)", flexShrink: 0 }}>{idx}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: active ? th.textPrimary : th.textSecondary, fontWeight: active ? 500 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {layerLabel}
+                    </span>
+                  </button>
                 )}
                 {editing ? (
-                  <button onClick={(e) => { e.stopPropagation(); model.changeLayerName(l.id, l.name || "", editName); setEditIdx(null); }} style={rowIcon(th)}><Check size={14} /></button>
+                  <button title={t("carbon.rename", "Rename")} onClick={() => { model.changeLayerName(l.id, l.name || "", editName); setEditIdx(null); }} style={rowIcon(th)}><Check size={14} /></button>
                 ) : (
-                  <span style={{ display: "flex", gap: 2, alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
-                    {locked && <Lock size={11} style={{ color: th.textDisabled }} />}
+                  <>
+                    {locked && <Lock size={11} style={{ color: th.textDisabled, flexShrink: 0 }} />}
                     {/* Only rename on the row; copy/lock/delete live at the bottom */}
                     <button title={t("carbon.rename", "Rename")} onClick={() => { setEditIdx(idx); setEditName(l.name || ""); }} style={rowIcon(th)}><Pencil size={13} /></button>
-                  </span>
+                  </>
                 )}
               </div>
             );
@@ -426,7 +453,7 @@ function LayersView({ model, th, t, deviceName }: { model: ReturnType<typeof use
           </div>
         )}
 
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, overflow: "auto", minHeight: 0 }}
+        <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, overflow: "auto", minHeight: 0 }}
           onClick={(e) => { if (!(e.target as HTMLElement).closest("button")) model.setSelectedKeyPosition(undefined); }}>
           <KeymapComp
             keymap={km}
@@ -438,6 +465,7 @@ function LayersView({ model, th, t, deviceName }: { model: ReturnType<typeof use
             pressedUsages={currentLocked ? undefined : pressedUsages}
             onKeyPositionClicked={currentLocked ? () => {} : model.setSelectedKeyPosition}
           />
+          <ZoomControl th={th} t={t} scale={model.keymapScale} setScale={model.setKeymapScale} />
         </div>
 
         {/* Binding drawer — always expanded, fixed height, so the canvas layout
@@ -589,8 +617,8 @@ function LightingView({ model, th, t }: { model: ReturnType<typeof useKeyboardMo
 }
 
 // ─── Quick settings (device info + a few streamlined controls) ─────────────────
-function QuickSettingsView({ model, th, t, deviceName, setting, setSetting, lang, setLang, defaultNav, setDefaultNav, navOptions }: {
-  model: ReturnType<typeof useKeyboardModel>; th: CarbonTheme; t: (k: string, d: string) => string; deviceName: string;
+function QuickSettingsView({ model, th, t, deviceName, serial, setting, setSetting, lang, setLang, defaultNav, setDefaultNav, navOptions }: {
+  model: ReturnType<typeof useKeyboardModel>; th: CarbonTheme; t: (k: string, d: string) => string; deviceName: string; serial?: string;
   setting: string; setSetting: (s: "dark" | "light" | "system") => void;
   lang: string; setLang: (l: string) => void;
   defaultNav: NavId; setDefaultNav: (n: NavId) => void;
@@ -598,6 +626,7 @@ function QuickSettingsView({ model, th, t, deviceName, setting, setSetting, lang
 }) {
   const rows: [string, string][] = [
     [t("carbon.deviceName", "Device name"), deviceName],
+    ...(serial ? [[t("carbon.serialNumber", "Serial number"), serial] as [string, string]] : []),
     [t("carbon.layoutCount", "Physical layouts"), String(model.layouts?.length ?? 0)],
     [t("carbon.layerCount", "Layers"), String(model.keymap?.layers.length ?? 0)],
   ];
@@ -636,7 +665,7 @@ function QuickSettingsView({ model, th, t, deviceName, setting, setSetting, lang
         {rows.map(([k, v], i) => (
           <div key={k} style={{ display: "flex", padding: "10px 16px", borderBottom: i < rows.length - 1 ? `1px solid ${th.border}` : "none", background: i % 2 === 0 ? th.layer1 : th.bg }}>
             <span style={{ width: 140, fontSize: 13, color: th.textHelper, flexShrink: 0 }}>{k}</span>
-            <span style={{ fontSize: 13, color: th.textPrimary, fontFamily: "var(--font-mono)" }}>{v}</span>
+            <span style={{ fontSize: 13, color: th.textPrimary, fontFamily: "var(--font-mono)", minWidth: 0, wordBreak: "break-all" }}>{v}</span>
           </div>
         ))}
       </div>
@@ -737,6 +766,22 @@ function SettingsView({ th, t, setting, setSetting, lang, setLang, defaultNav, s
           <RotateCcw size={14} />{t("carbon.factoryReset", "Restore stock settings")}
         </button>
       </div>
+    </div>
+  );
+}
+
+// Floating zoom control for the keymap canvas (drives model.keymapScale).
+function ZoomControl({ th, t, scale, setScale }: { th: CarbonTheme; t: (k: string, d: string) => string; scale: number | "auto"; setScale: (v: number | "auto") => void }) {
+  const numeric = typeof scale === "number" ? scale : 1;
+  const change = (delta: number) => setScale(Math.min(2, Math.max(0.4, Math.round((numeric + delta) * 10) / 10)));
+  const label = scale === "auto" ? t("carbon.zoomFit", "Fit") : `${Math.round(numeric * 100)}%`;
+  const btn: React.CSSProperties = { width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", background: th.layer1, border: `1px solid ${th.border}`, color: th.textSecondary, cursor: "pointer" };
+  return (
+    <div style={{ position: "absolute", right: 16, bottom: 16, display: "flex", alignItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }}>
+      <button title={t("carbon.zoomOut", "Zoom out")} onClick={() => change(-0.1)} style={btn}><Minus size={14} /></button>
+      <button title={t("carbon.zoomFit", "Fit")} onClick={() => setScale("auto")}
+        style={{ ...btn, width: "auto", minWidth: 52, padding: "0 8px", borderLeft: "none", borderRight: "none", fontSize: 12, fontFamily: "var(--font-mono)", color: th.textPrimary }}>{label}</button>
+      <button title={t("carbon.zoomIn", "Zoom in")} onClick={() => change(0.1)} style={btn}><Plus size={14} /></button>
     </div>
   );
 }

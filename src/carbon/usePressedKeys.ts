@@ -117,6 +117,8 @@ export function usePressedKeys(enabled: boolean): Set<number> {
 
     const onDown = (e: KeyboardEvent) => {
       if (isEditable(e.target)) return;
+      // Let Ctrl/Cmd shortcuts (undo/redo/save) pass through without lighting keys.
+      if (e.ctrlKey || e.metaKey) return;
       const id = CODE_TO_ID[e.code];
       if (id === undefined) return;
       if (SWALLOW.has(e.code)) e.preventDefault();

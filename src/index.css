@@ -69,6 +69,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Carbon-style keyboard focus ring (only for keyboard nav, not mouse clicks). */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 1px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* ── Animations preserved from main (used by ConnectModal & panels) ────────── */
 @keyframes fade-in {
   from {
