@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Zap } from "lucide-react";
 import { ConnectionContext } from "../rpc/ConnectionContext";
 import type { CarbonTheme } from "../carbon/theme";
-import { useHoldTapConfigs } from "../behaviors/useHoldTapConfigs";
 import { HoldTapConfig } from "@zmkfirmware/zmk-studio-ts-client/behaviors";
 import type { GetBehaviorDetailsResponse } from "@zmkfirmware/zmk-studio-ts-client/behaviors";
 import { HoldTapConfigFields } from "../behaviors/HoldTapFormFields";
@@ -21,6 +20,9 @@ import {
 interface OtherPanelProps {
   behaviors: GetBehaviorDetailsResponse[];
   th: CarbonTheme;
+  // Hoisted to the shell so the config cache survives tab switches (no reload flash).
+  getConfig: (id: number) => HoldTapConfig | null;
+  applyConfig: (id: number, cfg: HoldTapConfig) => Promise<boolean>;
 }
 
 /*
@@ -28,7 +30,7 @@ interface OtherPanelProps {
  * in a left secondary sidebar, and all content stacked as titled sections
  * (Mod-Tap / Layer-Tap / User Presets) on the right, like the Settings page.
  */
-export const OtherPanel = ({ behaviors, th }: OtherPanelProps) => {
+export const OtherPanel = ({ behaviors, th, getConfig, applyConfig }: OtherPanelProps) => {
   const { t } = useTranslation();
   const { conn } = useContext(ConnectionContext);
 
@@ -42,10 +44,6 @@ export const OtherPanel = ({ behaviors, th }: OtherPanelProps) => {
     () => findBuiltinHoldTap(holdTapBehaviors, BUILTIN_LAYER_TAP) ?? null,
     [holdTapBehaviors]
   );
-
-  // Fetch all configs upfront so section editors resolve without stalling.
-  const allHoldTapIds = useMemo(() => holdTapBehaviors.map((b) => b.id), [holdTapBehaviors]);
-  const { getConfig, applyConfig } = useHoldTapConfigs(allHoldTapIds);
 
   const [selectedPresetId, setSelectedPresetId] = useState<number | null>(null);
   const activePresetId = selectedPresetId ?? userPresets[0]?.id ?? null;

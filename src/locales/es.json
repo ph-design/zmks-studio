@@ -1,0 +1,397 @@
+{
+  "common": {
+    "save": "Guardar",
+    "discard": "Descartar",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "language": "Idioma",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "add": "Añadir",
+    "remove": "Quitar"
+  },
+  "welcome": {
+    "title": "Bienvenido a ZMKs Studio",
+    "subtitle": "Una versión comunitaria mejorada de ZMK Studio.",
+    "clientTitle": "Usa el cliente de escritorio para la mejor experiencia",
+    "clientDescriptionPrefix": "El cliente de escritorio puede listar dispositivos USB directamente y conectar teclados por BLE. La compatibilidad del navegador aún depende de",
+    "clientDescriptionSuffix": "la disponibilidad.",
+    "downloadClient": "Descargar cliente",
+    "selectConnection": "Selecciona un tipo de conexión",
+    "selectDevice": "Selecciona un dispositivo",
+    "deviceListHint": "El cliente detecta automáticamente los dispositivos USB y BLE disponibles. Elige un dispositivo para conectar.",
+    "webConnectionHint": "Las conexiones desde el navegador pedirán permiso del sistema. Elige tu teclado en el selector que aparezca.",
+    "bleConnectionDescription": "Bluetooth Low Energy, más estable en el cliente de escritorio",
+    "usbConnectionDescription": "Conexión al teclado por serie USB",
+    "genericConnectionDescription": "Usa este transporte para conectar el teclado",
+    "connectionAvailable": "Disponible",
+    "connectionUnavailable": "No disponible",
+    "connectionUnavailableHint": "Este entorno no lo admite. Usa el cliente de escritorio en su lugar.",
+    "connectionErrorTitle": "Error de conexión",
+    "connectionErrorHelpTitle": "Prueba esto:",
+    "connectionErrorHelpPermission": "Vuelve a conectar y permite que el navegador o el cliente accedan al dispositivo. Si antes se denegó el permiso, vuelve a habilitarlo en los ajustes del sistema o del navegador.",
+    "connectionErrorHelpUsb": "Asegúrate de que el teclado esté conectado por USB y no lo esté usando otra aplicación; luego vuelve a conectarlo y actualiza.",
+    "connectionErrorHelpBle": "Asegúrate de que el teclado sea conectable y que el Bluetooth del sistema esté activado. Para BLE se recomienda el cliente de escritorio.",
+    "connectionErrorHelpFirmware": "Asegúrate de que el firmware del teclado tenga ZMK Studio habilitado y admita el RPC de Studio. Si es necesario, vuelve a flashear un firmware compatible con Studio.",
+    "connectionErrorHelpGeneric": "Actualiza la lista de dispositivos e inténtalo de nuevo. Si sigue fallando, usa el cliente de escritorio o vuelve a conectar el teclado.",
+    "connectingTitle": "Conectando al teclado",
+    "connectingDescription": "Mantén el teclado conectado. El editor se abrirá automáticamente cuando esté listo.",
+    "initializingTitle": "Cargando el teclado",
+    "initializingDescription": "Leyendo keymap, comportamientos e iluminación. El editor se abre cuando todo está listo.",
+    "unknownDevice": "Dispositivo desconocido",
+    "cancelConnection": "Cancelar conexión",
+    "scanningDevices": "Buscando dispositivos...",
+    "noDevices": "No se encontraron dispositivos. Asegúrate de que Studio esté habilitado en el teclado y actualiza.",
+    "refresh": "Actualizar",
+    "unsupportedTitle": "Este entorno no puede conectarse directamente",
+    "unsupportedPrefix": "Tu navegador no es compatible. ZMK Studio usa",
+    "unsupportedMiddle": "o",
+    "unsupportedSuffix": "(solo Linux) para conectarse a dispositivos ZMK.",
+    "unsupportedOptions": "Para usar ZMK Studio, puedes:",
+    "chromeBrowser": "Usar un navegador compatible con las tecnologías web anteriores, p. ej. Chrome/Edge, o",
+    "downloadAppPrefix": "Descargar nuestra",
+    "crossPlatformApp": "aplicación multiplataforma"
+  },
+  "header": {
+    "settings": "Ajustes",
+    "resetSettings": "Restablecer ajustes",
+    "resetWarning": "Restablecer los ajustes eliminará las personalizaciones hechas en ZMK Studio y restaurará el keymap original",
+    "continue": "¿Continuar?",
+    "restoreStock": "Restaurar ajustes de fábrica",
+    "disconnect": "Desconectar",
+    "confirmResetSettings": "¿Seguro que quieres restablecer todos los ajustes?",
+    "unlockRequired": "Se requiere desbloquear el dispositivo para esta acción",
+    "studio": "ZMKs Studio"
+  },
+  "footer": {
+    "copyright": "© 2026 - The ZMK Contributors",
+    "about": "Acerca de ZMKs Studio",
+    "license": "AVISO de licencia"
+  },
+  "about": {
+    "project": "El proyecto ZMK:",
+    "website": "sitio web",
+    "issues": "GitHub Issues",
+    "discord": "Servidor de Discord",
+    "zmksTitle": "Acerca de ZMKs Studio",
+    "zmksDescription": "ZMKs Studio es una compilación comunitaria basada en ZMK Studio. Mantiene el flujo de edición de keymap del ZMK Studio original y añade la interfaz, la iluminación, la localización y las mejoras del cliente de escritorio de este fork. El proyecto original ZMK Studio y los colaboradores de ZMK siguen siendo la base de este trabajo.",
+    "zmksRepo": "Ver el repositorio de ZMKs Studio",
+    "sponsorsDescription": "ZMK Studio es posible gracias a la generosa donación de tiempo de nuestros colaboradores, así como al patrocinio económico de los siguientes proveedores:"
+  },
+  "sponsorLevels": {
+    "platinum": "Platino",
+    "goldPlus": "Oro+",
+    "gold": "Oro",
+    "silver": "Plata",
+    "bronze": "Bronce",
+    "additional": "Adicional"
+  },
+  "layer": {
+    "label": "Capas",
+    "newLayerName": "Nombre de la nueva capa",
+    "addFailed": "Error al añadir la capa: {{error}}",
+    "removeFailed": "Error al eliminar la capa: {{error}}",
+    "restoreFailed": "Error al restaurar la capa: {{error}}",
+    "renameFailed": "Error al cambiar el nombre de la capa: {{error}}"
+  },
+  "keyboard": {
+    "layout": "Distribución",
+    "tab": {
+      "keymap": "Keymap",
+      "lighting": "Iluminación",
+      "other": "Otro"
+    },
+    "zoom": {
+      "auto": "Auto"
+    },
+    "errors": {
+      "notConnected": "No conectado"
+    }
+  },
+  "binding": {
+    "hold": "Mantener",
+    "tap": "Pulsar",
+    "layer": "Capa",
+    "mode": "Modo",
+    "modeDefault": "Predeterminado",
+    "category": "Categoría",
+    "behavior": "Comportamiento",
+    "noParametersRequired": "No se requieren parámetros"
+  },
+  "selectBehaviorHint": "Pasa el cursor sobre un comportamiento a la izquierda para ver su descripción",
+  "behaviorDesc": {
+    "Key Press": "Enviar un código de tecla al pulsar/soltar",
+    "None": "Bloquear la tecla — los eventos no pasan a las capas inferiores",
+    "Transparent": "Pasar a la capa activa inferior",
+    "Momentary Layer": "Activar una capa mientras se mantiene, desactivar al soltar",
+    "To Layer": "Cambiar a una capa y desactivar todas las demás excepto la predeterminada",
+    "Toggle Layer": "Activar/desactivar una capa",
+    "Layer-Tap": "Mantener → activar capa, Pulsar → enviar tecla (pulsación preferida)",
+    "Sticky Layer": "Activar una capa solo para la siguiente tecla (capa de un solo uso)",
+    "Mod-Tap": "Mantener → modificador, Pulsar → tecla (mantenimiento preferido)",
+    "Sticky Key": "Mantener un modificador activo para la siguiente tecla (modificador de un solo uso)",
+    "Grave/Escape": "Escape por defecto, acento grave (`) al mantener Mayús o GUI",
+    "Key Repeat": "Repetir el último código de tecla",
+    "Key Toggle": "Activar/desactivar una tecla — pulsa para mantener, pulsa de nuevo para soltar",
+    "Caps Word": "Poner en mayúsculas automáticamente hasta pulsar una tecla no alfanumérica",
+    "Bluetooth": "Gestionar perfiles BT: seleccionar, cambiar o borrar emparejamientos",
+    "Output Selection": "Elegir entre salida USB y BLE",
+    "External Power": "Activar/desactivar la alimentación externa VCC",
+    "Reset": "Reiniciar y volver a ejecutar el firmware actual",
+    "Bootloader": "Reiniciar en el bootloader para flashear",
+    "z_so_off": "Apagado por software. Despierta con el botón de encendido/apagado o reset",
+    "Studio Unlock": "Desbloquear el acceso a ZMK Studio en este dispositivo",
+    "Mouse Key Press": "Enviar clics del ratón (izquierdo/derecho/central, botones 4-5)",
+    "mouse_move": "Mover el cursor del ratón",
+    "mouse_scroll": "Desplazar vertical u horizontalmente"
+  },
+  "lighting": {
+    "title": "Iluminación",
+    "rgbUnderglow": "Iluminación RGB",
+    "backlight": "Retroiluminación",
+    "hue": "Tono",
+    "sat": "Sat.",
+    "brt": "Brillo",
+    "advanced": "Avanzado",
+    "effect": "Efecto",
+    "speed": "Velocidad",
+    "color": "Color",
+    "notSupported": "Control de iluminación no disponible",
+    "notSupportedDesc": "El control de iluminación no es una función oficial de ZMK. Para usarlo, debes compilar tu firmware a partir de nuestra rama personalizada y añadir la configuración de overlay de devicetree relacionada con RGB.",
+    "turnOnHint": "Enciende una fuente de luz para ajustar la configuración",
+    "noEffects": "No hay efectos disponibles",
+    "on": "ON",
+    "off": "OFF",
+    "layerLed": {
+      "title": "LED de capa",
+      "loading": "Cargando datos de LED de capa...",
+      "selectKey": "Haz clic o arrastra para seleccionar teclas, luego edita el color abajo",
+      "editKey": "Tecla {{key}}",
+      "editKeys": "{{count}} teclas seleccionadas",
+      "clear": "Borrar"
+    },
+    "capsLock": {
+      "title": "Indicador de Bloq Mayús",
+      "enabled": "Habilitado",
+      "onColor": "Color activo",
+      "offColor": "Color inactivo",
+      "keyPosition": "Posición de tecla: {{pos}}",
+      "notConfigured": "El indicador de Bloq Mayús no está configurado en el firmware"
+    },
+    "connection": {
+      "title": "Conexión",
+      "usbColor": "Color USB",
+      "btColor": "Color Bluetooth"
+    },
+    "indicator": {
+      "keyPosition": "Posición",
+      "layer": "Capa",
+      "anyLayer": "Todas las capas",
+      "currentLayer": "Capa actual",
+      "scope": "Alcance",
+      "selectKey": "Seleccionar tecla",
+      "pickHint": "Haz clic en una tecla del teclado...",
+      "positionLabel": "Tecla {{pos}}",
+      "clickKeyHint": "Haz clic en una tecla de arriba para elegirla",
+      "showOnAllLayers": "Mostrar en todas las capas",
+      "changeKey": "Cambiar",
+      "apply": "Aplicar",
+      "clear": "Borrar"
+    }
+  },
+  "behavior": {
+    "category": {
+      "basic": "Básico",
+      "layers": "Capas",
+      "modifiers": "Modificadores",
+      "bluetooth": "Bluetooth",
+      "lighting": "Iluminación",
+      "system": "Sistema",
+      "mouse": "Ratón",
+      "other": "Otro"
+    }
+  },
+  "holdTap": {
+    "tappingTermMs": "Tiempo de pulsación (ms)",
+    "quickTapMs": "Pulsación rápida (ms)",
+    "requirePriorIdleMs": "Inactividad previa (ms)",
+    "flavorLabel": "Tipo",
+    "retroTap": "Retro Tap",
+    "holdWhileUndecided": "Mantenimiento inmediato",
+    "holdWhileUndecidedLinger": "Prolongar mantenimiento",
+    "holdTriggerOnRelease": "Decidir al soltar",
+    "flavor": {
+      "holdPreferred": "Mantenimiento preferido",
+      "balanced": "Equilibrado",
+      "tapPreferred": "Pulsación preferida",
+      "tapUnlessInterrupted": "Pulsar salvo interrupción"
+    },
+    "flavorDesc": {
+      "holdPreferred": "Activa el mantenimiento en cuanto pasa el tiempo o se pulsa otra tecla. Ideal para modificadores.",
+      "balanced": "Si pulsas y sueltas otra tecla mientras mantienes, se resuelve como mantenimiento; si sueltas esta tecla primero, se pulsa. Se ajusta a cómo se usan la mayoría de los modificadores.",
+      "tapPreferred": "Solo mantiene si realmente la mantienes pulsada más allá del tiempo. Menos errores al escribir.",
+      "tapUnlessInterrupted": "Pulsa por defecto, mantiene solo cuando otra tecla lo interrumpe."
+    },
+    "term": {
+      "sensitive": "Sensible",
+      "standard": "Estándar",
+      "relaxed": "Relajado"
+    },
+    "advanced": "Avanzado",
+    "ms": "ms",
+    "on": "Activado",
+    "off": "Desactivado",
+    "desc": {
+      "retroTap": "¿Mantenida más allá del tiempo sin pulsar otra tecla? Aun así envía la pulsación al soltar.",
+      "holdWhileUndecided": "Activa el mantenimiento de inmediato mientras decide en lugar de esperar. Útil para modificadores del ratón.",
+      "holdWhileUndecidedLinger": "Mantiene activo el mantenimiento hasta justo después de enviar la pulsación. Solo importa con Mantenimiento inmediato.",
+      "holdTriggerOnRelease": "Retrasa la decisión de mantenimiento posicional hasta que se suelta la tecla.",
+      "quickTapMs": "Vuelve a pulsar la tecla dentro de este tiempo tras una pulsación para pulsar de nuevo — p. ej. pulsar y mantener Retroceso para repetir.",
+      "requirePriorIdleMs": "Si pulsaste otra tecla dentro de este tiempo, se resuelve como pulsación — evita mantenimientos accidentales al escribir rápido."
+    },
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "cancel": "Cancelar",
+    "resetDefault": "Restaurar predeterminado",
+    "loading": "Cargando…",
+    "section": {
+      "userPresets": "Ajustes del usuario"
+    },
+    "scope": {
+      "builtin": "Predeterminado de todo el firmware"
+    },
+    "empty": {
+      "builtinHint": "Tu firmware no registra Mod-Tap ni Layer-Tap.",
+      "userPresets": "No hay ajustes de usuario definidos",
+      "userPresetsHint": "Define variantes hold-tap con nombres como `ht_*` en tu .keymap para gestionarlas aquí."
+    },
+    "applyTitle": "Aplicar un ajuste",
+    "applyHint": "Copiar la configuración de un ajuste en {{name}}.",
+    "saveFailed": "Error o tiempo de espera al guardar. Inténtalo de nuevo."
+  },
+  "other": {
+    "tab": "Otro",
+    "feature": {
+      "title": "Función",
+      "tapHold": "Tap-Hold"
+    }
+  },
+  "hid": {
+    "tabs": {
+      "input": "Entrada",
+      "navigation": "Navegación",
+      "media": "Multimedia",
+      "shortcuts": "Atajos",
+      "keypad": "Teclado num.",
+      "other": "Otro"
+    },
+    "general": {
+      "filter": "Filtrar...",
+      "noKeys": "No se encontraron teclas",
+      "resultsFound": "resultados encontrados",
+      "modifiersTitle": "Modificadores",
+      "implicitModifiers": "Modificadores implícitos",
+      "rarelyUsed": "Poco usadas"
+    }
+  },
+  "parameters": {
+    "composite": "¿Compuesto?"
+  },
+  "unlock": {
+    "title": "Desbloquea para continuar",
+    "body1": "Por razones de seguridad, tu teclado requiere desbloqueo antes de usar ZMK Studio.",
+    "body2Prefix": "Si el desbloqueo de Studio no se ha añadido a tu keymap o a un combo, consulta la",
+    "docs": "documentación del comportamiento Studio Unlock",
+    "body2Suffix": "para más información."
+  },
+  "license": {
+    "intro": "ZMK Studio se publica bajo la licencia de código abierto Apache 2.0. Aquí se incluye una copia del archivo NOTICE del repositorio de ZMK Studio:"
+  },
+  "errors": {
+    "failedToConnect": "Error al conectar con el dispositivo elegido",
+    "connectionLost": "Conexión perdida — el teclado se desconectó.",
+    "loadTimeout": "Se agotó el tiempo al cargar los datos del teclado. Vuelve a conectar.",
+    "failedFirstRpc": "Falló la primera llamada RPC",
+    "failedToSave": "Error al guardar los cambios",
+    "failedToDiscard": "Error al descartar los cambios",
+    "failedToReset": "Error al restablecer los ajustes"
+  },
+  "idle": {
+    "hint": "Haz clic en una tecla de arriba para empezar a editar"
+  },
+  "download": {
+    "disclaimer": "ZMKs Studio NO es el ZMK Studio oficial. Por favor, no informes de problemas al proyecto oficial de ZMK.",
+    "downloadFor": "Descargar para {{name}}",
+    "showAll": "Mostrar todas las descargas",
+    "hideAll": "Ocultar todas las descargas",
+    "seeReleases": "Ver versiones en GitHub →"
+  },
+  "carbon": {
+    "nav": {
+      "keyboard": "Teclado",
+      "quick": "Ajustes rápidos",
+      "layers": "Capas",
+      "map": "Mapa",
+      "behaviors": "Comportamientos",
+      "lighting": "Iluminación",
+      "combos": "Combos",
+      "settings": "Ajustes"
+    },
+    "config": "CONFIGURACIÓN",
+    "searchPlaceholder": "Buscar códigos de tecla…",
+    "saveToKeyboard": "Guardar en el teclado",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "lightTheme": "Claro",
+    "darkTheme": "Oscuro",
+    "themeSystem": "Sistema",
+    "disconnect": "Desconectar",
+    "statusConnected": "Dispositivo conectado",
+    "unsavedMark": "Cambios sin guardar *",
+    "allSaved": "Todos los cambios guardados",
+    "lockedTitle": "Teclado bloqueado",
+    "lockedDesc": "Pulsa la combinación studio-unlock en tu teclado para editar.",
+    "layer": "Capa",
+    "rename": "Renombrar",
+    "delete": "Eliminar",
+    "addLayer": "Añadir capa",
+    "model": "Modelo",
+    "clickKeyHint": "Haz clic en cualquier tecla para editar su binding",
+    "quickControls": "Controles rápidos",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "zoomFit": "Ajustar",
+    "editBinding": "Editar binding",
+    "close": "Cerrar",
+    "clearSearch": "Borrar",
+    "deviceName": "Nombre del dispositivo",
+    "serialNumber": "Número de serie",
+    "layoutCount": "Distribuciones físicas",
+    "layerCount": "Capas",
+    "activeLayout": "Distribución activa",
+    "physicalLayout": "Distribución",
+    "theme": "Tema",
+    "language": "Idioma",
+    "about": "Acerca de",
+    "aboutApp": "Acerca de ZMK Studio",
+    "license": "Licencia",
+    "factoryReset": "Restaurar ajustes de fábrica",
+    "combosTitle": "Combos",
+    "combosDesc": "La edición de combos llegará pronto.",
+    "loading": "Cargando…",
+    "duplicateLayer": "Duplicar capa",
+    "moveLayerUp": "Subir",
+    "moveLayerDown": "Bajar",
+    "saving": "Guardando…",
+    "saveSuccess": "Guardado en el teclado",
+    "saveFailed": "Error al guardar — reinténtalo",
+    "lockLayer": "Bloquear capa",
+    "unlockLayer": "Desbloquear capa",
+    "deleteLayer": "Eliminar capa",
+    "layerLockedHint": "Esta capa está bloqueada. Desbloquéala para editar los bindings.",
+    "defaultView": "Vista predeterminada",
+    "defaultViewDesc": "Qué sección se abre al conectar un teclado.",
+    "keysUnit": "teclas",
+    "layersUnit": "capas"
+  }
+}

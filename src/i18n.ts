@@ -4,6 +4,7 @@ import enTranslations from "./locales/en.json";
 import zhTranslations from "./locales/zh.json";
 import jaTranslations from "./locales/ja.json";
 import frTranslations from "./locales/fr.json";
+import esTranslations from "./locales/es.json";
 
 // 获取浏览器语言或从 localStorage 中读取用户选择的语言
 const getInitialLanguage = () => {
@@ -16,6 +17,7 @@ const getInitialLanguage = () => {
   if (lang.startsWith("zh")) return "zh";
   if (lang.startsWith("ja")) return "ja";
   if (lang.startsWith("fr")) return "fr";
+  if (lang.startsWith("es")) return "es";
   return "en";
 };
 
@@ -25,6 +27,7 @@ i18n.use(initReactI18next).init({
     zh: { translation: zhTranslations },
     ja: { translation: jaTranslations },
     fr: { translation: frTranslations },
+    es: { translation: esTranslations },
   },
   lng: getInitialLanguage(),
   fallbackLng: "en",

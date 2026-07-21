@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ChevronRight, ChevronUp, ChevronDown, Keyboard as KeyboardIcon, Layers, Zap, Link2,
@@ -19,6 +19,8 @@ import { usePressedKeys } from "./usePressedKeys";
 import { Keymap as KeymapComp } from "../keyboard/Keymap";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
 import { OtherPanel } from "../keyboard/OtherPanel";
+import { useHoldTapConfigs } from "../behaviors/useHoldTapConfigs";
+import { isHoldTapShape } from "../behaviors/holdTapUtils";
 import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
 import LightingControl, { type LightSource } from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
@@ -128,6 +130,14 @@ export function CarbonShell(props: CarbonShellProps) {
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isUnlocked, unsaved, props.canUndo, props.canRedo, props.onUndo, props.onRedo]);
+
+  // Hoisted here (persists across tab switches) so the Behaviors panel's config
+  // cache survives navigation and doesn't reload-flash on re-entry.
+  const holdTapIds = useMemo(
+    () => model.behaviorList.filter(isHoldTapShape).map((b) => b.id),
+    [model.behaviorList]
+  );
+  const holdTap = useHoldTapConfigs(holdTapIds);
 
   const deviceName = deviceInfo?.name || props.connectedDeviceName || "Keyboard";
   const serialHex = deviceInfo?.serialNumber && deviceInfo.serialNumber.length > 0
@@ -262,7 +272,7 @@ export function CarbonShell(props: CarbonShellProps) {
               <LightingView model={model} th={th} t={t} />
             ) : activeNav === "behaviors" ? (
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
-                <OtherPanel behaviors={model.behaviorList} th={th} />
+                <OtherPanel behaviors={model.behaviorList} th={th} getConfig={holdTap.getConfig} applyConfig={holdTap.applyConfig} />
               </div>
             ) : activeNav === "keyboard" ? (
               <QuickSettingsView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
@@ -692,7 +702,8 @@ function QuickSettingsView({ model, th, t, deviceName, serial, setting, setSetti
         { id: "zh", label: "中文" },
         { id: "ja", label: "日本語" },
         { id: "fr", label: "Français" },
-      ], lang.startsWith("zh") ? "zh" : lang.startsWith("ja") ? "ja" : lang.startsWith("fr") ? "fr" : "en", setLang))}
+        { id: "es", label: "Español" },
+      ], lang.startsWith("zh") ? "zh" : lang.startsWith("ja") ? "ja" : lang.startsWith("fr") ? "fr" : lang.startsWith("es") ? "es" : "en", setLang))}
       <div style={{ padding: "16px 0" }}>
         <div style={{ fontSize: 14, color: th.textPrimary, fontWeight: 500, marginBottom: 8 }}>{t("carbon.defaultView", "Default view")}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -746,7 +757,8 @@ function SettingsView({ th, t, setting, setSetting, lang, setLang, defaultNav, s
         { id: "zh", label: "中文" },
         { id: "ja", label: "日本語" },
         { id: "fr", label: "Français" },
-      ], lang.startsWith("zh") ? "zh" : lang.startsWith("ja") ? "ja" : lang.startsWith("fr") ? "fr" : "en", setLang))}
+        { id: "es", label: "Español" },
+      ], lang.startsWith("zh") ? "zh" : lang.startsWith("ja") ? "ja" : lang.startsWith("fr") ? "fr" : lang.startsWith("es") ? "es" : "en", setLang))}
       {block(t("carbon.defaultView", "Default view"), (
         <>
           <p style={{ fontSize: 12, color: th.textHelper, marginTop: -4, marginBottom: 8 }}>
