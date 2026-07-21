@@ -17,7 +17,6 @@
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-brands-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.6",
-    "@tailwindcss/container-queries": "^0.1.1",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-cli": "^2.4.1",
     "@zmkfirmware/zmk-studio-ts-client": "npm:@ph-design/zmk-studio-ts-client-fork@0.0.18-dev.20260517071138.1ba5178",

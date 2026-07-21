@@ -309,8 +309,7 @@ export const BehaviorBindingPicker = ({
     } else {
       setContextBuiltinId(findBuiltinHoldTap(behaviors, builtinNameForShape(b))?.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [binding]);
+  }, [binding, behaviors]);
 
   const handleBehaviorSelect = useCallback(
     (id: number) => {

@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Label } from "react-aria-components";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle } from "lucide-react";

@@ -211,6 +211,7 @@ function App() {
 
   const [lockState, setLockState] = useState<LockState | undefined>(undefined);
   const [hasUnsavedLightingChanges, setHasUnsavedLightingChanges] = useState(false);
+  const [connectionType, setConnectionType] = useState<string | undefined>();
 
   useEffect(() => {
     connectionAbortRef.current = connectionAbort;
@@ -384,6 +385,7 @@ function App() {
       setKeyboardReady(false);
       setLockState(undefined);
       setHasUnsavedLightingChanges(false);
+      setConnectionType(undefined);
       setConnectionPhase("idle");
 
       try {
@@ -411,7 +413,8 @@ function App() {
   }, [connectionPhase, keyboardReady, disconnect]);
 
   const onConnect = useCallback(
-    (t: RpcTransport) => {
+    (t: RpcTransport, meta?: { isWireless?: boolean }) => {
+      setConnectionType(meta?.isWireless ? "BLE" : "USB");
       const ac = new AbortController();
       connectionAbortRef.current = ac;
       setConnectionAbort(ac);
@@ -453,6 +456,7 @@ function App() {
     setKeyboardReady(false);
     setLockState(undefined);
     setHasUnsavedLightingChanges(false);
+    setConnectionType(undefined);
     setConnectionPhase("idle");
   }, []);
 
@@ -486,7 +490,9 @@ function App() {
               <CarbonShell
                 carbon={carbon}
                 connectedDeviceName={connectedDeviceName}
+                connectionType={connectionType}
                 onDisconnect={disconnect}
+                onSwitchDevice={disconnect}
                 onResetSettings={resetSettings}
                 onSave={save}
                 onDiscard={discard}

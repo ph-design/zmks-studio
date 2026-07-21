@@ -379,6 +379,7 @@
     "combosTitle": "Combos",
     "combosDesc": "Combo editing is not yet wired to this firmware. Coming soon.",
     "loading": "Loading…",
+    "copying": "Copying…",
     "duplicateLayer": "Duplicate layer",
     "moveLayerUp": "Move up",
     "moveLayerDown": "Move down",

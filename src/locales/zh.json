@@ -379,6 +379,7 @@
     "combosTitle": "组合键",
     "combosDesc": "组合键编辑尚未接入当前固件，敬请期待。",
     "loading": "加载中…",
+    "copying": "复制中…",
     "duplicateLayer": "复制图层",
     "moveLayerUp": "上移",
     "moveLayerDown": "下移",

@@ -32,7 +32,7 @@ export type ConnectionPhase = "idle" | "connecting" | "initializing" | "connecte
 export interface ConnectModalProps {
   open?: boolean;
   transports: TransportFactory[];
-  onTransportCreated: (t: RpcTransport) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
   connectionError?: string;
   onConnectionError?: (message: string | undefined) => void;
   connectionPhase?: ConnectionPhase;
@@ -340,7 +340,7 @@ function DeviceList({
 }: {
   open: boolean;
   transports: TransportFactory[];
-  onTransportCreated: (t: RpcTransport) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
   onConnectionError?: (message: string | undefined) => void;
 }) {
   const { t } = useTranslation();
@@ -496,7 +496,7 @@ function SimpleDevicePicker({
   onConnectionError,
 }: {
   transports: TransportFactory[];
-  onTransportCreated: (t: RpcTransport) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
   onConnectionError?: (message: string | undefined) => void;
 }) {
   const { t } = useTranslation();
@@ -522,7 +522,7 @@ function SimpleDevicePicker({
 
           if (!ignore) {
             if (transport) {
-              onTransportCreated(transport);
+              onTransportCreated(transport, { isWireless: selectedTransport?.isWireless });
             }
             setSelectedTransport(undefined);
           }
@@ -574,7 +574,8 @@ function SimpleDevicePicker({
               className="m-1 cursor-pointer rounded px-3 py-2 hover:bg-base-300"
               onClick={async () => {
                 onTransportCreated(
-                  await selectedTransport!.pick_and_connect!.connect(d)
+                  await selectedTransport!.pick_and_connect!.connect(d),
+                  { isWireless: selectedTransport!.isWireless }
                 );
                 setSelectedTransport(undefined);
               }}
@@ -626,7 +627,7 @@ function ConnectOptions({
   open,
 }: {
   transports: TransportFactory[];
-  onTransportCreated: (t: RpcTransport) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
   onConnectionError?: (message: string | undefined) => void;
   open?: boolean;
 }) {

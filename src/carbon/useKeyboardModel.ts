@@ -1,4 +1,4 @@
-import React, {
+import {
   SetStateAction,
   useCallback,
   useContext,
@@ -56,8 +56,8 @@ export interface KeyboardModelCallbacks {
  * truth. No RPC behaviour changed — only relocated out of the presentation.
  */
 function useBehaviors(): [BehaviorMap, boolean] {
-  let connection = useContext(ConnectionContext);
-  let lockState = useContext(LockStateContext);
+  const connection = useContext(ConnectionContext);
+  const lockState = useContext(LockStateContext);
 
   const [behaviors, setBehaviors] = useState<BehaviorMap>({});
   const [loaded, setLoaded] = useState(false);
@@ -80,7 +80,7 @@ function useBehaviors(): [BehaviorMap, boolean] {
         return;
       }
 
-      let get_behaviors: Request = {
+      const get_behaviors: Request = {
         behaviors: { listAllBehaviors: true },
         requestId: 0,
       };
@@ -88,12 +88,12 @@ function useBehaviors(): [BehaviorMap, boolean] {
       const behavior_map: BehaviorMap = {};
       try {
         const behavior_list = await call_rpc(connection.conn, get_behaviors);
-        for (let behaviorId of behavior_list.behaviors?.listAllBehaviors
+        for (const behaviorId of behavior_list.behaviors?.listAllBehaviors
           ?.behaviors || []) {
           if (ignore) {
             break;
           }
-          let details_req = {
+          const details_req = {
             behaviors: { getBehaviorDetails: { behaviorId } },
             requestId: 0,
           };
@@ -136,8 +136,8 @@ function useLayouts(): [
   number,
   React.Dispatch<SetStateAction<number>>
 ] {
-  let connection = useContext(ConnectionContext);
-  let lockState = useContext(LockStateContext);
+  const connection = useContext(ConnectionContext);
+  const lockState = useContext(LockStateContext);
 
   const [layouts, setLayouts] = useState<PhysicalLayout[] | undefined>(
     undefined
@@ -161,7 +161,7 @@ function useLayouts(): [
         return;
       }
 
-      let response = await call_rpc(connection.conn, {
+      const response = await call_rpc(connection.conn, {
         keymap: { getPhysicalLayouts: true },
       });
 
@@ -245,6 +245,14 @@ export function useKeyboardModel({
     IndicatorPositionDraft | undefined
   >(undefined);
   const [lightingSource, setLightingSource] = useState<string>("rgb");
+
+  // Progress for the duplicate-layer op — exposed so LayersView can render a
+  // progress bar on the new layer while bindings are being copied.
+  const [duplicateProgress, setDuplicateProgress] = useState<{
+    layerIndex: number;
+    done: number;
+    total: number;
+  } | null>(null);
 
   const handleIndicatorPick = useCallback(
     (positions: Set<number>) => {
@@ -411,7 +419,7 @@ export function useKeyboardModel({
     onProgress,
   ]);
 
-  // Hot-update via notifications (always active)
+  // RPC notifications push live updates while the connection is open.
   useSub(
     "rpc_notification.lighting.rgbUnderglowStateChanged",
     (state: RgbUnderglowState) => setRgbState(state)
@@ -491,11 +499,11 @@ export function useKeyboardModel({
         return;
       }
 
-      let resp = await call_rpc(conn.conn, {
+      const resp = await call_rpc(conn.conn, {
         keymap: { setActivePhysicalLayout: selectedPhysicalLayoutIndex },
       });
 
-      let new_keymap = resp?.keymap?.setActivePhysicalLayout?.ok;
+      const new_keymap = resp?.keymap?.setActivePhysicalLayout?.ok;
       if (new_keymap) {
         setKeymap(new_keymap);
       } else {
@@ -511,7 +519,7 @@ export function useKeyboardModel({
 
   const doSelectPhysicalLayout = useCallback(
     (i: number) => {
-      let oldLayout = selectedPhysicalLayoutIndex;
+      const oldLayout = selectedPhysicalLayoutIndex;
       undoRedo?.(async () => {
         setSelectedPhysicalLayoutIndex(i);
 
@@ -541,7 +549,7 @@ export function useKeyboardModel({
           throw new Error("Not connected");
         }
 
-        let resp = await call_rpc(conn.conn, {
+        const resp = await call_rpc(conn.conn, {
           keymap: { setLayerBinding: { layerId, keyPosition, binding } },
         });
 
@@ -578,6 +586,7 @@ export function useKeyboardModel({
               })
             );
           } else {
+            // Undo-slot: intentionally empty — on failure the state stays unchanged.
           }
         };
       });
@@ -676,7 +685,7 @@ export function useKeyboardModel({
     }
 
     undoRedo?.(async () => {
-      let index = await doAdd();
+      const index = await doAdd();
       return () => doRemove(index);
     });
   }, [conn, undoRedo, keymap]);
@@ -739,71 +748,59 @@ export function useKeyboardModel({
       throw new Error("No keymap loaded");
     }
 
-    let index = selectedLayerIndex;
-    let layerId = keymap.layers[index].id;
+    const index = selectedLayerIndex;
+    const layerId = keymap.layers[index].id;
     undoRedo?.(async () => {
       await doRemove(index);
       return () => doRestore(layerId, index);
     });
   }, [conn, undoRedo, selectedLayerIndex]);
 
-  /*
-   * "Duplicate layer" is not a ZMK Studio RPC primitive — it's composed here
-   * from addLayer + a setLayerBinding per key position, using the exact same
-   * calls the rest of this hook already makes. No protocol/backend change.
-   */
   const duplicateLayer = useCallback(() => {
     if (!keymap) {
       throw new Error("No keymap loaded");
     }
     const sourceIndex = selectedLayerIndex;
-    const sourceLayer = keymap.layers[sourceIndex];
-    const sourceBindings = sourceLayer.bindings.slice();
-    const newName = `${sourceLayer.name || `Layer ${sourceIndex}`} copy`;
+    const newName = `${keymap.layers[sourceIndex].name || `Layer ${sourceIndex}`} copy`;
 
     async function doDuplicate(): Promise<number> {
-      if (!conn.conn) {
-        throw new Error("Not connected");
-      }
+      if (!conn.conn || !keymap) throw new Error("Not connected");
+
+      const sourceBindings = keymap.layers[sourceIndex]?.bindings?.slice() ?? [];
 
       const addResp = await call_rpc(conn.conn, { keymap: { addLayer: {} } });
       if (!addResp.keymap?.addLayer?.ok) {
-        throw new Error(
-          "Failed to add layer:" + addResp.keymap?.addLayer?.err
-        );
+        throw new Error("Failed to add layer");
       }
       const { index: newIndex, layer: newLayer } = addResp.keymap.addLayer.ok;
-      if (!newLayer) {
-        throw new Error("Add layer returned no layer");
-      }
+      if (!newLayer) throw new Error("Add layer returned no layer");
+
+      setKeymap(
+        produce((draft: any) => {
+          draft.layers.push({ ...newLayer, name: newName, bindings: [] });
+          draft.availableLayers--;
+        })
+      );
+      setSelectedLayerIndex(newIndex);
 
       await call_rpc(conn.conn, {
         keymap: { setLayerProps: { layerId: newLayer.id, name: newName } },
       });
 
-      for (let pos = 0; pos < sourceBindings.length; pos++) {
+      const total = sourceBindings.length;
+      const copied: BehaviorBinding[] = [];
+      for (let i = 0; i < total; i++) {
         await call_rpc(conn.conn, {
-          keymap: {
-            setLayerBinding: {
-              layerId: newLayer.id,
-              keyPosition: pos,
-              binding: sourceBindings[pos],
-            },
-          },
+          keymap: { setLayerBinding: { layerId: newLayer.id, keyPosition: i, binding: sourceBindings[i] } },
         });
+        copied.push({ ...sourceBindings[i] });
+        setDuplicateProgress({ layerIndex: newIndex, done: i + 1, total });
+        if (i % 3 === 2 || i === total - 1) {
+          setKeymap(produce((draft: any) => { draft.layers[newIndex].bindings = [...copied]; }));
+        }
       }
 
-      setKeymap(
-        produce((draft: any) => {
-          draft.layers.push({
-            ...newLayer,
-            name: newName,
-            bindings: sourceBindings.map((b) => ({ ...b })),
-          });
-          draft.availableLayers--;
-        })
-      );
-      setSelectedLayerIndex(newIndex);
+      setDuplicateProgress(null);
       return newIndex;
     }
 
@@ -908,6 +905,7 @@ export function useKeyboardModel({
     addLayer,
     removeLayer,
     duplicateLayer,
+    duplicateProgress,
     changeLayerName,
     // zoom
     keymapScale,

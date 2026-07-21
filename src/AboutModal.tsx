@@ -1,4 +1,4 @@
-import React from "react";
+import { Fragment } from "react";
 import { useModalRef } from "./misc/useModalRef";
 
 import cannonKeys from "./assets/cannonkeys.png";
@@ -230,7 +230,7 @@ export const AboutModal = ({ open, onClose }: AboutModalProps) => {
           else if (s.level === "Additional") levelLabel = t("sponsorLevels.additional");
 
           return (
-            <React.Fragment key={s.level}>
+            <Fragment key={s.level}>
               <label>{levelLabel}</label>
               <div
                 className={`grid grid-rows-1 gap-x-1 auto-cols-fr grid-flow-col justify-items-center items-center ${heightVariants[s.size]
@@ -259,7 +259,7 @@ export const AboutModal = ({ open, onClose }: AboutModalProps) => {
                   );
                 })}
               </div>
-            </React.Fragment>
+            </Fragment>
           );
         })}
       </div>

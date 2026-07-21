@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 import trac from "tailwindcss-react-aria-components";
-import contQueries from "@tailwindcss/container-queries";
 
 // IBM Carbon Design tokens are driven by CSS variables (see src/index.css),
 // switched between light/dark by toggling the `.dark` class on <html>. Token
@@ -57,5 +56,5 @@ export default {
       keycap: ["IBM Plex Mono", "monospace"],
     },
   },
-  plugins: [contQueries, trac({ prefix: "rac" })],
+  plugins: [trac({ prefix: "rac" })],
 };
