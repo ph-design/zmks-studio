@@ -1,0 +1,397 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "discard": "Abandonner",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "language": "Langue",
+    "cancel": "Annuler",
+    "close": "Fermer",
+    "add": "Ajouter",
+    "remove": "Supprimer"
+  },
+  "welcome": {
+    "title": "Bienvenue dans ZMKs Studio",
+    "subtitle": "Une version communautaire améliorée de ZMK Studio.",
+    "clientTitle": "Utilisez le client de bureau pour une expérience optimale",
+    "clientDescriptionPrefix": "Le client de bureau peut lister directement les périphériques USB et connecter les claviers via BLE. La prise en charge du navigateur dépend encore de",
+    "clientDescriptionSuffix": "la disponibilité.",
+    "downloadClient": "Télécharger le client",
+    "selectConnection": "Choisissez un type de connexion",
+    "selectDevice": "Sélectionnez un appareil",
+    "deviceListHint": "Le client détecte automatiquement les périphériques USB et BLE disponibles. Choisissez un appareil à connecter.",
+    "webConnectionHint": "Les connexions via le navigateur demandent une autorisation système. Choisissez votre clavier dans le sélecteur qui s'affiche.",
+    "bleConnectionDescription": "Bluetooth Low Energy, plus stable dans le client de bureau",
+    "usbConnectionDescription": "Connexion au clavier via série USB",
+    "genericConnectionDescription": "Utilisez ce transport pour connecter le clavier",
+    "connectionAvailable": "Disponible",
+    "connectionUnavailable": "Indisponible",
+    "connectionUnavailableHint": "Cet environnement ne le prend pas en charge. Utilisez plutôt le client de bureau.",
+    "connectionErrorTitle": "Échec de la connexion",
+    "connectionErrorHelpTitle": "Essayez ceci :",
+    "connectionErrorHelpPermission": "Reconnectez-vous et autorisez le navigateur ou le client à accéder à l'appareil. Si l'autorisation a été refusée auparavant, réactivez-la dans les paramètres système ou du navigateur.",
+    "connectionErrorHelpUsb": "Assurez-vous que le clavier est connecté en USB et n'est pas déjà utilisé par une autre application, puis reconnectez-le et actualisez.",
+    "connectionErrorHelpBle": "Assurez-vous que le clavier est connectable et que le Bluetooth du système est activé. Pour le BLE, le client de bureau est recommandé.",
+    "connectionErrorHelpFirmware": "Assurez-vous que le firmware du clavier a ZMK Studio activé et prend en charge le RPC Studio. Reflashez un firmware compatible Studio si nécessaire.",
+    "connectionErrorHelpGeneric": "Actualisez la liste des appareils et réessayez. Si cela échoue toujours, utilisez le client de bureau ou reconnectez le clavier.",
+    "connectingTitle": "Connexion au clavier",
+    "connectingDescription": "Gardez le clavier connecté. L'éditeur s'ouvrira automatiquement une fois prêt.",
+    "initializingTitle": "Chargement du clavier",
+    "initializingDescription": "Lecture de la keymap, des comportements et de l'éclairage. L'éditeur s'ouvre lorsque tout est prêt.",
+    "unknownDevice": "Appareil inconnu",
+    "cancelConnection": "Annuler la connexion",
+    "scanningDevices": "Recherche d'appareils...",
+    "noDevices": "Aucun appareil trouvé. Assurez-vous que Studio est activé sur le clavier et actualisez.",
+    "refresh": "Actualiser",
+    "unsupportedTitle": "Cet environnement ne peut pas se connecter directement",
+    "unsupportedPrefix": "Votre navigateur n'est pas pris en charge. ZMK Studio utilise soit",
+    "unsupportedMiddle": "soit",
+    "unsupportedSuffix": "(Linux uniquement) pour se connecter aux appareils ZMK.",
+    "unsupportedOptions": "Pour utiliser ZMK Studio, vous pouvez :",
+    "chromeBrowser": "Utiliser un navigateur prenant en charge les technologies web ci-dessus, p. ex. Chrome/Edge, ou",
+    "downloadAppPrefix": "Télécharger notre",
+    "crossPlatformApp": "application multiplateforme"
+  },
+  "header": {
+    "settings": "Paramètres",
+    "resetSettings": "Réinitialiser les paramètres",
+    "resetWarning": "La réinitialisation des paramètres supprimera toutes les personnalisations effectuées dans ZMK Studio et restaurera la keymap d'origine",
+    "continue": "Continuer ?",
+    "restoreStock": "Restaurer les paramètres d'origine",
+    "disconnect": "Déconnecter",
+    "confirmResetSettings": "Voulez-vous vraiment réinitialiser tous les paramètres ?",
+    "unlockRequired": "Le déverrouillage de l'appareil est requis pour cette action",
+    "studio": "ZMKs Studio"
+  },
+  "footer": {
+    "copyright": "© 2026 - The ZMK Contributors",
+    "about": "À propos de ZMKs Studio",
+    "license": "AVIS de licence"
+  },
+  "about": {
+    "project": "Le projet ZMK :",
+    "website": "site web",
+    "issues": "GitHub Issues",
+    "discord": "Serveur Discord",
+    "zmksTitle": "À propos de ZMKs Studio",
+    "zmksDescription": "ZMKs Studio est une version communautaire basée sur ZMK Studio. Elle conserve le flux d'édition de keymap de ZMK Studio en amont et ajoute l'interface, l'éclairage, la localisation et les améliorations du client de bureau de ce fork. Le projet ZMK Studio d'origine et les contributeurs ZMK restent le fondement de ce travail.",
+    "zmksRepo": "Voir le dépôt ZMKs Studio",
+    "sponsorsDescription": "ZMK Studio est rendu possible grâce au temps généreusement donné par nos contributeurs, ainsi qu'au parrainage financier des fournisseurs suivants :"
+  },
+  "sponsorLevels": {
+    "platinum": "Platine",
+    "goldPlus": "Or+",
+    "gold": "Or",
+    "silver": "Argent",
+    "bronze": "Bronze",
+    "additional": "Supplémentaire"
+  },
+  "layer": {
+    "label": "Couches",
+    "newLayerName": "Nom de la nouvelle couche",
+    "addFailed": "Échec de l'ajout de la couche : {{error}}",
+    "removeFailed": "Échec de la suppression de la couche : {{error}}",
+    "restoreFailed": "Échec de la restauration de la couche : {{error}}",
+    "renameFailed": "Échec du renommage de la couche : {{error}}"
+  },
+  "keyboard": {
+    "layout": "Disposition",
+    "tab": {
+      "keymap": "Keymap",
+      "lighting": "Éclairage",
+      "other": "Autre"
+    },
+    "zoom": {
+      "auto": "Auto"
+    },
+    "errors": {
+      "notConnected": "Non connecté"
+    }
+  },
+  "binding": {
+    "hold": "Maintien",
+    "tap": "Appui",
+    "layer": "Couche",
+    "mode": "Mode",
+    "modeDefault": "Par défaut",
+    "category": "Catégorie",
+    "behavior": "Comportement",
+    "noParametersRequired": "Aucun paramètre requis"
+  },
+  "selectBehaviorHint": "Survolez un comportement à gauche pour voir sa description",
+  "behaviorDesc": {
+    "Key Press": "Envoyer un code de touche à l'appui/au relâchement",
+    "None": "Bloquer la touche — les événements ne passent pas aux couches inférieures",
+    "Transparent": "Transmettre à la couche active en dessous",
+    "Momentary Layer": "Activer une couche pendant le maintien, désactiver au relâchement",
+    "To Layer": "Passer à une couche et désactiver toutes les autres sauf celle par défaut",
+    "Toggle Layer": "Activer/désactiver une couche",
+    "Layer-Tap": "Maintien → activer la couche, Appui → envoyer la touche (appui préféré)",
+    "Sticky Layer": "Activer une couche pour la prochaine touche seulement (couche one-shot)",
+    "Mod-Tap": "Maintien → modificateur, Appui → touche (maintien préféré)",
+    "Sticky Key": "Garder un modificateur actif pour la prochaine touche (modificateur one-shot)",
+    "Grave/Escape": "Échap par défaut, accent grave (`) quand Maj ou GUI est maintenu",
+    "Key Repeat": "Répéter le dernier code de touche",
+    "Key Toggle": "Activer/désactiver une touche — appuyer pour maintenir, appuyer à nouveau pour relâcher",
+    "Caps Word": "Mettre en majuscules automatiquement jusqu'à une touche non alphanumérique",
+    "Bluetooth": "Gérer les profils BT : sélectionner, changer ou effacer les appairages",
+    "Output Selection": "Choisir entre la sortie USB et BLE",
+    "External Power": "Activer/désactiver l'alimentation externe VCC",
+    "Reset": "Réinitialiser et relancer le firmware actuel",
+    "Bootloader": "Redémarrer en bootloader pour le flashage",
+    "z_so_off": "Extinction logicielle. Réveil avec le bouton on/off ou reset",
+    "Studio Unlock": "Déverrouiller l'accès à ZMK Studio sur cet appareil",
+    "Mouse Key Press": "Envoyer des clics de souris (gauche/droit/milieu, boutons 4-5)",
+    "mouse_move": "Déplacer le curseur de la souris",
+    "mouse_scroll": "Défiler verticalement ou horizontalement"
+  },
+  "lighting": {
+    "title": "Éclairage",
+    "rgbUnderglow": "Rétroéclairage RGB",
+    "backlight": "Rétroéclairage",
+    "hue": "Teinte",
+    "sat": "Sat.",
+    "brt": "Luminosité",
+    "advanced": "Avancé",
+    "effect": "Effet",
+    "speed": "Vitesse",
+    "color": "Couleur",
+    "notSupported": "Contrôle de l'éclairage indisponible",
+    "notSupportedDesc": "Le contrôle de l'éclairage n'est pas une fonctionnalité officielle de ZMK. Pour l'utiliser, vous devez compiler votre firmware à partir de notre branche personnalisée et ajouter la configuration overlay devicetree liée au RGB.",
+    "turnOnHint": "Activez une source lumineuse pour régler les paramètres",
+    "noEffects": "Aucun effet disponible",
+    "on": "ACTIVÉ",
+    "off": "DÉSACTIVÉ",
+    "layerLed": {
+      "title": "LED de couche",
+      "loading": "Chargement des données LED de couche...",
+      "selectKey": "Cliquez ou glissez pour sélectionner des touches, puis modifiez la couleur ci-dessous",
+      "editKey": "Touche {{key}}",
+      "editKeys": "{{count}} touches sélectionnées",
+      "clear": "Effacer"
+    },
+    "capsLock": {
+      "title": "Indicateur Verr. Maj",
+      "enabled": "Activé",
+      "onColor": "Couleur active",
+      "offColor": "Couleur inactive",
+      "keyPosition": "Position de touche : {{pos}}",
+      "notConfigured": "Indicateur Verr. Maj non configuré dans le firmware"
+    },
+    "connection": {
+      "title": "Connexion",
+      "usbColor": "Couleur USB",
+      "btColor": "Couleur Bluetooth"
+    },
+    "indicator": {
+      "keyPosition": "Position",
+      "layer": "Couche",
+      "anyLayer": "Toutes les couches",
+      "currentLayer": "Couche actuelle",
+      "scope": "Portée",
+      "selectKey": "Sélectionner une touche",
+      "pickHint": "Cliquez sur une touche du clavier...",
+      "positionLabel": "Touche {{pos}}",
+      "clickKeyHint": "Cliquez une touche ci-dessus pour la choisir",
+      "showOnAllLayers": "Afficher sur toutes les couches",
+      "changeKey": "Modifier",
+      "apply": "Appliquer",
+      "clear": "Effacer"
+    }
+  },
+  "behavior": {
+    "category": {
+      "basic": "Base",
+      "layers": "Couches",
+      "modifiers": "Modificateurs",
+      "bluetooth": "Bluetooth",
+      "lighting": "Éclairage",
+      "system": "Système",
+      "mouse": "Souris",
+      "other": "Autre"
+    }
+  },
+  "holdTap": {
+    "tappingTermMs": "Délai d'appui (ms)",
+    "quickTapMs": "Appui rapide (ms)",
+    "requirePriorIdleMs": "Inactivité préalable (ms)",
+    "flavorLabel": "Type",
+    "retroTap": "Appui rétro",
+    "holdWhileUndecided": "Maintien immédiat",
+    "holdWhileUndecidedLinger": "Prolonger le maintien",
+    "holdTriggerOnRelease": "Décider au relâchement",
+    "flavor": {
+      "holdPreferred": "Maintien préféré",
+      "balanced": "Équilibré",
+      "tapPreferred": "Appui préféré",
+      "tapUnlessInterrupted": "Appui sauf interruption"
+    },
+    "flavorDesc": {
+      "holdPreferred": "Déclenche le maintien dès que le délai est écoulé ou qu'une autre touche est pressée. Idéal pour les modificateurs.",
+      "balanced": "Si vous pressez et relâchez une autre touche pendant le maintien, cela devient un maintien ; relâchez d'abord cette touche et cela devient un appui. Convient à l'usage de la plupart des modificateurs.",
+      "tapPreferred": "Ne maintient que si vous gardez vraiment la touche pressée au-delà du délai. Le moins d'erreurs de frappe.",
+      "tapUnlessInterrupted": "Appui par défaut, maintien uniquement en cas d'interruption par une autre touche."
+    },
+    "term": {
+      "sensitive": "Sensible",
+      "standard": "Standard",
+      "relaxed": "Détendu"
+    },
+    "advanced": "Avancé",
+    "ms": "ms",
+    "on": "Activé",
+    "off": "Désactivé",
+    "desc": {
+      "retroTap": "Maintenu au-delà du délai sans presser une autre touche ? Envoie quand même l'appui au relâchement.",
+      "holdWhileUndecided": "Active le maintien immédiatement pendant la décision au lieu d'attendre. Utile pour les modificateurs de souris.",
+      "holdWhileUndecidedLinger": "Garde le maintien actif jusqu'à juste après l'envoi de l'appui. N'a d'effet qu'avec le maintien immédiat.",
+      "holdTriggerOnRelease": "Retarde la décision de maintien positionnel jusqu'au relâchement de la touche.",
+      "quickTapMs": "Repressez la touche dans ce délai après un appui pour appuyer à nouveau — p. ex. appui puis maintien de Retour arrière pour répéter.",
+      "requirePriorIdleMs": "Si vous avez pressé une autre touche dans ce délai, résout en appui — évite les maintiens accidentels lors d'une frappe rapide."
+    },
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "cancel": "Annuler",
+    "resetDefault": "Restaurer par défaut",
+    "loading": "Chargement…",
+    "section": {
+      "userPresets": "Préréglages utilisateur"
+    },
+    "scope": {
+      "builtin": "Valeur par défaut du firmware"
+    },
+    "empty": {
+      "builtinHint": "Votre firmware n'enregistre pas Mod-Tap ni Layer-Tap.",
+      "userPresets": "Aucun préréglage utilisateur défini",
+      "userPresetsHint": "Définissez des variantes hold-tap nommées comme `ht_*` dans votre .keymap pour les gérer ici."
+    },
+    "applyTitle": "Appliquer un préréglage",
+    "applyHint": "Copier les réglages d'un préréglage sur {{name}}.",
+    "saveFailed": "Échec ou expiration de l'enregistrement. Veuillez réessayer."
+  },
+  "other": {
+    "tab": "Autre",
+    "feature": {
+      "title": "Fonction",
+      "tapHold": "Tap-Hold"
+    }
+  },
+  "hid": {
+    "tabs": {
+      "input": "Saisie",
+      "navigation": "Navigation",
+      "media": "Média",
+      "shortcuts": "Raccourcis",
+      "keypad": "Pavé num.",
+      "other": "Autre"
+    },
+    "general": {
+      "filter": "Filtrer...",
+      "noKeys": "Aucune touche trouvée",
+      "resultsFound": "résultats trouvés",
+      "modifiersTitle": "Modificateurs",
+      "implicitModifiers": "Modificateurs implicites",
+      "rarelyUsed": "Rarement utilisé"
+    }
+  },
+  "parameters": {
+    "composite": "Composite ?"
+  },
+  "unlock": {
+    "title": "Déverrouillez pour continuer",
+    "body1": "Pour des raisons de sécurité, votre clavier doit être déverrouillé avant d'utiliser ZMK Studio.",
+    "body2Prefix": "Si le déverrouillage Studio n'a pas été ajouté à votre keymap ou à un combo, consultez la",
+    "docs": "documentation du comportement Studio Unlock",
+    "body2Suffix": "pour plus d'informations."
+  },
+  "license": {
+    "intro": "ZMK Studio est publié sous la licence open source Apache 2.0. Une copie du fichier NOTICE du dépôt ZMK Studio est incluse ici :"
+  },
+  "errors": {
+    "failedToConnect": "Échec de la connexion à l'appareil choisi",
+    "connectionLost": "Connexion perdue — le clavier a été déconnecté.",
+    "loadTimeout": "Délai dépassé lors du chargement des données du clavier. Veuillez vous reconnecter.",
+    "failedFirstRpc": "Échec du premier appel RPC",
+    "failedToSave": "Échec de l'enregistrement des modifications",
+    "failedToDiscard": "Échec de l'abandon des modifications",
+    "failedToReset": "Échec de la réinitialisation des paramètres"
+  },
+  "idle": {
+    "hint": "Cliquez une touche ci-dessus pour commencer l'édition"
+  },
+  "download": {
+    "disclaimer": "ZMKs Studio n'est PAS le ZMK Studio officiel. Merci de ne pas signaler de problèmes au projet ZMK officiel.",
+    "downloadFor": "Télécharger pour {{name}}",
+    "showAll": "Afficher tous les téléchargements",
+    "hideAll": "Masquer tous les téléchargements",
+    "seeReleases": "Voir les versions GitHub →"
+  },
+  "carbon": {
+    "nav": {
+      "keyboard": "Clavier",
+      "quick": "Réglages rapides",
+      "layers": "Couches",
+      "map": "Carte",
+      "behaviors": "Comportements",
+      "lighting": "Éclairage",
+      "combos": "Combos",
+      "settings": "Paramètres"
+    },
+    "config": "CONFIGURATION",
+    "searchPlaceholder": "Rechercher des codes de touche…",
+    "saveToKeyboard": "Enregistrer sur le clavier",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "lightTheme": "Clair",
+    "darkTheme": "Sombre",
+    "themeSystem": "Système",
+    "disconnect": "Déconnecter",
+    "statusConnected": "Appareil connecté",
+    "unsavedMark": "Modifications non enregistrées *",
+    "allSaved": "Toutes les modifications enregistrées",
+    "lockedTitle": "Clavier verrouillé",
+    "lockedDesc": "Appuyez sur la combinaison studio-unlock de votre clavier pour éditer.",
+    "layer": "Couche",
+    "rename": "Renommer",
+    "delete": "Supprimer",
+    "addLayer": "Ajouter une couche",
+    "model": "Modèle",
+    "clickKeyHint": "Cliquez une touche pour éditer son binding",
+    "quickControls": "Contrôles rapides",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "zoomFit": "Ajuster",
+    "editBinding": "Modifier le binding",
+    "close": "Fermer",
+    "clearSearch": "Effacer",
+    "deviceName": "Nom de l'appareil",
+    "serialNumber": "Numéro de série",
+    "layoutCount": "Dispositions physiques",
+    "layerCount": "Couches",
+    "activeLayout": "Disposition active",
+    "physicalLayout": "Disposition",
+    "theme": "Thème",
+    "language": "Langue",
+    "about": "À propos",
+    "aboutApp": "À propos de ZMK Studio",
+    "license": "Licence",
+    "factoryReset": "Restaurer les paramètres d'origine",
+    "combosTitle": "Combos",
+    "combosDesc": "L'édition des combos arrive bientôt.",
+    "loading": "Chargement…",
+    "duplicateLayer": "Dupliquer la couche",
+    "moveLayerUp": "Monter",
+    "moveLayerDown": "Descendre",
+    "saving": "Enregistrement…",
+    "saveSuccess": "Enregistré sur le clavier",
+    "saveFailed": "Échec de l'enregistrement — réessayez",
+    "lockLayer": "Verrouiller la couche",
+    "unlockLayer": "Déverrouiller la couche",
+    "deleteLayer": "Supprimer la couche",
+    "layerLockedHint": "Cette couche est verrouillée. Déverrouillez-la pour éditer les bindings.",
+    "defaultView": "Vue par défaut",
+    "defaultViewDesc": "Section ouverte lors de la connexion d'un clavier.",
+    "keysUnit": "touches",
+    "layersUnit": "couches"
+  }
+}

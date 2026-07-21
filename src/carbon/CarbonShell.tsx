@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ChevronRight, ChevronUp, ChevronDown, Keyboard as KeyboardIcon, Layers, Zap,
+  ChevronRight, ChevronUp, ChevronDown, Keyboard as KeyboardIcon, Layers, Zap, Link2,
   Settings, Sun, Moon, Save, Undo2, Redo2, RotateCcw, LogOut,
   Plus, Minus, Trash2, Pencil, Check, X, Lock, Unlock, Copy, Cpu, Info, FileText, Lightbulb, Wifi, Gauge,
 } from "lucide-react";
@@ -23,7 +23,7 @@ import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
 import LightingControl, { type LightSource } from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
 
-type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "settings";
+type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "combos" | "settings";
 
 export interface CarbonShellProps {
   carbon: ReturnType<typeof useCarbonTheme>;
@@ -141,6 +141,7 @@ export function CarbonShell(props: CarbonShellProps) {
     { id: "layers", label: t("carbon.nav.map", "Map"), icon: <Layers size={16} /> },
     { id: "behaviors", label: t("carbon.nav.behaviors", "Behaviors"), icon: <Zap size={16} /> },
     { id: "lighting", label: t("carbon.nav.lighting", "Lighting"), icon: <Lightbulb size={16} /> },
+    { id: "combos", label: t("carbon.nav.combos", "Combos"), icon: <Link2 size={16} /> },
     { id: "settings", label: t("carbon.nav.settings", "Settings"), icon: <Settings size={16} /> },
   ];
   const currentNav = NAV.find((n) => n.id === activeNav)!;
@@ -273,6 +274,8 @@ export function CarbonShell(props: CarbonShellProps) {
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
                 onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} onResetSettings={props.onResetSettings} />
+            ) : activeNav === "combos" ? (
+              <CombosPlaceholder th={th} t={t} />
             ) : null}
           </div>
         </main>
@@ -687,7 +690,9 @@ function QuickSettingsView({ model, th, t, deviceName, serial, setting, setSetti
       {block(t("carbon.language", "Language"), seg([
         { id: "en", label: "English" },
         { id: "zh", label: "中文" },
-      ], lang.startsWith("zh") ? "zh" : "en", setLang))}
+        { id: "ja", label: "日本語" },
+        { id: "fr", label: "Français" },
+      ], lang.startsWith("zh") ? "zh" : lang.startsWith("ja") ? "ja" : lang.startsWith("fr") ? "fr" : "en", setLang))}
       <div style={{ padding: "16px 0" }}>
         <div style={{ fontSize: 14, color: th.textPrimary, fontWeight: 500, marginBottom: 8 }}>{t("carbon.defaultView", "Default view")}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -739,7 +744,9 @@ function SettingsView({ th, t, setting, setSetting, lang, setLang, defaultNav, s
       {block(t("carbon.language", "Language"), seg([
         { id: "en", label: "English" },
         { id: "zh", label: "中文" },
-      ], lang.startsWith("zh") ? "zh" : "en", setLang))}
+        { id: "ja", label: "日本語" },
+        { id: "fr", label: "Français" },
+      ], lang.startsWith("zh") ? "zh" : lang.startsWith("ja") ? "ja" : lang.startsWith("fr") ? "fr" : "en", setLang))}
       {block(t("carbon.defaultView", "Default view"), (
         <>
           <p style={{ fontSize: 12, color: th.textHelper, marginTop: -4, marginBottom: 8 }}>
@@ -766,6 +773,17 @@ function SettingsView({ th, t, setting, setSetting, lang, setLang, defaultNav, s
           <RotateCcw size={14} />{t("carbon.factoryReset", "Restore stock settings")}
         </button>
       </div>
+    </div>
+  );
+}
+
+// Combos placeholder — kept as a nav destination; wiring lands with the feature.
+function CombosPlaceholder({ th, t }: { th: CarbonTheme; t: (k: string, d: string) => string }) {
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, textAlign: "center", padding: 48 }}>
+      <Link2 size={40} style={{ color: th.iconSecondary, opacity: 0.6 }} />
+      <div style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary }}>{t("carbon.combosTitle", "Combos")}</div>
+      <div style={{ fontSize: 13, color: th.textHelper, maxWidth: 340 }}>{t("carbon.combosDesc", "Combo editing is coming soon.")}</div>
     </div>
   );
 }
