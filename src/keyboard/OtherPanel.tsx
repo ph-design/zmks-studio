@@ -1,9 +1,8 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Wrench } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Zap } from "lucide-react";
 import { ConnectionContext } from "../rpc/ConnectionContext";
-import { useHoldTapConfigs } from "../behaviors/useHoldTapConfigs";
+import type { CarbonTheme } from "../carbon/theme";
 import { HoldTapConfig } from "@zmkfirmware/zmk-studio-ts-client/behaviors";
 import type { GetBehaviorDetailsResponse } from "@zmkfirmware/zmk-studio-ts-client/behaviors";
 import { HoldTapConfigFields } from "../behaviors/HoldTapFormFields";
@@ -14,30 +13,24 @@ import {
   findBuiltinHoldTap,
   getBuiltinDefault,
   holdTapPresets,
-  isBuiltinHoldTap,
   isHoldTapShape,
   summarizeConfig,
 } from "../behaviors/holdTapUtils";
 
 interface OtherPanelProps {
   behaviors: GetBehaviorDetailsResponse[];
+  th: CarbonTheme;
+  // Hoisted to the shell so the config cache survives tab switches (no reload flash).
+  getConfig: (id: number) => HoldTapConfig | null;
+  applyConfig: (id: number, cfg: HoldTapConfig) => Promise<boolean>;
 }
 
-type TopFeature = "tapHold";
-type SubTab = "modtap" | "layertap" | "user";
-
-interface TopFeatureSpec {
-  id: TopFeature;
-  labelKey: string;
-  labelFallback: string;
-  icon: LucideIcon;
-}
-
-const TOP_FEATURES: TopFeatureSpec[] = [
-  { id: "tapHold", labelKey: "other.feature.tapHold", labelFallback: "Tap-Hold", icon: Wrench },
-];
-
-export const OtherPanel = ({ behaviors }: OtherPanelProps) => {
+/*
+ * Behaviors panel — mirrors the Layers panel layout: a single "Tap-Hold" item
+ * in a left secondary sidebar, and all content stacked as titled sections
+ * (Mod-Tap / Layer-Tap / User Presets) on the right, like the Settings page.
+ */
+export const OtherPanel = ({ behaviors, th, getConfig, applyConfig }: OtherPanelProps) => {
   const { t } = useTranslation();
   const { conn } = useContext(ConnectionContext);
 
@@ -52,165 +45,102 @@ export const OtherPanel = ({ behaviors }: OtherPanelProps) => {
     [holdTapBehaviors]
   );
 
-  const [topFeature, setTopFeature] = useState<TopFeature>("tapHold");
-  const [subTab, setSubTab] = useState<SubTab>("modtap");
   const [selectedPresetId, setSelectedPresetId] = useState<number | null>(null);
-  const [drafts, setDrafts] = useState<Record<number, HoldTapConfig>>({});
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  // Fetch all upfront so preset apply doesn't stall.
-  const allHoldTapIds = useMemo(() => holdTapBehaviors.map((b) => b.id), [holdTapBehaviors]);
-  const { getConfig, applyConfig } = useHoldTapConfigs(allHoldTapIds);
-
   const activePresetId = selectedPresetId ?? userPresets[0]?.id ?? null;
-
-  const selected = useMemo<GetBehaviorDetailsResponse | null>(() => {
-    if (subTab === "modtap") return builtinModTap;
-    if (subTab === "layertap") return builtinLayerTap;
-    return userPresets.find((p) => p.id === activePresetId) ?? null;
-  }, [subTab, builtinModTap, builtinLayerTap, userPresets, activePresetId]);
-
-  useEffect(() => {
-    setSaveError(null);
-  }, [selected?.id]);
-
-  // Clear drafts and errors on disconnect.
-  useEffect(() => {
-    setDrafts({});
-    setSaveError(null);
-  }, [conn]);
+  const activePreset = userPresets.find((p) => p.id === activePresetId) ?? null;
 
   if (!conn) {
     return <CenteredHint>{t("keyboard.errors.notConnected", "Not connected")}</CenteredHint>;
   }
 
-  const savedCfg = selected ? getConfig(selected.id) : null;
-  const draft = selected ? drafts[selected.id] ?? savedCfg : null;
-  const dirty = !!draft && !!savedCfg && !configsEqual(draft, savedCfg);
-
-  const setDraft = (next: HoldTapConfig) => {
-    if (selected) setDrafts((prev) => ({ ...prev, [selected.id]: next }));
-  };
-  const clearDraft = () => {
-    if (!selected) return;
-    setDrafts((prev) => {
-      const next = { ...prev };
-      delete next[selected.id];
-      return next;
-    });
-  };
-  const save = async () => {
-    if (!selected || !draft) return false;
-    const ok = await applyConfig(selected.id, draft);
-    if (ok) clearDraft();
-    return ok;
-  };
-  const handleSave = async () => {
-    setSaveError(null);
-    setSaving(true);
-    try {
-      const ok = await save();
-      if (!ok) {
-        setSaveError(t("holdTap.saveFailed", "Save failed or timed out. Please try again."));
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Built-ins have independent firmware defaults; "Restore default" stages it as the draft.
-  const builtinDefault =
-    selected && isBuiltinHoldTap(selected) ? getBuiltinDefault(selected.displayName) : null;
-  const canReset = !!draft && !!builtinDefault && !configsEqual(draft, builtinDefault);
-  const resetToDefault = () => {
-    if (builtinDefault) setDraft(builtinDefault);
-  };
-
-  const emptyHint =
-    subTab === "user"
-      ? t("holdTap.empty.userPresetsHint", "Define hold-tap variants named like ht_* in your keymap.")
-      : t("holdTap.empty.builtinHint", "Your firmware does not register Mod-Tap or Layer-Tap.");
-
   return (
-    // Cap height so BottomPanel's scrollHeight measurement drives the animation.
-    <div className="flex min-h-0 max-h-[55vh]">
-      <nav className="flex flex-col gap-0.5 w-36 flex-shrink-0 pr-2 border-r border-base-300 overflow-y-auto">
-        {TOP_FEATURES.map((f) => (
-          <FeatureButton
-            key={f.id}
-            feature={f}
-            active={topFeature === f.id}
-            onClick={() => setTopFeature(f.id)}
-          />
-        ))}
-      </nav>
+    <div className="flex min-h-0 h-full w-full">
+      {/* Left secondary sidebar — same style as the Lighting source rail. */}
+      <aside style={{ width: 210, flexShrink: 0, display: "flex", flexDirection: "column", background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+        <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <Zap size={16} style={{ color: th.interactive }} />
+          <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.behaviors", "Behaviors")}</span>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto" }} className="custom-scrollbar">
+          <button aria-pressed
+            style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 44, padding: "0 14px", cursor: "pointer", textAlign: "left", background: th.selectedLayer, border: "none", borderLeft: `3px solid ${th.interactive}`, fontFamily: "var(--font-sans)" }}>
+            <span style={{ color: th.interactive, display: "flex", flexShrink: 0 }}><Zap size={16} /></span>
+            <span style={{ fontSize: 14, fontWeight: 500, color: th.textPrimary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t("other.feature.tapHold", "Tap-Hold")}</span>
+          </button>
+        </div>
+      </aside>
 
-      <nav className="flex flex-col w-44 flex-shrink-0 px-2 border-r border-base-300 overflow-y-auto py-1 gap-0.5">
-        {topFeature === "tapHold" && (
-          <>
-            <SubTabButton active={subTab === "modtap"} onClick={() => setSubTab("modtap")}>
-              {BUILTIN_MOD_TAP}
-            </SubTabButton>
-            <SubTabButton active={subTab === "layertap"} onClick={() => setSubTab("layertap")}>
-              {BUILTIN_LAYER_TAP}
-            </SubTabButton>
-            <SubTabButton active={subTab === "user"} onClick={() => setSubTab("user")}>
-              {t("holdTap.section.userPresets", "User Presets")}
-            </SubTabButton>
-          </>
-        )}
-      </nav>
+      {/* Right content — settings-style titled sections */}
+      <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar">
+        <div className="max-w-2xl px-6 py-4 flex flex-col">
+          {builtinModTap && (
+            <Section title={BUILTIN_MOD_TAP} desc={t("holdTap.scope.builtin", "Firmware-wide default")}>
+              <TapHoldEditor
+                behavior={builtinModTap}
+                isBuiltin
+                presets={userPresets}
+                getConfig={getConfig}
+                applyConfig={applyConfig}
+              />
+            </Section>
+          )}
 
-      {/* Action bar stays pinned at top. */}
-      <div className="flex-1 pl-4 min-w-0 overflow-y-auto py-1 flex flex-col gap-3">
-        {selected && (
-          <ActionBar
-            isBuiltin={isBuiltinHoldTap(selected)}
-            dirty={dirty}
-            saving={saving}
-            saveError={saveError}
-            canReset={canReset}
-            onResetDefault={resetToDefault}
-            onSave={handleSave}
-            onCancel={clearDraft}
-          />
-        )}
+          {builtinLayerTap && (
+            <Section title={BUILTIN_LAYER_TAP} desc={t("holdTap.scope.builtin", "Firmware-wide default")}>
+              <TapHoldEditor
+                behavior={builtinLayerTap}
+                isBuiltin
+                presets={userPresets}
+                getConfig={getConfig}
+                applyConfig={applyConfig}
+              />
+            </Section>
+          )}
 
-        {subTab === "user" && userPresets.length > 0 && (
-          <div className="flex gap-1.5 flex-wrap" role="tablist">
-            {userPresets.map((p) => (
-              <PresetTab
-                key={p.id}
-                active={activePresetId === p.id}
-                onClick={() => setSelectedPresetId(p.id)}
-              >
-                {p.displayName}
-              </PresetTab>
-            ))}
-          </div>
-        )}
-
-        {selected ? (
-          // Keyed so mode switch replays fade-in animation.
-          <div key={selected.id} className="animate-fade-in">
-            <BehaviorBody
-              behavior={selected}
-              isBuiltin={isBuiltinHoldTap(selected)}
-              draft={draft}
-              presets={userPresets}
-              getConfig={getConfig}
-              onChange={setDraft}
-            />
-          </div>
-        ) : (
-          <CenteredHint>{emptyHint}</CenteredHint>
-        )}
+          <Section title={t("holdTap.section.userPresets", "User Presets")} last>
+            {userPresets.length === 0 ? (
+              <p className="text-sm text-base-content/50">
+                {t("holdTap.empty.userPresetsHint", "Define hold-tap variants named like ht_* in your keymap.")}
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {userPresets.length > 1 && (
+                  <div className="flex gap-1.5 flex-wrap" role="tablist">
+                    {userPresets.map((p) => (
+                      <button
+                        key={p.id}
+                        role="tab"
+                        aria-selected={activePresetId === p.id}
+                        onClick={() => setSelectedPresetId(p.id)}
+                        className={`px-3 py-1.5 text-sm cursor-pointer transition-colors border ${
+                          activePresetId === p.id
+                            ? "bg-primary text-primary-content border-primary"
+                            : "bg-base-100 text-base-content border-base-300 hover:border-base-content/40"
+                        }`}
+                      >
+                        {p.displayName}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {activePreset && (
+                  <TapHoldEditor
+                    key={activePreset.id}
+                    behavior={activePreset}
+                    isBuiltin={false}
+                    presets={userPresets}
+                    getConfig={getConfig}
+                    applyConfig={applyConfig}
+                  />
+                )}
+              </div>
+            )}
+          </Section>
+        </div>
       </div>
     </div>
   );
 };
-
 
 const CenteredHint = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center justify-center h-full px-6 text-center text-sm text-base-content/40">
@@ -218,195 +148,130 @@ const CenteredHint = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const SubTabButton = ({
-  active,
-  onClick,
+// Settings-page style titled block.
+const Section = ({
+  title,
+  desc,
+  last,
   children,
 }: {
-  active: boolean;
-  onClick: () => void;
+  title: string;
+  desc?: string;
+  last?: boolean;
   children: React.ReactNode;
 }) => (
-  <button
-    onClick={onClick}
-    aria-pressed={active}
-    className={`px-3 py-1.5 rounded text-sm text-left cursor-pointer transition-colors ${
-      active ? "bg-primary text-primary-content" : "text-base-content hover:bg-base-300"
-    }`}
-  >
+  <div className={`py-5 ${last ? "" : "border-b border-base-300"}`}>
+    <div className="mb-3">
+      <h3 className="text-[15px] font-semibold text-base-content">{title}</h3>
+      {desc ? <p className="text-sm text-base-content/55 mt-0.5">{desc}</p> : null}
+    </div>
     {children}
-  </button>
-);
-
-const PresetTab = ({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) => (
-  <button
-    onClick={onClick}
-    role="tab"
-    aria-selected={active}
-    className={`px-4 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors ${
-      active ? "bg-primary text-primary-content" : "bg-base-100 text-base-content hover:bg-base-300"
-    }`}
-  >
-    {children}
-  </button>
+  </div>
 );
 
 const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <span className="text-sm font-medium text-base-content/60">{children}</span>
 );
 
-
-const FeatureButton = ({
-  feature,
-  active,
-  onClick,
-}: {
-  feature: TopFeatureSpec;
-  active: boolean;
-  onClick: () => void;
-}) => {
-  const { t } = useTranslation();
-  const Icon = feature.icon;
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={active}
-      className={`flex items-center gap-2 px-3 py-2 rounded text-sm text-left cursor-pointer transition-colors ${
-        active ? "bg-primary text-primary-content" : "text-base-content hover:bg-base-300"
-      }`}
-    >
-      <Icon className="w-4 h-4 flex-shrink-0" />
-      <span>{t(feature.labelKey, feature.labelFallback)}</span>
-    </button>
-  );
-};
-
-
-const ActionBar = ({
+/*
+ * Self-contained editor for one hold-tap behavior: owns its own draft/save
+ * state (keyed to the behavior) so several sections can be edited independently.
+ */
+const TapHoldEditor = ({
+  behavior,
   isBuiltin,
-  dirty,
-  saving,
-  saveError,
-  canReset,
-  onResetDefault,
-  onSave,
-  onCancel,
+  presets,
+  getConfig,
+  applyConfig,
 }: {
+  behavior: GetBehaviorDetailsResponse;
   isBuiltin: boolean;
-  dirty: boolean;
-  saving: boolean;
-  saveError: string | null;
-  canReset: boolean;
-  onResetDefault: () => void;
-  onSave: () => void;
-  onCancel: () => void;
+  presets: GetBehaviorDetailsResponse[];
+  getConfig: (id: number) => HoldTapConfig | null;
+  applyConfig: (id: number, cfg: HoldTapConfig) => Promise<boolean>;
 }) => {
   const { t } = useTranslation();
+  const saved = getConfig(behavior.id);
+  const [draft, setDraft] = useState<HoldTapConfig | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Clear any pending draft if the behavior identity changes.
+  useEffect(() => {
+    setDraft(null);
+    setError(null);
+  }, [behavior.id]);
+
+  const cfg = draft ?? saved;
+  const dirty = !!draft && !!saved && !configsEqual(draft, saved);
+
+  const builtinDefault = isBuiltin ? getBuiltinDefault(behavior.displayName) : null;
+  const canReset = !!cfg && !!builtinDefault && !configsEqual(cfg, builtinDefault);
+
+  if (!cfg) {
+    return <div className="text-sm text-base-content/40 py-2">{t("holdTap.loading", "Loading…")}</div>;
+  }
+
+  const update = (patch: Partial<HoldTapConfig>) => setDraft({ ...cfg, ...patch });
+
+  const save = async () => {
+    if (!draft) return;
+    setError(null);
+    setSaving(true);
+    try {
+      const ok = await applyConfig(behavior.id, draft);
+      if (ok) setDraft(null);
+      else setError(t("holdTap.saveFailed", "Save failed or timed out. Please try again."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-2 min-h-[1.75rem]">
-        <span className="text-sm text-base-content/60 truncate">
-          {isBuiltin ? t("holdTap.scope.builtin", "Firmware-wide default") : ""}
-        </span>
-        <div className="flex gap-2 flex-shrink-0">
-          {isBuiltin && (
-            <button
-              onClick={onResetDefault}
-              disabled={!canReset || saving}
-              className="px-3 py-1.5 rounded text-sm text-base-content hover:bg-base-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              {t("holdTap.resetDefault", "Restore default")}
-            </button>
-          )}
+    <div className="flex flex-col gap-3 min-w-0">
+      <HoldTapConfigFields cfg={cfg} onChange={update} />
+
+      {isBuiltin && (
+        <PresetOverlaySection
+          builtin={behavior}
+          draft={cfg}
+          presets={presets}
+          getConfig={getConfig}
+          onApply={(c) => setDraft(c)}
+        />
+      )}
+
+      <div className="flex items-center gap-2 pt-1">
+        {isBuiltin && (
           <button
-            onClick={onCancel}
+            onClick={() => builtinDefault && setDraft(builtinDefault)}
+            disabled={!canReset || saving}
+            className="px-3 py-1.5 text-sm text-base-content hover:bg-base-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          >
+            {t("holdTap.resetDefault", "Restore default")}
+          </button>
+        )}
+        <div className="ml-auto flex gap-2">
+          <button
+            onClick={() => setDraft(null)}
             disabled={!dirty || saving}
-            className="px-3 py-1.5 rounded text-sm text-base-content hover:bg-base-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="px-3 py-1.5 text-sm text-base-content hover:bg-base-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {t("holdTap.cancel", "Cancel")}
           </button>
           <button
-            onClick={onSave}
+            onClick={save}
             disabled={!dirty || saving}
-            className="px-3 py-1.5 rounded text-sm font-medium bg-primary text-primary-content hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-4 py-1.5 text-sm font-medium bg-primary text-primary-content hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? t("holdTap.saving", "Saving…") : t("holdTap.save", "Save")}
           </button>
         </div>
       </div>
-      {saveError ? <div className="text-sm text-red-500">{saveError}</div> : null}
+      {error ? <div className="text-sm text-error">{error}</div> : null}
     </div>
   );
 };
-
-
-const BehaviorBody = ({
-  behavior,
-  isBuiltin,
-  draft,
-  presets,
-  getConfig,
-  onChange,
-}: {
-  behavior: GetBehaviorDetailsResponse;
-  isBuiltin: boolean;
-  draft: HoldTapConfig | null;
-  presets: GetBehaviorDetailsResponse[];
-  getConfig: (id: number) => HoldTapConfig | null;
-  onChange: (next: HoldTapConfig) => void;
-}) => {
-  const { t } = useTranslation();
-
-  if (!draft) {
-    return <CenteredHint>{t("holdTap.loading", "Loading…")}</CenteredHint>;
-  }
-
-  return isBuiltin ? (
-    <BuiltinEditor
-      builtin={behavior}
-      draft={draft}
-      presets={presets}
-      getConfig={getConfig}
-      onChange={onChange}
-    />
-  ) : (
-    <HoldTapConfigFields cfg={draft} onChange={(patch) => onChange({ ...draft, ...patch })} />
-  );
-};
-
-
-const BuiltinEditor = ({
-  builtin,
-  draft,
-  presets,
-  getConfig,
-  onChange,
-}: {
-  builtin: GetBehaviorDetailsResponse;
-  draft: HoldTapConfig;
-  presets: GetBehaviorDetailsResponse[];
-  getConfig: (id: number) => HoldTapConfig | null;
-  onChange: (next: HoldTapConfig) => void;
-}) => (
-  <div className="flex flex-col gap-4">
-    <HoldTapConfigFields cfg={draft} onChange={(patch) => onChange({ ...draft, ...patch })} />
-    <PresetOverlaySection
-      builtin={builtin}
-      draft={draft}
-      presets={presets}
-      getConfig={getConfig}
-      onApply={onChange}
-    />
-  </div>
-);
 
 const PresetOverlaySection = ({
   builtin,
@@ -431,43 +296,38 @@ const PresetOverlaySection = ({
     return null;
   }, [presets, getConfig, draft]);
 
+  if (presets.length === 0) return null;
+
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col gap-2 border-t border-base-300 pt-3">
       <SectionLabel>{t("holdTap.applyTitle", "Apply a preset")}</SectionLabel>
       <p className="text-sm text-base-content/60">
         {t("holdTap.applyHint", "Copy a preset's settings onto {{name}}.", {
           name: builtin.displayName,
         })}
       </p>
-
-      {presets.length === 0 ? (
-        <p className="text-sm text-base-content/40">
-          {t("holdTap.empty.userPresets", "No user presets defined")}
-        </p>
-      ) : (
-        <div className="flex gap-1.5 flex-wrap">
-          {presets.map((p) => {
-            const cfg = getConfig(p.id);
-            const active = matchedPresetId === p.id;
-            return (
-              <button
-                key={p.id}
-                disabled={!cfg}
-                aria-pressed={active}
-                title={cfg ? summarizeConfig(cfg, t) : undefined}
-                onClick={() => cfg && onApply(cfg)}
-                className={`px-4 py-1.5 rounded text-sm font-medium cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                  active
-                    ? "bg-primary text-primary-content"
-                    : "bg-base-100 text-base-content hover:bg-base-300"
-                }`}
-              >
-                {p.displayName}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <div className="flex gap-1.5 flex-wrap">
+        {presets.map((p) => {
+          const cfg = getConfig(p.id);
+          const active = matchedPresetId === p.id;
+          return (
+            <button
+              key={p.id}
+              disabled={!cfg}
+              aria-pressed={active}
+              title={cfg ? summarizeConfig(cfg, t) : undefined}
+              onClick={() => cfg && onApply(cfg)}
+              className={`px-3 py-1.5 text-sm cursor-pointer transition-colors border disabled:opacity-40 disabled:cursor-not-allowed ${
+                active
+                  ? "bg-primary text-primary-content border-primary"
+                  : "bg-base-100 text-base-content border-base-300 hover:border-base-content/40"
+              }`}
+            >
+              {p.displayName}
+            </button>
+          );
+        })}
+      </div>
     </section>
   );
 };

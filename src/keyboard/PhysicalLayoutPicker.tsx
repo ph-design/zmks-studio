@@ -1,7 +1,6 @@
 import {
   Button,
   Key,
-  Label,
   ListBox,
   ListBoxItem,
   Popover,
@@ -9,6 +8,7 @@ import {
   SelectValue,
   Text,
 } from "react-aria-components";
+import { ChevronDown } from "lucide-react";
 import { PhysicalLayout, type KeyPosition } from "./PhysicalLayout";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
@@ -46,26 +46,27 @@ export const PhysicalLayoutPicker = ({
     <Select
       onSelectionChange={selectionChanged}
       className="flex flex-col"
+      aria-label={t("keyboard.layout")}
       selectedKey={layouts[selectedPhysicalLayoutIndex].name}
     >
-      <Label className="after:content-[':'] text-sm">{t("keyboard.layout")}</Label>
-      <Button className="ml-2 p-1 rounded min-w-24 text-left hover:bg-base-300">
-        <SelectValue<PhysicalLayoutItem>>
+      <Button className="flex items-center justify-between gap-2 h-9 px-3 min-w-[14rem] border border-base-300 bg-base-100 text-base-content text-sm text-left cursor-pointer hover:border-base-content/40 focus:outline-none">
+        <SelectValue<PhysicalLayoutItem> className="truncate">
           {(v) => {
-            return <span>{v.selectedItem?.name}</span>;
+            return <span className="truncate">{v.selectedItem?.name}</span>;
           }}
         </SelectValue>
+        <ChevronDown className="w-4 h-4 flex-shrink-0 opacity-60" />
       </Button>
-      <Popover className="min-w-[var(--trigger-width)] max-h-80 shadow-md text-base-content rounded border-base-content bg-base-100 overflow-auto">
+      <Popover className="min-w-[var(--trigger-width)] max-h-80 shadow-lg text-base-content border border-base-300 bg-base-100 overflow-auto">
         <ListBox items={layouts}>
           {(l) => (
             <ListBoxItem
               id={l.name}
               textValue={l.name}
-              className="p-1 aria-selected:bg-primary aria-selected:text-primary-content cursor-pointer first:rounded-t last:rounded-b"
+              className="px-3 py-2 aria-selected:bg-primary aria-selected:text-primary-content data-[focused]:bg-base-300 cursor-pointer flex flex-col gap-1"
             >
-              <Text slot="label">{l.name}</Text>
-              <div className="p-1 flex justify-center">
+              <Text slot="label" className="text-sm">{l.name}</Text>
+              <div className="flex justify-center opacity-90">
                 <PhysicalLayout
                   oneU={15}
                   hoverZoom={false}

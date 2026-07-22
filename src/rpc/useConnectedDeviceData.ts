@@ -1,4 +1,4 @@
-import React, { SetStateAction, useContext, useEffect, useState } from "react";
+import { SetStateAction, useContext, useEffect, useState } from "react";
 import { ConnectionContext } from "./ConnectionContext";
 
 import { call_rpc } from "./logging";

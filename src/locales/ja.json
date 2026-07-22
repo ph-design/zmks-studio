@@ -1,0 +1,398 @@
+{
+  "common": {
+    "save": "保存",
+    "discard": "破棄",
+    "undo": "元に戻す",
+    "redo": "やり直す",
+    "language": "言語",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "add": "追加",
+    "remove": "削除"
+  },
+  "welcome": {
+    "title": "ZMKs Studio へようこそ",
+    "subtitle": "ZMK Studio のコミュニティ強化版です。",
+    "clientTitle": "最適な体験にはデスクトップクライアントをご利用ください",
+    "clientDescriptionPrefix": "デスクトップクライアントは USB デバイスを直接一覧表示し、BLE でキーボードに接続できます。ブラウザーのサポートは次に依存します：",
+    "clientDescriptionSuffix": "の対応状況。",
+    "downloadClient": "クライアントをダウンロード",
+    "selectConnection": "接続方法を選択",
+    "selectDevice": "デバイスを選択",
+    "deviceListHint": "クライアントは利用可能な USB / BLE デバイスを自動検出します。接続するデバイスを選んでください。",
+    "webConnectionHint": "ブラウザー接続ではシステムの許可を求められます。表示される選択画面でキーボードを選んでください。",
+    "bleConnectionDescription": "Bluetooth Low Energy（デスクトップクライアントでより安定）",
+    "usbConnectionDescription": "USB シリアルでキーボードに接続",
+    "genericConnectionDescription": "このトランスポートを使ってキーボードに接続",
+    "connectionAvailable": "利用可能",
+    "connectionUnavailable": "利用不可",
+    "connectionUnavailableHint": "この環境では利用できません。デスクトップクライアントをご利用ください。",
+    "connectionErrorTitle": "接続に失敗しました",
+    "connectionErrorHelpTitle": "お試しください：",
+    "connectionErrorHelpPermission": "再接続し、ブラウザーまたはクライアントにデバイスへのアクセスを許可してください。以前に拒否した場合は、システムまたはブラウザーの設定で再度有効にしてください。",
+    "connectionErrorHelpUsb": "キーボードが USB で接続され、他のアプリに占有されていないことを確認してから、再接続して更新してください。",
+    "connectionErrorHelpBle": "キーボードが接続可能で、システムの Bluetooth が有効であることを確認してください。BLE にはデスクトップクライアントを推奨します。",
+    "connectionErrorHelpFirmware": "キーボードのファームウェアで ZMK Studio が有効になっており、Studio RPC に対応していることを確認してください。必要に応じて Studio 対応ファームウェアを書き込み直してください。",
+    "connectionErrorHelpGeneric": "デバイス一覧を更新して再試行してください。それでも失敗する場合は、デスクトップクライアントを使うか、キーボードを再接続してください。",
+    "connectingTitle": "キーボードに接続中",
+    "connectingDescription": "キーボードを接続したままにしてください。準備ができると自動的にエディターが開きます。",
+    "initializingTitle": "キーボードを読み込み中",
+    "initializingDescription": "キーマップ・ビヘイビア・ライティングを読み込んでいます。準備が完了するとエディターが開きます。",
+    "unknownDevice": "不明なデバイス",
+    "cancelConnection": "接続をキャンセル",
+    "scanningDevices": "デバイスを検索中...",
+    "noDevices": "デバイスが見つかりません。キーボードで Studio が有効か確認し、更新してください。",
+    "refresh": "更新",
+    "unsupportedTitle": "この環境では直接接続できません",
+    "unsupportedPrefix": "お使いのブラウザーはサポートされていません。ZMK Studio は次のいずれかを使用します：",
+    "unsupportedMiddle": "または",
+    "unsupportedSuffix": "（Linux のみ）で ZMK デバイスに接続します。",
+    "unsupportedOptions": "ZMK Studio を使うには、次のいずれかを行ってください：",
+    "chromeBrowser": "上記の Web 技術をサポートするブラウザー（Chrome / Edge など）を使用する、または",
+    "downloadAppPrefix": "次をダウンロード：",
+    "crossPlatformApp": "クロスプラットフォームアプリ"
+  },
+  "header": {
+    "settings": "設定",
+    "resetSettings": "設定をリセット",
+    "resetWarning": "設定をリセットすると、ZMK Studio で行ったカスタマイズがすべて削除され、標準のキーマップに戻ります",
+    "continue": "続行しますか？",
+    "restoreStock": "標準設定に戻す",
+    "disconnect": "切断",
+    "confirmResetSettings": "本当にすべての設定をリセットしますか？",
+    "unlockRequired": "この操作を行うにはデバイスのロック解除が必要です",
+    "studio": "ZMKs Studio"
+  },
+  "footer": {
+    "copyright": "© 2026 - The ZMK Contributors",
+    "about": "ZMKs Studio について",
+    "license": "ライセンス表示"
+  },
+  "about": {
+    "project": "ZMK プロジェクト：",
+    "website": "ウェブサイト",
+    "issues": "GitHub Issues",
+    "discord": "Discord サーバー",
+    "zmksTitle": "ZMKs Studio について",
+    "zmksDescription": "ZMKs Studio は ZMK Studio をベースにしたコミュニティビルドです。上流の ZMK Studio のキーマップ編集ワークフローを維持しつつ、本フォークの UI・ライティング・多言語化・デスクトップクライアントの改善を加えています。オリジナルの ZMK Studio プロジェクトと ZMK コントリビューターが本作の基盤です。",
+    "zmksRepo": "ZMKs Studio リポジトリを表示",
+    "sponsorsDescription": "ZMK Studio は、コントリビューターの惜しみない時間の提供と、以下のベンダーからの資金援助によって実現しています："
+  },
+  "sponsorLevels": {
+    "platinum": "プラチナ",
+    "goldPlus": "ゴールド+",
+    "gold": "ゴールド",
+    "silver": "シルバー",
+    "bronze": "ブロンズ",
+    "additional": "その他"
+  },
+  "layer": {
+    "label": "レイヤー",
+    "newLayerName": "新しいレイヤー名",
+    "addFailed": "レイヤーの追加に失敗しました: {{error}}",
+    "removeFailed": "レイヤーの削除に失敗しました: {{error}}",
+    "restoreFailed": "レイヤーの復元に失敗しました: {{error}}",
+    "renameFailed": "レイヤー名の変更に失敗しました: {{error}}"
+  },
+  "keyboard": {
+    "layout": "レイアウト",
+    "tab": {
+      "keymap": "キーマップ",
+      "lighting": "ライティング",
+      "other": "その他"
+    },
+    "zoom": {
+      "auto": "自動"
+    },
+    "errors": {
+      "notConnected": "未接続"
+    }
+  },
+  "binding": {
+    "hold": "ホールド",
+    "tap": "タップ",
+    "layer": "レイヤー",
+    "mode": "モード",
+    "modeDefault": "デフォルト",
+    "category": "カテゴリ",
+    "behavior": "ビヘイビア",
+    "noParametersRequired": "パラメーター不要"
+  },
+  "selectBehaviorHint": "左側のビヘイビアにカーソルを合わせると説明が表示されます",
+  "behaviorDesc": {
+    "Key Press": "押下/離しでキーコードを送信",
+    "None": "キーをブロック — 下のレイヤーにイベントを渡しません",
+    "Transparent": "下の有効なレイヤーに委ねる",
+    "Momentary Layer": "押している間レイヤーを有効化、離すと無効化",
+    "To Layer": "レイヤーに切り替え、デフォルト以外をすべて無効化",
+    "Toggle Layer": "レイヤーのオン/オフを切り替え",
+    "Layer-Tap": "ホールド→レイヤー有効化、タップ→キー送信（タップ優先）",
+    "Sticky Layer": "次の1キーだけレイヤーを有効化（ワンショットレイヤー）",
+    "Mod-Tap": "ホールド→修飾キー、タップ→キー送信（ホールド優先）",
+    "Sticky Key": "次の1キーだけ修飾キーを維持（ワンショット修飾）",
+    "Grave/Escape": "通常は Escape、Shift または GUI 押下時は ` （グレイヴ）",
+    "Key Repeat": "直前のキーコードを繰り返す",
+    "Key Toggle": "キーのオン/オフを切り替え — 押すと保持、再度押すと解除",
+    "Caps Word": "英数字以外のキーを押すまで自動的に大文字化",
+    "Bluetooth": "BT プロファイルの管理：選択・切替・ペアリング解除",
+    "Output Selection": "USB と BLE の出力を選択",
+    "External Power": "VCC 外部電源のオン/オフを切り替え",
+    "Reset": "現在のファームウェアをリセットして再起動",
+    "Bootloader": "書き込みのためブートローダーで再起動",
+    "z_so_off": "ソフト電源オフ。オン/オフまたはリセットボタンで復帰",
+    "Studio Unlock": "このデバイスで ZMK Studio へのアクセスをロック解除",
+    "Mouse Key Press": "マウスボタンのクリックを送信（左/右/中、ボタン4-5）",
+    "mouse_move": "マウスカーソルを移動",
+    "mouse_scroll": "縦または横にスクロール"
+  },
+  "lighting": {
+    "title": "ライティング",
+    "rgbUnderglow": "RGB アンダーグロー",
+    "backlight": "バックライト",
+    "hue": "色相",
+    "sat": "彩度",
+    "brt": "明るさ",
+    "advanced": "詳細設定",
+    "effect": "エフェクト",
+    "speed": "速度",
+    "color": "カラー",
+    "notSupported": "ライティング制御は利用できません",
+    "notSupportedDesc": "ライティング制御は ZMK の公式機能ではありません。使用するには、当方のカスタムブランチをベースにファームウェアをビルドし、RGB 関連の devicetree オーバーレイ設定を追加する必要があります。",
+    "turnOnHint": "設定を調整するには光源をオンにしてください",
+    "noEffects": "利用可能なエフェクトがありません",
+    "on": "オン",
+    "off": "オフ",
+    "layerLed": {
+      "title": "レイヤー LED",
+      "loading": "レイヤー LED データを読み込み中...",
+      "selectKey": "キーをクリックまたはドラッグして選択し、下でカラーを編集",
+      "editKey": "キー {{key}}",
+      "editKeys": "{{count}} 個のキーを選択中",
+      "clear": "クリア"
+    },
+    "capsLock": {
+      "title": "CapsLock インジケーター",
+      "enabled": "有効",
+      "onColor": "有効時のカラー",
+      "offColor": "無効時のカラー",
+      "keyPosition": "キー位置: {{pos}}",
+      "notConfigured": "CapsLock インジケーターはファームウェアで設定されていません"
+    },
+    "connection": {
+      "title": "接続",
+      "usbColor": "USB カラー",
+      "btColor": "Bluetooth カラー"
+    },
+    "indicator": {
+      "keyPosition": "位置",
+      "layer": "レイヤー",
+      "anyLayer": "すべてのレイヤー",
+      "currentLayer": "現在のレイヤー",
+      "scope": "適用範囲",
+      "selectKey": "キーを選択",
+      "pickHint": "キーボード上のキーをクリック...",
+      "positionLabel": "キー {{pos}}",
+      "clickKeyHint": "上のキーをクリックして選択",
+      "showOnAllLayers": "すべてのレイヤーで表示",
+      "changeKey": "変更",
+      "apply": "適用",
+      "clear": "クリア"
+    }
+  },
+  "behavior": {
+    "category": {
+      "basic": "基本",
+      "layers": "レイヤー",
+      "modifiers": "修飾キー",
+      "bluetooth": "Bluetooth",
+      "lighting": "ライティング",
+      "system": "システム",
+      "mouse": "マウス",
+      "other": "その他"
+    }
+  },
+  "holdTap": {
+    "tappingTermMs": "タッピング判定時間 (ms)",
+    "quickTapMs": "クイックタップ (ms)",
+    "requirePriorIdleMs": "事前アイドル (ms)",
+    "flavorLabel": "フレーバー",
+    "retroTap": "レトロタップ",
+    "holdWhileUndecided": "即時ホールド",
+    "holdWhileUndecidedLinger": "ホールド維持",
+    "holdTriggerOnRelease": "離した時に判定",
+    "flavor": {
+      "holdPreferred": "ホールド優先",
+      "balanced": "バランス",
+      "tapPreferred": "タップ優先",
+      "tapUnlessInterrupted": "割り込み時のみホールド"
+    },
+    "flavorDesc": {
+      "holdPreferred": "判定時間を過ぎるか他のキーが押されるとすぐにホールドを発火します。修飾キーに最適。",
+      "balanced": "ホールド中に他のキーを押して離すとホールドになり、先にこのキーを離すとタップになります。多くの修飾キーの使い方に合います。",
+      "tapPreferred": "判定時間を超えて押し続けた場合のみホールドします。入力ミスが最も少ないです。",
+      "tapUnlessInterrupted": "既定ではタップし、他のキーで割り込まれた時のみホールドします。"
+    },
+    "term": {
+      "sensitive": "敏感",
+      "standard": "標準",
+      "relaxed": "ゆったり"
+    },
+    "advanced": "詳細設定",
+    "ms": "ms",
+    "on": "オン",
+    "off": "オフ",
+    "desc": {
+      "retroTap": "他のキーを押さずに判定時間を過ぎた場合でも、離した時にタップを送信します。",
+      "holdWhileUndecided": "待たずに判定中でもすぐにホールドを有効化します。マウス修飾に便利。",
+      "holdWhileUndecidedLinger": "タップ送信直後までホールドを維持します。即時ホールド時のみ有効。",
+      "holdTriggerOnRelease": "位置に基づくホールド判定をキーが離されるまで遅延します。",
+      "quickTapMs": "タップ後この時間内に再度押すと再びタップします。例：Backspace をタップ後ホールドで連続削除。",
+      "requirePriorIdleMs": "この時間内に他のキーを押していた場合はタップになります。速く入力する際の誤ホールドを防ぎます。"
+    },
+    "save": "保存",
+    "saving": "保存中…",
+    "cancel": "キャンセル",
+    "resetDefault": "既定に戻す",
+    "loading": "読み込み中…",
+    "section": {
+      "userPresets": "ユーザープリセット"
+    },
+    "scope": {
+      "builtin": "ファームウェア全体の既定値"
+    },
+    "empty": {
+      "builtinHint": "お使いのファームウェアは Mod-Tap または Layer-Tap を登録していません。",
+      "userPresets": "ユーザープリセットが定義されていません",
+      "userPresetsHint": "`.keymap` に `ht_*` のような名前でホールドタップの派生を定義すると、ここで管理できます。"
+    },
+    "applyTitle": "プリセットを適用",
+    "applyHint": "プリセットの設定を {{name}} にコピーします。",
+    "saveFailed": "保存に失敗またはタイムアウトしました。もう一度お試しください。"
+  },
+  "other": {
+    "tab": "その他",
+    "feature": {
+      "title": "機能",
+      "tapHold": "タップホールド"
+    }
+  },
+  "hid": {
+    "tabs": {
+      "input": "入力",
+      "navigation": "ナビゲーション",
+      "media": "メディア",
+      "shortcuts": "ショートカット",
+      "keypad": "キーパッド",
+      "other": "その他"
+    },
+    "general": {
+      "filter": "絞り込み...",
+      "noKeys": "キーが見つかりません",
+      "resultsFound": "件見つかりました",
+      "modifiersTitle": "修飾キー",
+      "implicitModifiers": "暗黙の修飾キー",
+      "rarelyUsed": "あまり使わない"
+    }
+  },
+  "parameters": {
+    "composite": "複合？"
+  },
+  "unlock": {
+    "title": "続行するにはロック解除",
+    "body1": "セキュリティ上の理由により、ZMK Studio を使用する前にキーボードのロック解除が必要です。",
+    "body2Prefix": "Studio のロック解除がキーマップやコンボに追加されていない場合は、",
+    "docs": "Studio Unlock ビヘイビアのドキュメント",
+    "body2Suffix": "を参照してください。"
+  },
+  "license": {
+    "intro": "ZMK Studio はオープンソースの Apache 2.0 ライセンスで公開されています。ZMK Studio リポジトリの NOTICE ファイルのコピーをここに掲載します："
+  },
+  "errors": {
+    "failedToConnect": "選択したデバイスへの接続に失敗しました",
+    "connectionLost": "接続が切断されました — キーボードが切断されました。",
+    "loadTimeout": "キーボードデータの読み込みがタイムアウトしました。再接続してください。",
+    "failedFirstRpc": "最初の RPC 呼び出しに失敗しました",
+    "failedToSave": "変更の保存に失敗しました",
+    "failedToDiscard": "変更の破棄に失敗しました",
+    "failedToReset": "設定のリセットに失敗しました"
+  },
+  "idle": {
+    "hint": "上のキーをクリックして編集を開始"
+  },
+  "download": {
+    "disclaimer": "ZMKs Studio は公式の ZMK Studio ではありません。公式 ZMK プロジェクトに問題を報告しないでください。",
+    "downloadFor": "{{name}} 版をダウンロード",
+    "showAll": "すべてのダウンロードを表示",
+    "hideAll": "すべてのダウンロードを隠す",
+    "seeReleases": "GitHub リリースを見る →"
+  },
+  "carbon": {
+    "nav": {
+      "keyboard": "キーボード",
+      "quick": "クイック設定",
+      "layers": "レイヤー",
+      "map": "マップ",
+      "behaviors": "ビヘイビア",
+      "lighting": "ライティング",
+      "combos": "コンボ",
+      "settings": "設定"
+    },
+    "config": "設定",
+    "searchPlaceholder": "キーコードを検索…",
+    "saveToKeyboard": "キーボードに保存",
+    "undo": "元に戻す",
+    "redo": "やり直す",
+    "lightTheme": "ライト",
+    "darkTheme": "ダーク",
+    "themeSystem": "システム",
+    "disconnect": "切断",
+    "statusConnected": "デバイス接続済み",
+    "unsavedMark": "未保存の変更 *",
+    "allSaved": "すべて保存済み",
+    "lockedTitle": "キーボードがロックされています",
+    "lockedDesc": "編集するにはキーボードで studio-unlock のキーコンボを押してください。",
+    "layer": "レイヤー",
+    "rename": "名前を変更",
+    "delete": "削除",
+    "addLayer": "レイヤーを追加",
+    "model": "モデル",
+    "clickKeyHint": "いずれかのキーをクリックしてバインディングを編集",
+    "quickControls": "クイックコントロール",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "zoomFit": "フィット",
+    "editBinding": "バインディングを編集",
+    "close": "閉じる",
+    "clearSearch": "クリア",
+    "deviceName": "デバイス名",
+    "serialNumber": "シリアル番号",
+    "layoutCount": "物理レイアウト",
+    "layerCount": "レイヤー",
+    "activeLayout": "現在のレイアウト",
+    "physicalLayout": "レイアウト",
+    "theme": "テーマ",
+    "language": "言語",
+    "about": "情報",
+    "aboutApp": "ZMK Studio について",
+    "license": "ライセンス",
+    "factoryReset": "標準設定に戻す",
+    "combosTitle": "コンボ",
+    "combosDesc": "コンボ編集はまもなく利用可能になります。",
+    "loading": "読み込み中…",
+    "copying": "コピー中…",
+    "duplicateLayer": "レイヤーを複製",
+    "moveLayerUp": "上へ移動",
+    "moveLayerDown": "下へ移動",
+    "saving": "保存中…",
+    "saveSuccess": "キーボードに保存しました",
+    "saveFailed": "保存に失敗しました — 再試行してください",
+    "lockLayer": "レイヤーをロック",
+    "unlockLayer": "レイヤーのロック解除",
+    "deleteLayer": "レイヤーを削除",
+    "layerLockedHint": "このレイヤーはロックされています。バインディングを編集するにはロックを解除してください。",
+    "defaultView": "既定の画面",
+    "defaultViewDesc": "キーボード接続時に開くセクション。",
+    "keysUnit": "キー",
+    "layersUnit": "レイヤー"
+  }
+}

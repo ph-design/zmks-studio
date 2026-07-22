@@ -2,16 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  @font-face {
-    font-family: "Inter";
-    src: url("/Inter.woff2") format("woff2");
-    font-display: fallback;
-  }
+/* ── IBM Plex fonts (bundled locally — no external requests) ─────────────── */
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-300.ttf") format("truetype");
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-400.ttf") format("truetype");
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-500.ttf") format("truetype");
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-sans-600.ttf") format("truetype");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-400.ttf") format("truetype");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-500.ttf") format("truetype");
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   IBM Carbon Design tokens. Light = :root, dark = .dark (toggled on <html> by
+   src/carbon/theme.ts). Values are HSL triplets so Tailwind's /alpha modifiers
+   (bg-primary/10, base-content/40, …) keep working for existing panels.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --font-size: 14px;
+
+  /* Light theme tokens */
+  --background: 0 0% 100%;
+  --base-100: 0 0% 96%;
+  --base-200: 0 0% 88%;
+  --base-300: 0 0% 88%;
+  --base-content: 0 0% 9%;
+  --primary: 219 99% 53%;
+  --primary-content: 0 0% 100%;
+  --secondary: 0 0% 88%;
+  --accent: 219 99% 53%;
+  --success: 137 63% 39%;
+  --warning: 45 100% 35%;
+  --error: 357 76% 49%;
+}
+
+.dark {
+  /* Dark theme tokens */
+  --background: 0 0% 9%;
+  --base-100: 0 0% 15%;
+  --base-200: 0 0% 22%;
+  --base-300: 0 0% 22%;
+  --base-content: 0 0% 96%;
+  --primary: 219 99% 53%;
+  --primary-content: 0 0% 100%;
+  --secondary: 0 0% 22%;
+  --accent: 219 99% 53%;
+  --success: 137 49% 50%;
+  --warning: 47 88% 53%;
+  --error: 357 95% 64%;
 }
 
 html {
-  color-scheme: light dark;
+  font-size: var(--font-size);
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 #root {
@@ -22,11 +104,24 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-
   width: 100vw;
   height: 100vh;
+  font-family: var(--font-sans);
+  background-color: hsl(var(--background));
+  color: hsl(var(--base-content));
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Carbon-style keyboard focus ring (only for keyboard nav, not mouse clicks). */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 1px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Animations preserved from main (used by ConnectModal & panels) ────────── */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -201,57 +296,18 @@ body {
   animation: device-row-in 0.16s ease-out;
 }
 
-@keyframes footer-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+/* Carbon custom scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--base-300)) transparent;
 }
-
-.app-footer {
-  color: inherit;
-  font-size: 0.875rem;
-  text-align: center;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-
-.app-footer-content {
-  opacity: 0.78;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--base-300));
 }
-
-.app-footer-modal {
-  margin-top: 1rem;
-  border-top: 1px solid light-dark(#e5e6e6, #15191e);
-  padding-top: 0.75rem;
-}
-
-.app-footer-floating {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  z-index: 50;
-  display: grid;
-  justify-content: center;
-  min-width: min(100vw, 48rem);
-  max-width: 100vw;
-  padding: 0.25rem 1rem;
-  background-color: light-dark(rgba(242, 242, 242, 0.94), rgba(25, 30, 36, 0.94));
-  backdrop-filter: blur(12px);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
-  transition: opacity 0.24s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-  animation: footer-slide-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.app-footer-floating-visible {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.app-footer-floating-hidden {
-  pointer-events: none;
-  opacity: 0;
-  transform: translateX(-50%) translateY(100%);
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }

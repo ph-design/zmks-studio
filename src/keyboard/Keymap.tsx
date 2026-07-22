@@ -33,6 +33,7 @@ export interface KeymapProps {
   scale: LayoutZoom;
   selectedLayerIndex: number;
   selectedKeyPosition: number | undefined;
+  pressedUsages?: Set<number>;
   fitContainerRef?: RefObject<HTMLElement>;
   onKeyPositionClicked: (keyPosition: number) => void;
 }
@@ -44,12 +45,23 @@ export const Keymap = ({
   scale,
   selectedLayerIndex,
   selectedKeyPosition,
+  pressedUsages,
   fitContainerRef,
   onKeyPositionClicked,
 }: KeymapProps) => {
   if (!keymap.layers[selectedLayerIndex]) {
     return <></>;
   }
+
+  // A key lights up when a live keypress's HID usage matches its bound keycode
+  // (param1 for &kp, param2 for the tap side of mod-tap/layer-tap). The mod byte
+  // (bits 24-31) is masked off so plain letters match regardless of held mods.
+  const isPressed = (binding: { param1?: number; param2?: number } | undefined) => {
+    if (!pressedUsages || pressedUsages.size === 0 || !binding) return false;
+    const p1 = (binding.param1 ?? 0) & 0x00ffffff;
+    const p2 = (binding.param2 ?? 0) & 0x00ffffff;
+    return (p1 !== 0 && pressedUsages.has(p1)) || (p2 !== 0 && pressedUsages.has(p2));
+  };
 
   const positions = layout.keys.map((k, i) => {
     if (i >= keymap.layers[selectedLayerIndex].bindings.length) {
@@ -76,6 +88,7 @@ export const Keymap = ({
       r: (k.r || 0) / 100.0,
       rx: (k.rx || 0) / 100.0,
       ry: (k.ry || 0) / 100.0,
+      pressed: isPressed(keymap.layers[selectedLayerIndex].bindings[i]),
       children: (
         <div key={`${selectedLayerIndex}-${i}`} className="animate-fade-in">
           {(() => {
@@ -97,11 +110,11 @@ export const Keymap = ({
               const holdLabel = getShortHidLabel(binding.param1);
               const tapLabel = getShortHidLabel(binding.param2);
               return (
-                <div className="flex flex-col items-center leading-tight text-center">
-                  <span className="text-[0.55rem] opacity-50 leading-none">hold</span>
-                  <span className="text-xs font-semibold leading-tight">{holdLabel}</span>
-                  <span className="text-[0.55rem] opacity-50 leading-none mt-0.5">tap</span>
-                  <span className="text-xs font-semibold leading-tight">{tapLabel}</span>
+                <div className="flex flex-col items-center leading-none text-center max-w-full px-0.5">
+                  <span className="text-[0.45rem] opacity-50 leading-none">hold</span>
+                  <span className="text-[0.6rem] font-semibold leading-tight truncate max-w-full">{holdLabel}</span>
+                  <span className="text-[0.45rem] opacity-50 leading-none mt-0.5">tap</span>
+                  <span className="text-[0.6rem] font-semibold leading-tight truncate max-w-full">{tapLabel}</span>
                 </div>
               );
             }
@@ -109,11 +122,11 @@ export const Keymap = ({
               const layerName = keymap.layers.find(l => l.id === binding.param1)?.name || `L${binding.param1}`;
               const tapLabel = getShortHidLabel(binding.param2);
               return (
-                <div className="flex flex-col items-center leading-tight text-center">
-                  <span className="text-[0.55rem] opacity-50 leading-none">hold</span>
-                  <span className="text-xs font-semibold leading-tight">{layerName}</span>
-                  <span className="text-[0.55rem] opacity-50 leading-none mt-0.5">tap</span>
-                  <span className="text-xs font-semibold leading-tight">{tapLabel}</span>
+                <div className="flex flex-col items-center leading-none text-center max-w-full px-0.5">
+                  <span className="text-[0.45rem] opacity-50 leading-none">hold</span>
+                  <span className="text-[0.6rem] font-semibold leading-tight truncate max-w-full">{layerName}</span>
+                  <span className="text-[0.45rem] opacity-50 leading-none mt-0.5">tap</span>
+                  <span className="text-[0.6rem] font-semibold leading-tight truncate max-w-full">{tapLabel}</span>
                 </div>
               );
             }
@@ -123,7 +136,11 @@ export const Keymap = ({
                 <span className="text-xs font-semibold text-center leading-tight">{layerName}</span>
               );
             }
-            return <HidUsageLabel hid_usage={binding.param1} />;
+            return (
+              <span className="text-[0.7rem] font-medium leading-tight">
+                <HidUsageLabel hid_usage={binding.param1} />
+              </span>
+            );
           })()}
         </div>
       ),
@@ -133,7 +150,7 @@ export const Keymap = ({
   return (
     <PhysicalLayoutComp
       positions={positions}
-      oneU={48}
+      oneU={42}
       hoverZoom={true}
       zoom={scale}
       fitContainerRef={fitContainerRef}

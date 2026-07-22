@@ -3,6 +3,7 @@ import BehaviorShortNames from "./behavior-short-names.json";
 
 interface KeyProps {
   selected?: boolean;
+  pressed?: boolean;
   width: number;
   height: number;
   oneU: number;
@@ -37,21 +38,24 @@ const shortenHeader = (header: string | undefined) => {
 
 export const Key = ({
   selected = false,
+  pressed = false,
   width,
   height,
   oneU,
-  hoverZoom = true,
   header,
   onClick,
   children,
 }: PropsWithChildren<KeyProps>) => {
-  const pixelWidth = width * oneU - 2;
-  const pixelHeight = height * oneU - 2;
+  // 4px inter-key gutter (template style: square, bordered, airy spacing).
+  const pixelWidth = width * oneU - 4;
+  const pixelHeight = height * oneU - 4;
 
   return (
     <button
-      className={`group rounded relative z-0 flex justify-center items-center cursor-pointer transition-all hover:z-50 hover:shadow-xl hover:ring-1 hover:ring-gray-300 hover:scale-125 ${selected ? "bg-primary text-primary-content" : hoverZoom ? "bg-base-100 text-base-content" : "bg-base-100 text-base-content outline outline-1 outline-base-content"
-        }`}
+      className={`group relative flex justify-center items-center cursor-pointer transition-colors border-[1.5px] ${selected
+        ? "bg-primary text-primary-content border-primary"
+        : "bg-base-100 text-base-content border-base-300 hover:border-base-content/40"
+        } ${pressed ? "z-10 ring-2 ring-inset ring-primary bg-primary/25" : "z-0"}`}
       style={{
         width: `${pixelWidth}px`,
         height: `${pixelHeight}px`,

@@ -102,7 +102,7 @@ const InlineParamPicker = ({
         {label && (
           <div className="text-sm text-base-content/60 mb-1">{label}</div>
         )}
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(3.2rem,1fr))] gap-1.5">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(3.4rem,1fr))] gap-1.5">
           {values.map((v) => {
             const name = v.name || "";
             const colSpan = name.length > 7 ? 3 : name.length > 3 ? 2 : 1;
@@ -111,7 +111,7 @@ const InlineParamPicker = ({
               <button
                 key={v.constant}
                 onClick={() => onValueChanged(v.constant)}
-                className={`${spanClass} h-[3.2rem] rounded text-sm font-medium cursor-pointer transition-colors flex items-center justify-center ${value === v.constant
+                className={`${spanClass} h-[3.4rem] rounded text-sm font-medium cursor-pointer transition-colors flex items-center justify-center ${value === v.constant
                   ? "bg-primary text-primary-content"
                   : "bg-base-100 text-base-content hover:bg-base-300"
                   }`}
@@ -309,8 +309,7 @@ export const BehaviorBindingPicker = ({
     } else {
       setContextBuiltinId(findBuiltinHoldTap(behaviors, builtinNameForShape(b))?.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [binding]);
+  }, [binding, behaviors]);
 
   const handleBehaviorSelect = useCallback(
     (id: number) => {
@@ -385,6 +384,13 @@ export const BehaviorBindingPicker = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [param1Values, param2Values]);
 
+  // True when the value area shows a HID keycode grid (fills full height,
+  // divider bleeds to edges) vs. inline constant/layer buttons (padded scroll).
+  const isHidMode =
+    !!hidUsagePages &&
+    ((param1IsHid && anyParam2IsHid) ||
+      ((param1IsHid !== anyParam2IsHid) && (param1IsHid || anyParam2IsHid)));
+
   const availableCategories = useMemo(
     () => BEHAVIOR_CATEGORIES.filter((c) => (categorized[c.id]?.length || 0) > 0),
     [categorized]
@@ -399,8 +405,12 @@ export const BehaviorBindingPicker = ({
   const hoveredBehavior = categoryBehaviors.find((b) => b.id === hoveredBehaviorId);
 
   return (
-    <div className="flex gap-0 min-h-0 h-full">
-      <div className="flex flex-col gap-0.5 w-36 flex-shrink-0 pr-2 border-r border-base-300 overflow-y-auto">
+    <div className="grid h-full w-full flex-1 min-h-0" style={{ gridTemplateColumns: "168px 200px minmax(0,1fr)" }}>
+      {/* Category rail — mirrors the app's primary nav (left-accent + layer bg) */}
+      <div className="flex flex-col min-h-0 overflow-y-auto border-r border-base-300 custom-scrollbar">
+        <div className="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-base-content/50">
+          {t("binding.category", "Category")}
+        </div>
         {availableCategories.map((cat) => (
           <CategoryButton
             key={cat.id}
@@ -411,17 +421,21 @@ export const BehaviorBindingPicker = ({
         ))}
       </div>
 
-      <div key={selectedCategoryId} className="flex flex-col gap-0.5 flex-shrink-0 px-2 border-r border-base-300 overflow-y-auto animate-fade-in"
+      {/* Behavior list — Carbon list rows */}
+      <div key={selectedCategoryId} className="flex flex-col min-h-0 overflow-y-auto border-r border-base-300 animate-fade-in custom-scrollbar"
         onMouseLeave={() => setHoveredBehaviorId(null)}
       >
+        <div className="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-base-content/50">
+          {t("binding.behavior", "Behavior")}
+        </div>
         {categoryBehaviors.map((b) => (
           <button
             key={b.id}
             onClick={() => handleBehaviorSelect(b.id)}
             onMouseEnter={() => setHoveredBehaviorId(b.id)}
-            className={`px-3 py-1.5 rounded text-sm text-left cursor-pointer transition-colors whitespace-nowrap ${anchorId === b.id
-              ? "bg-primary text-primary-content"
-              : "text-base-content hover:bg-base-300"
+            className={`flex items-center h-10 px-3 text-[15px] text-left cursor-pointer transition-colors whitespace-nowrap border-l-2 ${anchorId === b.id
+              ? "border-primary bg-base-100 text-base-content font-medium"
+              : "border-transparent text-base-content/70 hover:bg-base-100/60"
               }`}
           >
             {DISPLAY_NAME_OVERRIDES[b.displayName] ?? b.displayName}
@@ -429,7 +443,10 @@ export const BehaviorBindingPicker = ({
         ))}
       </div>
 
-      <div className="flex-1 pl-3 min-w-0 flex flex-col">
+      {/* Parameter / keycode picker. No cell padding so the HID picker fills
+          edge-to-edge and its modifier divider reaches the drawer top/bottom;
+          inline pickers get their own padded scroll area instead. */}
+      <div className="min-h-0 min-w-0 flex flex-col overflow-hidden">
         {!isBehaviorInCategory ? (
           <div className="flex items-center justify-center h-full px-6">
             <div
@@ -444,75 +461,78 @@ export const BehaviorBindingPicker = ({
               )}
             </div>
           </div>
-        ) : (<>
-        {param1IsHid && anyParam2IsHid && hidUsagePages && (
-          <DualHidPicker
-            param1={param1}
-            param2={param2}
-            usagePages={hidUsagePages}
-            onParam1Changed={setParam1}
-            onParam2Changed={setParam2}
-            modes={holdTapModes}
-            currentBehaviorId={behaviorId}
-            onModeChange={handleModeSelect}
-          />
-        )}
-
-        {(param1IsHid !== anyParam2IsHid) && (param1IsHid || anyParam2IsHid) && hidUsagePages && (
-          <>
-            {hasLayerId(param1Values) && (
-              <LayerHidDualPicker
-                layerParam={param1}
-                hidParam={param2}
-                layers={layers}
+        ) : isHidMode ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            {param1IsHid && anyParam2IsHid && hidUsagePages && (
+              <DualHidPicker
+                param1={param1}
+                param2={param2}
                 usagePages={hidUsagePages}
-                onLayerChanged={setParam1}
-                onHidChanged={setParam2}
+                onParam1Changed={setParam1}
+                onParam2Changed={setParam2}
                 modes={holdTapModes}
                 currentBehaviorId={behaviorId}
                 onModeChange={handleModeSelect}
               />
             )}
-            {!hasLayerId(param1Values) && (
-              <HidUsageGrid
-                value={param1IsHid ? param1 : param2}
-                usagePages={hidUsagePages}
-                onValueChanged={param1IsHid ? setParam1 : setParam2}
+            {(param1IsHid !== anyParam2IsHid) && (param1IsHid || anyParam2IsHid) && hidUsagePages && (
+              <>
+                {hasLayerId(param1Values) && (
+                  <LayerHidDualPicker
+                    layerParam={param1}
+                    hidParam={param2}
+                    layers={layers}
+                    usagePages={hidUsagePages}
+                    onLayerChanged={setParam1}
+                    onHidChanged={setParam2}
+                    modes={holdTapModes}
+                    currentBehaviorId={behaviorId}
+                    onModeChange={handleModeSelect}
+                  />
+                )}
+                {!hasLayerId(param1Values) && (
+                  <HidUsageGrid
+                    value={param1IsHid ? param1 : param2}
+                    usagePages={hidUsagePages}
+                    onValueChanged={param1IsHid ? setParam1 : setParam2}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-2 custom-scrollbar">
+            {!param1IsHid && !param2IsHid && param1Values.length > 0 && (
+              <InlineParamPicker
+                values={param1Values}
+                value={param1}
+                layers={layers}
+                onValueChanged={setParam1}
+                label={hasLayerId(param1Values) ? t("binding.layer") : undefined}
               />
             )}
-          </>
-        )}
 
-        {!param1IsHid && !param2IsHid && param1Values.length > 0 && (
-          <InlineParamPicker
-            values={param1Values}
-            value={param1}
-            layers={layers}
-            onValueChanged={setParam1}
-            label={hasLayerId(param1Values) ? t("binding.layer") : undefined}
-          />
-        )}
+            {!param2IsHid && param2Values.length > 0 && (
+              <div className="mt-2">
+                <InlineParamPicker
+                  values={param2Values}
+                  value={param2}
+                  layers={layers}
+                  onValueChanged={setParam2}
+                  label={hasLayerId(param2Values) ? t("binding.layer") : undefined}
+                />
+              </div>
+            )}
 
-        {!param2IsHid && param2Values.length > 0 && (
-          <div className="mt-2">
-            <InlineParamPicker
-              values={param2Values}
-              value={param2}
-              layers={layers}
-              onValueChanged={setParam2}
-              label={hasLayerId(param2Values) ? t("binding.layer") : undefined}
-            />
+            {param1Values.length === 0 &&
+              param2Values.length === 0 &&
+              selectedBehavior && (
+                <div className="flex items-center justify-center h-full text-base-content/40 text-sm">
+                  {DISPLAY_NAME_OVERRIDES[selectedBehavior.displayName] ?? selectedBehavior.displayName} — {t("binding.noParametersRequired")}
+                </div>
+              )}
           </div>
         )}
-
-        {param1Values.length === 0 &&
-          param2Values.length === 0 &&
-          selectedBehavior && (
-            <div className="flex items-center justify-center h-full text-base-content/40 text-sm">
-              {DISPLAY_NAME_OVERRIDES[selectedBehavior.displayName] ?? selectedBehavior.displayName} — {t("binding.noParametersRequired")}
-            </div>
-          )}
-        </>)}
       </div>
     </div>
   );
@@ -532,13 +552,13 @@ const CategoryButton = ({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-3 py-2 rounded text-sm cursor-pointer transition-colors text-left ${isActive
-        ? "bg-primary text-primary-content"
-        : "text-base-content hover:bg-base-300"
+      className={`flex items-center gap-2.5 h-10 px-3 text-[15px] cursor-pointer transition-colors text-left border-l-2 ${isActive
+        ? "border-primary bg-base-100 text-base-content font-medium"
+        : "border-transparent text-base-content/70 hover:bg-base-100/60"
         }`}
     >
-      <Icon className="w-4 h-4 flex-shrink-0" />
-      <span>{t(`behavior.category.${category.id}`)}</span>
+      <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-primary" : ""}`} />
+      <span className="truncate">{t(`behavior.category.${category.id}`)}</span>
     </button>
   );
 };
@@ -667,8 +687,8 @@ const DualHidPicker = ({
   );
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2 items-center">
+    <div className="flex flex-col gap-2 h-full min-h-0">
+      <div className="flex gap-2 items-center px-3 pt-3">
         <SlotButton
           caption={t("binding.hold")}
           value={slot1Label}
@@ -731,8 +751,8 @@ const LayerHidDualPicker = ({
   const tapLabel = getHidLabel(hidParam);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2 items-center">
+    <div className="flex flex-col gap-2 h-full min-h-0">
+      <div className="flex gap-2 items-center px-3 pt-3">
         <SlotButton
           caption={t("binding.hold")}
           value={holdLabel}
