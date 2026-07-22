@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/ph-design/zmks-studio/compare/v0.2.1...v0.3.0) (2026-07-22)
+
+
+### Features
+
+* **ui:** Remake UI with IBM Carbon Design system ([be026ce](https://github.com/ph-design/zmks-studio/commit/be026ce551ae83238cfa2ffa8a3f7115ec0301cc))
+
 ## [0.2.1](https://github.com/ph-design/zmks-studio/compare/v0.2.0...v0.2.1) (2026-06-09)
 
 

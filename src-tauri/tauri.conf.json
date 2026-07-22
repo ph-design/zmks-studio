@@ -8,7 +8,7 @@
   },
   "productName": "ZMKs Studio",
   "mainBinaryName": "zmks-studio",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "identifier": "cc.phdesign.dev.zmks.studio",
   "bundle": {
     "active": true,
