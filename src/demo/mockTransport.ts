@@ -29,7 +29,6 @@ const KEY = (usage: number) => ({ behaviorId: B.kp, param1: usage, param2: 0 });
 const TRANS = { behaviorId: B.trans, param1: 0, param2: 0 };
 const MO = (l: number) => ({ behaviorId: B.mo, param1: l, param2: 0 });
 const LT = (l: number, usage: number) => ({ behaviorId: B.lt, param1: l, param2: usage });
-const MT = (mod: number, usage: number) => ({ behaviorId: B.mt, param1: mod, param2: usage });
 
 // A handful of HID usages for the demo keymap (page 0x07 keyboard).
 const U = {
@@ -167,7 +166,6 @@ function baseBindings(): { behaviorId: number; param1: number; param2: number }[
 }
 
 function buildLayers(): Layer[] {
-  const t = TRANS;
   const base = baseBindings();
 
   // Layer 1 — Lower: numbers/symbols on home row, arrows on right hand
