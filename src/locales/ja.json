@@ -37,7 +37,7 @@
     "connectingTitle": "キーボードに接続中",
     "connectingDescription": "キーボードを接続したままにしてください。準備ができると自動的にエディターが開きます。",
     "initializingTitle": "キーボードを読み込み中",
-    "initializingDescription": "キーマップ・ビヘイビア・ライティングを読み込んでいます。準備が完了するとエディターが開きます。",
+    "initializingDescription": "キーマップ・動作・ライティングを読み込んでいます。準備が完了するとエディターが開きます。",
     "unknownDevice": "不明なデバイス",
     "cancelConnection": "接続をキャンセル",
     "scanningDevices": "デバイスを検索中...",
@@ -74,9 +74,9 @@
     "issues": "GitHub Issues",
     "discord": "Discord サーバー",
     "zmksTitle": "ZMKs Studio について",
-    "zmksDescription": "ZMKs Studio は ZMK Studio をベースにしたコミュニティビルドです。上流の ZMK Studio のキーマップ編集ワークフローを維持しつつ、本フォークの UI・ライティング・多言語化・デスクトップクライアントの改善を加えています。オリジナルの ZMK Studio プロジェクトと ZMK コントリビューターが本作の基盤です。",
+    "zmksDescription": "ZMKs Studio は ZMK Studio をベースにしたコミュニティビルドです。上流の ZMK Studio のキーマップ編集ワークフローを維持しつつ、本フォークの UI・ライティング・多言語化・デスクトップクライアントの改善を加えています。オリジナルの ZMK Studio プロジェクトと ZMK 貢献者が本作の基盤です。",
     "zmksRepo": "ZMKs Studio リポジトリを表示",
-    "sponsorsDescription": "ZMK Studio は、コントリビューターの惜しみない時間の提供と、以下のベンダーからの資金援助によって実現しています："
+    "sponsorsDescription": "ZMK Studio は、貢献者の惜しみない時間の提供と、以下のベンダーからの資金援助によって実現しています："
   },
   "sponsorLevels": {
     "platinum": "プラチナ",
@@ -85,6 +85,22 @@
     "silver": "シルバー",
     "bronze": "ブロンズ",
     "additional": "その他"
+  },
+  "demo": {
+    "title": "デモモード",
+    "collapsedHint": "キーボードがありませんか？シミュレーションを試す",
+    "desc": "シミュレートされたキーボードで ZMK Studio をお試しください。",
+    "capabilities": "シミュレーション機能",
+    "launching": "起動中…",
+    "launch": "デモを試す",
+    "feature": {
+      "combos": "コンボ",
+      "combosDesc": "予約済みコンボスロット、実行時に編集可能",
+      "holdTap": "タップホールド",
+      "holdTapDesc": "実行時の hold-tap タイミング設定",
+      "lighting": "ライティング",
+      "lightingDesc": "RGB アンダーグロー & バックライト"
+    }
   },
   "layer": {
     "label": "レイヤー",
@@ -115,10 +131,10 @@
     "mode": "モード",
     "modeDefault": "デフォルト",
     "category": "カテゴリ",
-    "behavior": "ビヘイビア",
+    "behavior": "動作",
     "noParametersRequired": "パラメーター不要"
   },
-  "selectBehaviorHint": "左側のビヘイビアにカーソルを合わせると説明が表示されます",
+  "selectBehaviorHint": "左側の動作にカーソルを合わせると説明が表示されます",
   "behaviorDesc": {
     "Key Press": "押下/離しでキーコードを送信",
     "None": "キーをブロック — 下のレイヤーにイベントを渡しません",
@@ -171,12 +187,12 @@
       "clear": "クリア"
     },
     "capsLock": {
-      "title": "CapsLock インジケーター",
+      "title": "CapsLock 表示灯",
       "enabled": "有効",
       "onColor": "有効時のカラー",
       "offColor": "無効時のカラー",
       "keyPosition": "キー位置: {{pos}}",
-      "notConfigured": "CapsLock インジケーターはファームウェアで設定されていません"
+      "notConfigured": "CapsLock 表示灯はファームウェアで設定されていません"
     },
     "connection": {
       "title": "接続",
@@ -214,9 +230,9 @@
   "holdTap": {
     "tappingTermMs": "タッピング判定時間 (ms)",
     "quickTapMs": "クイックタップ (ms)",
-    "requirePriorIdleMs": "事前アイドル (ms)",
-    "flavorLabel": "フレーバー",
-    "retroTap": "レトロタップ",
+    "requirePriorIdleMs": "事前待機 (ms)",
+    "flavorLabel": "判定方式",
+    "retroTap": "後判定タップ",
     "holdWhileUndecided": "即時ホールド",
     "holdWhileUndecidedLinger": "ホールド維持",
     "holdTriggerOnRelease": "離した時に判定",
@@ -258,13 +274,18 @@
       "userPresets": "ユーザープリセット"
     },
     "scope": {
-      "builtin": "ファームウェア全体の既定値"
+      "builtin": "ファームウェア全体の既定値",
+      "builtinShort": "内蔵",
+      "user": "カスタム",
+      "userPreset": "ユーザープリセット"
     },
     "empty": {
       "builtinHint": "お使いのファームウェアは Mod-Tap または Layer-Tap を登録していません。",
       "userPresets": "ユーザープリセットが定義されていません",
       "userPresetsHint": "`.keymap` に `ht_*` のような名前でホールドタップの派生を定義すると、ここで管理できます。"
     },
+    "emptyTitle": "Tap-Hold は利用できません",
+    "emptyHint": "ph-design/zmks ブランチが必要です。ht_* ノードを compatible = \"zmk,behavior-hold-tap\" で追加してください。",
     "applyTitle": "プリセットを適用",
     "applyHint": "プリセットの設定を {{name}} にコピーします。",
     "saveFailed": "保存に失敗またはタイムアウトしました。もう一度お試しください。"
@@ -301,7 +322,7 @@
     "title": "続行するにはロック解除",
     "body1": "セキュリティ上の理由により、ZMK Studio を使用する前にキーボードのロック解除が必要です。",
     "body2Prefix": "Studio のロック解除がキーマップやコンボに追加されていない場合は、",
-    "docs": "Studio Unlock ビヘイビアのドキュメント",
+    "docs": "Studio Unlock 動作のドキュメント",
     "body2Suffix": "を参照してください。"
   },
   "license": {
@@ -332,7 +353,7 @@
       "quick": "クイック設定",
       "layers": "レイヤー",
       "map": "マップ",
-      "behaviors": "ビヘイビア",
+      "behaviors": "動作",
       "lighting": "ライティング",
       "combos": "コンボ",
       "settings": "設定"
@@ -397,6 +418,8 @@
   },
   "combos": {
     "loading": "読み込み中…",
+    "emptyTitle": "コンボは利用できません",
+    "emptyHint": "ph-design/zmks ブランチが必要です。/combos ノードを compatible = \"zmk,combos\" で追加してください。",
     "empty": "コンボが定義されていません。keymap に `combos` ノード（`compatible = \"zmk,combos\"`）を追加してください。",
     "unusedSlot": "未使用スロット",
     "none": "なし",
@@ -413,10 +436,10 @@
     "behavior": "動作",
     "timeout": "タイムアウト",
     "timeoutDesc": "すべてのキーをこの時間内に押す必要があります（ミリ秒）。",
-    "priorIdle": "直前のアイドルが必要",
+    "priorIdle": "事前待機が必要",
     "priorIdleDesc": "コンボの最初のキーの直前に他のキーが押されていない場合のみトリガーします。",
-    "priorIdleMs": "直前のアイドル",
-    "slowRelease": "スローリリース",
+    "priorIdleMs": "事前待機",
+    "slowRelease": "遅延解除",
     "slowReleaseDesc": "最初のキーではなく、最後のキーを離したときにコンボを解除します。",
     "layersDesc": "このコンボが有効なレイヤー。選択しない場合はすべてのレイヤーで有効です。",
     "allLayers": "すべてのレイヤー",

@@ -86,6 +86,22 @@
     "bronze": "Bronze",
     "additional": "Supplémentaire"
   },
+  "demo": {
+    "title": "Mode démo",
+    "collapsedHint": "Pas de clavier ? Essayez un appareil simulé",
+    "desc": "Essayez ZMK Studio avec un clavier simulé.",
+    "capabilities": "Fonctions simulées",
+    "launching": "Démarrage…",
+    "launch": "Essayer la démo",
+    "feature": {
+      "combos": "Combos",
+      "combosDesc": "Emplacements de combo reservados, modifiables à l'exécution",
+      "holdTap": "Tap-Hold",
+      "holdTapDesc": "Configuration du timing hold-tap à l'exécution",
+      "lighting": "Éclairage",
+      "lightingDesc": "RGB underglow et rétroéclairage"
+    }
+  },
   "layer": {
     "label": "Couches",
     "newLayerName": "Nom de la nouvelle couche",
@@ -258,13 +274,18 @@
       "userPresets": "Préréglages utilisateur"
     },
     "scope": {
-      "builtin": "Valeur par défaut du firmware"
+      "builtin": "Valeur par défaut du firmware",
+      "builtinShort": "Intégré",
+      "user": "Personnalisé",
+      "userPreset": "Préréglage utilisateur"
     },
     "empty": {
       "builtinHint": "Votre firmware n'enregistre pas Mod-Tap ni Layer-Tap.",
       "userPresets": "Aucun préréglage utilisateur défini",
       "userPresetsHint": "Définissez des variantes hold-tap nommées comme `ht_*` dans votre .keymap pour les gérer ici."
     },
+    "emptyTitle": "Tap-Hold indisponible",
+    "emptyHint": "Nécessite la branche ph-design/zmks. Ajoutez des nœuds ht_* avec compatible = \"zmk,behavior-hold-tap\".",
     "applyTitle": "Appliquer un préréglage",
     "applyHint": "Copier les réglages d'un préréglage sur {{name}}.",
     "saveFailed": "Échec ou expiration de l'enregistrement. Veuillez réessayer."
@@ -397,6 +418,8 @@
   },
   "combos": {
     "loading": "Chargement…",
+    "emptyTitle": "Combos indisponible",
+    "emptyHint": "Nécessite la branche ph-design/zmks. Ajoutez un nœud /combos avec compatible = \"zmk,combos\".",
     "empty": "Aucun combo défini. Ajoutez un nœud `combos` avec `compatible = \"zmk,combos\"` à votre keymap.",
     "unusedSlot": "Emplacement inutilisé",
     "none": "Aucun",

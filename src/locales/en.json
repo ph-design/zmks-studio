@@ -86,6 +86,22 @@
     "bronze": "Bronze",
     "additional": "Additional"
   },
+  "demo": {
+    "title": "Demo mode",
+    "collapsedHint": "No keyboard? Try a simulated device",
+    "desc": "Try ZMK Studio against a simulated device.",
+    "capabilities": "Simulated features",
+    "launching": "Starting…",
+    "launch": "Try demo",
+    "feature": {
+      "combos": "Combos",
+      "combosDesc": "Reserved combo slots, editable at runtime",
+      "holdTap": "Tap-Hold",
+      "holdTapDesc": "Runtime hold-tap timing configs",
+      "lighting": "Lighting",
+      "lightingDesc": "RGB underglow & backlight"
+    }
+  },
   "layer": {
     "label": "Layers",
     "newLayerName": "New Layer Name",
@@ -258,13 +274,18 @@
       "userPresets": "User Presets"
     },
     "scope": {
-      "builtin": "Firmware-wide default"
+      "builtin": "Firmware-wide default",
+      "builtinShort": "Built-in",
+      "user": "Custom",
+      "userPreset": "User-defined preset"
     },
     "empty": {
       "builtinHint": "Your firmware does not register Mod-Tap or Layer-Tap.",
       "userPresets": "No user presets defined",
       "userPresetsHint": "Define hold-tap variants with names like `ht_*` in your .keymap to manage them here."
     },
+    "emptyTitle": "Tap-Hold Unavailable",
+    "emptyHint": "Requires ph-design/zmks branch. Add ht_* nodes with compatible = \"zmk,behavior-hold-tap\".",
     "applyTitle": "Apply a preset",
     "applyHint": "Copy a preset's settings onto {{name}}.",
     "saveFailed": "Save failed or timed out. Please try again."
@@ -397,6 +418,8 @@
   },
   "combos": {
     "loading": "Loading…",
+    "emptyTitle": "Combos Unavailable",
+    "emptyHint": "Requires ph-design/zmks branch. Add /combos node with compatible = \"zmk,combos\".",
     "empty": "No combos defined. Add a `combos` node with `compatible = \"zmk,combos\"` to your keymap.",
     "unusedSlot": "Unused slot",
     "none": "None",

@@ -86,6 +86,22 @@
     "bronze": "Bronce",
     "additional": "Adicional"
   },
+  "demo": {
+    "title": "Modo demo",
+    "collapsedHint": "¿Sin teclado? Prueba un dispositivo simulado",
+    "desc": "Prueba ZMK Studio con un teclado simulado.",
+    "capabilities": "Funciones simuladas",
+    "launching": "Iniciando…",
+    "launch": "Probar demo",
+    "feature": {
+      "combos": "Combos",
+      "combosDesc": "Ranuras de combo reservadas, editables en ejecución",
+      "holdTap": "Tap-Hold",
+      "holdTapDesc": "Configuración de temporización hold-tap en ejecución",
+      "lighting": "Iluminación",
+      "lightingDesc": "RGB underglow y retroiluminación"
+    }
+  },
   "layer": {
     "label": "Capas",
     "newLayerName": "Nombre de la nueva capa",
@@ -258,13 +274,18 @@
       "userPresets": "Ajustes del usuario"
     },
     "scope": {
-      "builtin": "Predeterminado de todo el firmware"
+      "builtin": "Predeterminado de todo el firmware",
+      "builtinShort": "Integrado",
+      "user": "Personalizado",
+      "userPreset": "Ajuste de usuario"
     },
     "empty": {
       "builtinHint": "Tu firmware no registra Mod-Tap ni Layer-Tap.",
       "userPresets": "No hay ajustes de usuario definidos",
       "userPresetsHint": "Define variantes hold-tap con nombres como `ht_*` en tu .keymap para gestionarlas aquí."
     },
+    "emptyTitle": "Tap-Hold no disponible",
+    "emptyHint": "Requiere la rama ph-design/zmks. Añade nodos ht_* con compatible = \"zmk,behavior-hold-tap\".",
     "applyTitle": "Aplicar un ajuste",
     "applyHint": "Copiar la configuración de un ajuste en {{name}}.",
     "saveFailed": "Error o tiempo de espera al guardar. Inténtalo de nuevo."
@@ -397,6 +418,8 @@
   },
   "combos": {
     "loading": "Cargando…",
+    "emptyTitle": "Combos no disponible",
+    "emptyHint": "Requiere la rama ph-design/zmks. Añade un nodo /combos con compatible = \"zmk,combos\".",
     "empty": "No hay combos definidos. Añade un nodo `combos` con `compatible = \"zmk,combos\"` a tu keymap.",
     "unusedSlot": "Ranura sin usar",
     "none": "Ninguno",

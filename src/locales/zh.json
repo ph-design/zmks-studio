@@ -86,6 +86,22 @@
     "bronze": "铜牌",
     "additional": "其他"
   },
+  "demo": {
+    "title": "演示模式",
+    "collapsedHint": "没有键盘？试试模拟设备",
+    "desc": "在模拟键盘上体验 ZMK Studio。",
+    "capabilities": "模拟功能",
+    "launching": "启动中…",
+    "launch": "开始演示",
+    "feature": {
+      "combos": "组合键",
+      "combosDesc": "预留组合键槽位，可运行时编辑",
+      "holdTap": "Tap-Hold",
+      "holdTapDesc": "运行时 hold-tap 时序配置",
+      "lighting": "灯光",
+      "lightingDesc": "RGB 底灯 & 背光"
+    }
+  },
   "layer": {
     "label": "层级",
     "newLayerName": "新层级名称",
