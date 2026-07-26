@@ -394,5 +394,40 @@
     "defaultViewDesc": "Section ouverte lors de la connexion d'un clavier.",
     "keysUnit": "touches",
     "layersUnit": "couches"
+  },
+  "combos": {
+    "loading": "Chargement…",
+    "empty": "Aucun combo défini. Ajoutez un nœud `combos` avec `compatible = \"zmk,combos\"` à votre keymap.",
+    "unusedSlot": "Emplacement inutilisé",
+    "none": "Aucun",
+    "clearSlot": "Vider l'emplacement",
+    "clearBehavior": "Effacer",
+    "editBehavior": "Modifier",
+    "editingBanner": "Modification du comportement du combo — choisissez un binding, puis confirmez.",
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saveFailed": "Échec de l'enregistrement ou délai dépassé. Veuillez réessayer.",
+    "positions": "Positions des touches",
+    "behavior": "Comportement",
+    "timeout": "Délai",
+    "timeoutDesc": "Durée pendant laquelle toutes les touches doivent être pressées, en millisecondes.",
+    "priorIdle": "Inactivité préalable requise",
+    "priorIdleDesc": "Ne se déclenche que si aucune autre touche n'a été tapée juste avant la première touche du combo.",
+    "priorIdleMs": "Inactivité préalable",
+    "slowRelease": "Relâchement lent",
+    "slowReleaseDesc": "Relâche le combo quand la dernière touche est relâchée, au lieu de la première.",
+    "layersDesc": "Couches sur lesquelles ce combo est actif. Sans sélection, il fonctionne sur toutes les couches.",
+    "allLayers": "Toutes les couches",
+    "triggerHint": "Cliquez sur les touches de la disposition pour les ajouter ou les retirer de ce combo.",
+    "readOnlyHint": "Ce firmware ne permet pas de modifier les positions des touches ou le comportement à chaud — modifiez-les dans votre keymap / devicetree.",
+    "on": "Activé",
+    "off": "Désactivé",
+    "section": {
+      "trigger": "Déclencheur",
+      "timing": "Timing et comportement",
+      "layers": "Couches"
+    }
   }
 }

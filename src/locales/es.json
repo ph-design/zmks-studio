@@ -394,5 +394,40 @@
     "defaultViewDesc": "Qué sección se abre al conectar un teclado.",
     "keysUnit": "teclas",
     "layersUnit": "capas"
+  },
+  "combos": {
+    "loading": "Cargando…",
+    "empty": "No hay combos definidos. Añade un nodo `combos` con `compatible = \"zmk,combos\"` a tu keymap.",
+    "unusedSlot": "Ranura sin usar",
+    "none": "Ninguno",
+    "clearSlot": "Vaciar ranura",
+    "clearBehavior": "Borrar",
+    "editBehavior": "Editar",
+    "editingBanner": "Editando el comportamiento del combo — elige un binding y confirma.",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "saveFailed": "Error al guardar o tiempo agotado. Inténtalo de nuevo.",
+    "positions": "Posiciones de teclas",
+    "behavior": "Comportamiento",
+    "timeout": "Tiempo de espera",
+    "timeoutDesc": "Tiempo en el que todas las teclas deben pulsarse, en milisegundos.",
+    "priorIdle": "Requiere inactividad previa",
+    "priorIdleDesc": "Solo se activa si no se pulsó ninguna otra tecla justo antes de la primera tecla del combo.",
+    "priorIdleMs": "Inactividad previa",
+    "slowRelease": "Liberación lenta",
+    "slowReleaseDesc": "Libera el combo al soltar la última tecla, en lugar de la primera.",
+    "layersDesc": "Capas en las que este combo está activo. Sin selección, funciona en todas las capas.",
+    "allLayers": "Todas las capas",
+    "triggerHint": "Haz clic en las teclas de la disposición para añadirlas o quitarlas de este combo.",
+    "readOnlyHint": "Este firmware no puede editar las posiciones de teclas ni el comportamiento en caliente — cámbialos en tu keymap / devicetree.",
+    "on": "Activado",
+    "off": "Desactivado",
+    "section": {
+      "trigger": "Disparador",
+      "timing": "Tiempo y comportamiento",
+      "layers": "Capas"
+    }
   }
 }

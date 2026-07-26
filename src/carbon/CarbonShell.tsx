@@ -17,12 +17,14 @@ import { useKeyboardModel } from "./useKeyboardModel";
 import { useHoldTapConfigs } from "../behaviors/useHoldTapConfigs";
 import { isHoldTapShape } from "../behaviors/holdTapUtils";
 import { OtherPanel } from "../keyboard/OtherPanel";
+import { useCombos } from "../combos/useCombos";
+import { ComboPanel } from "../combos/ComboPanel";
 
 import { LayersView } from "./LayersView";
 import { LightingView } from "./LightingView";
 import { QuickSettingsView } from "./QuickSettingsView";
 import { SettingsView } from "./SettingsView";
-import { iconBtn, CombosPlaceholder } from "./CarbonChrome";
+import { iconBtn } from "./CarbonChrome";
 
 type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "combos" | "settings";
 
@@ -136,6 +138,7 @@ export function CarbonShell(props: CarbonShellProps) {
     [model.behaviorList]
   );
   const holdTap = useHoldTapConfigs(holdTapIds);
+  const combos = useCombos();
 
   const deviceName = deviceInfo?.name || props.connectedDeviceName || "Keyboard";
   const serialHex = deviceInfo?.serialNumber && deviceInfo.serialNumber.length > 0
@@ -292,7 +295,18 @@ export function CarbonShell(props: CarbonShellProps) {
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
                 onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} onResetSettings={props.onResetSettings} />
             ) : activeNav === "combos" ? (
-              <CombosPlaceholder th={th} t={t} />
+              <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+                <ComboPanel
+                  combos={combos.combos}
+                  loaded={combos.loaded}
+                  behaviors={model.behaviors}
+                  behaviorList={model.behaviorList}
+                  layers={model.keymap?.layers ?? []}
+                  layout={model.layouts?.[model.selectedPhysicalLayoutIndex]}
+                  th={th}
+                  applyConfig={combos.applyConfig}
+                />
+              </div>
             ) : null}
           </div>
         </main>

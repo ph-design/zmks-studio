@@ -394,5 +394,40 @@
     "defaultViewDesc": "キーボード接続時に開くセクション。",
     "keysUnit": "キー",
     "layersUnit": "レイヤー"
+  },
+  "combos": {
+    "loading": "読み込み中…",
+    "empty": "コンボが定義されていません。keymap に `combos` ノード（`compatible = \"zmk,combos\"`）を追加してください。",
+    "unusedSlot": "未使用スロット",
+    "none": "なし",
+    "clearSlot": "スロットをクリア",
+    "clearBehavior": "クリア",
+    "editBehavior": "編集",
+    "editingBanner": "コンボ動作を編集中 — バインドを選んで確定してください。",
+    "confirm": "確定",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "saving": "保存中…",
+    "saveFailed": "保存に失敗したかタイムアウトしました。もう一度お試しください。",
+    "positions": "キー位置",
+    "behavior": "動作",
+    "timeout": "タイムアウト",
+    "timeoutDesc": "すべてのキーをこの時間内に押す必要があります（ミリ秒）。",
+    "priorIdle": "直前のアイドルが必要",
+    "priorIdleDesc": "コンボの最初のキーの直前に他のキーが押されていない場合のみトリガーします。",
+    "priorIdleMs": "直前のアイドル",
+    "slowRelease": "スローリリース",
+    "slowReleaseDesc": "最初のキーではなく、最後のキーを離したときにコンボを解除します。",
+    "layersDesc": "このコンボが有効なレイヤー。選択しない場合はすべてのレイヤーで有効です。",
+    "allLayers": "すべてのレイヤー",
+    "triggerHint": "レイアウト上のキーをクリックして、このコンボに追加または削除します。",
+    "readOnlyHint": "このファームウェアでは実行時にキー位置や動作を変更できません。keymap / devicetree で変更してください。",
+    "on": "オン",
+    "off": "オフ",
+    "section": {
+      "trigger": "トリガー",
+      "timing": "タイミングと動作",
+      "layers": "レイヤー"
+    }
   }
 }

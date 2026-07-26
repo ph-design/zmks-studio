@@ -394,5 +394,40 @@
     "defaultViewDesc": "Which section opens when you connect a keyboard.",
     "keysUnit": "keys",
     "layersUnit": "layers"
+  },
+  "combos": {
+    "loading": "Loading…",
+    "empty": "No combos defined. Add a `combos` node with `compatible = \"zmk,combos\"` to your keymap.",
+    "unusedSlot": "Unused slot",
+    "none": "None",
+    "clearSlot": "Clear slot",
+    "clearBehavior": "Clear",
+    "editBehavior": "Edit",
+    "editingBanner": "Editing combo behavior — pick a binding, then confirm.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "saveFailed": "Save failed or timed out. Please try again.",
+    "positions": "Key positions",
+    "behavior": "Behavior",
+    "timeout": "Timeout",
+    "timeoutDesc": "How long all keys must be pressed within, in milliseconds.",
+    "priorIdle": "Require prior idle",
+    "priorIdleDesc": "Only trigger if no other key was tapped shortly before the combo's first key.",
+    "priorIdleMs": "Prior idle",
+    "slowRelease": "Slow release",
+    "slowReleaseDesc": "Release the combo when the last key is released, instead of the first.",
+    "layersDesc": "Layers this combo is active on. With none selected, it works on every layer.",
+    "allLayers": "All layers",
+    "triggerHint": "Click keys on the layout to add or remove them from this combo.",
+    "readOnlyHint": "This firmware can't edit key positions or the behavior at runtime — change them in your keymap / devicetree.",
+    "on": "On",
+    "off": "Off",
+    "section": {
+      "trigger": "Trigger",
+      "timing": "Timing & Behavior",
+      "layers": "Layers"
+    }
   }
 }
