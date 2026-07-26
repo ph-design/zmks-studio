@@ -197,6 +197,15 @@ const TapHoldEditor = ({
   const builtinDefault = isBuiltin ? getBuiltinDefault(behavior.displayName) : null;
   const canReset = !!cfg && !!builtinDefault && !configsEqual(cfg, builtinDefault);
 
+  const matchedPresetId = useMemo(() => {
+    if (!draft) return null;
+    for (const p of presets) {
+      const c = getConfig(p.id);
+      if (c && configsEqual(c, draft)) return p.id;
+    }
+    return null;
+  }, [presets, getConfig, draft]);
+
   if (!cfg) {
     return <div style={{ fontSize: 13, opacity: 0.4, padding: "8px 0" }}>{t("holdTap.loading", "Loading…")}</div>;
   }
@@ -215,15 +224,6 @@ const TapHoldEditor = ({
       setSaving(false);
     }
   };
-
-  const matchedPresetId = useMemo(() => {
-    if (!draft) return null;
-    for (const p of presets) {
-      const c = getConfig(p.id);
-      if (c && configsEqual(c, draft)) return p.id;
-    }
-    return null;
-  }, [presets, getConfig, draft]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
