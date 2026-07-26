@@ -286,14 +286,14 @@ function ConnectingStep({
       body={t(initializing ? "welcome.initializingDescription" : "welcome.connectingDescription")}
     >
       <div className="grid gap-2">
-        <div className="h-2 overflow-hidden rounded-full bg-base-300">
+        <div className="h-1 overflow-hidden rounded-[2px] bg-base-300">
           {determinate ? (
             <div
-              className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+              className="h-full rounded-[2px] bg-primary transition-[width] duration-300 ease-out"
               style={{ width: `${pct}%` }}
             />
           ) : (
-            <div className="h-full w-1/3 rounded-full bg-primary animate-[connect-progress_1.4s_ease-in-out_infinite]" />
+            <div className="h-full w-1/3 rounded-[2px] bg-primary animate-[carbon-progress_1.6s_cubic-bezier(0.4,0,0.2,1)_infinite]" />
           )}
         </div>
         {determinate && (
@@ -326,8 +326,8 @@ function UnlockStep() {
         </ExternalLink>{" "}
         {t("unlock.body2Suffix")}
       </p>
-      <div className="h-2 overflow-hidden rounded-full bg-base-300">
-        <div className="h-full w-1/3 rounded-full bg-primary animate-[connect-progress_1.4s_ease-in-out_infinite]" />
+      <div className="h-1 overflow-hidden rounded-[2px] bg-base-300">
+        <div className="h-full w-1/3 rounded-[2px] bg-primary animate-[carbon-progress_1.6s_cubic-bezier(0.4,0,0.2,1)_infinite]" />
       </div>
     </FlowStep>
   );
