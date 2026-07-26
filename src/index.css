@@ -319,6 +319,25 @@ html.rounded-mode button:not([role="switch"]) {
   border-radius: 6px !important;
 }
 
+.keymap-drawer {
+  height: 36px;
+}
+.keymap-drawer.expanded {
+  height: 200px;
+}
+@media (min-height: 650px) {
+  .keymap-drawer.expanded { height: 240px; }
+}
+@media (min-height: 750px) {
+  .keymap-drawer.expanded { height: 280px; }
+}
+@media (min-height: 900px) {
+  .keymap-drawer.expanded { height: 340px; }
+}
+@media (min-height: 1080px) {
+  .keymap-drawer.expanded { height: 400px; }
+}
+
 html.rounded-mode input:not([type="range"]),
 html.rounded-mode textarea,
 html.rounded-mode select {

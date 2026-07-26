@@ -258,13 +258,18 @@
       "userPresets": "用户预设"
     },
     "scope": {
-      "builtin": "固件默认"
+      "builtin": "固件默认",
+      "builtinShort": "内置",
+      "user": "自定义",
+      "userPreset": "用户预设"
     },
     "empty": {
       "builtinHint": "固件未注册 Mod-Tap 或 Layer-Tap。",
       "userPresets": "未定义用户预设",
       "userPresetsHint": "在 .keymap 中定义 `ht_*` 命名的 hold-tap 变体即可在此管理。"
     },
+    "emptyTitle": "Tap-Hold 不可用",
+    "emptyHint": "基于 ph-design/zmks 分支，添加 ht_* 节点，compatible = \"zmk,behavior-hold-tap\"。",
     "applyTitle": "套用预设",
     "applyHint": "把某个预设的设置同步到 {{name}}。",
     "saveFailed": "保存失败或超时，请重试。"
@@ -397,6 +402,8 @@
   },
   "combos": {
     "loading": "加载中…",
+    "emptyTitle": "组合键不可用",
+    "emptyHint": "基于 ph-design/zmks 分支，添加 /combos 节点，compatible = \"zmk,combos\"。",
     "empty": "未定义组合键。请在 keymap 中添加 `combos` 节点（`compatible = \"zmk,combos\"`）。",
     "unusedSlot": "未使用槽位",
     "none": "无",

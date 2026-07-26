@@ -150,7 +150,7 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
           </div>
         )}
 
-        <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, overflow: "auto", minHeight: 0 }}
+        <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, overflow: "auto", minHeight: 0 }}
           onClick={(e) => { if (!(e.target as HTMLElement).closest("button")) model.setSelectedKeyPosition(undefined); }}>
           <KeymapComp
             keymap={km}
@@ -165,9 +165,17 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
           <ZoomControl th={th} t={t} scale={model.keymapScale} setScale={model.setKeymapScale} />
         </div>
 
-        {/* Binding drawer — always expanded, fixed height, so the canvas layout
-            never jumps and the picker keeps a definite height for full dividers. */}
-        <div style={{ flexShrink: 0, height: 380, borderTop: `1px solid ${th.border}`, background: th.layer1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <div
+          className={`keymap-drawer${model.selectedKeyPosition !== undefined ? " expanded" : ""}`}
+          style={{
+            flexShrink: 0,
+            borderTop: `1px solid ${th.border}`,
+            background: th.layer1,
+            display: "flex", flexDirection: "column",
+            minHeight: 0,
+            transition: "height 0.2s ease",
+          }}
+        >
           {/* Compact single-line header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 36, padding: "0 8px 0 16px", borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>

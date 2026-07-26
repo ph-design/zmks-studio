@@ -14,6 +14,7 @@ import {
   getBuiltinDefault,
   holdTapPresets,
   isHoldTapShape,
+  isBuiltinHoldTap,
   summarizeConfig,
 } from "../behaviors/holdTapUtils";
 import { NotSupportedHint } from "./CarbonChrome";
@@ -41,9 +42,24 @@ export const TapHoldView = ({ behaviors, th, getConfig, applyConfig }: TapHoldVi
     [holdTapBehaviors]
   );
 
-  const [selectedPresetId, setSelectedPresetId] = useState<number | null>(null);
-  const activePresetId = selectedPresetId ?? userPresets[0]?.id ?? null;
-  const activePreset = userPresets.find((p) => p.id === activePresetId) ?? null;
+  const allBehaviors = useMemo(() => {
+    const list: GetBehaviorDetailsResponse[] = [];
+    if (builtinModTap) list.push(builtinModTap);
+    if (builtinLayerTap) list.push(builtinLayerTap);
+    list.push(...userPresets);
+    return list;
+  }, [builtinModTap, builtinLayerTap, userPresets]);
+
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const active = selectedId !== null
+    ? allBehaviors.find((b) => b.id === selectedId) ?? allBehaviors[0] ?? null
+    : allBehaviors[0] ?? null;
+
+  useEffect(() => {
+    if (active && !allBehaviors.find((b) => b.id === active.id)) {
+      setSelectedId(null);
+    }
+  }, [allBehaviors, active]);
 
   if (!conn) {
     return (
@@ -66,82 +82,98 @@ export const TapHoldView = ({ behaviors, th, getConfig, applyConfig }: TapHoldVi
   }
 
   return (
-    <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar">
-      <div style={{ padding: 24, maxWidth: 560 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary, marginBottom: 20 }}>
-          {t("other.feature.tapHold", "Tap-Hold")}
-        </h2>
-
-        {builtinModTap && (
-          <Section title={BUILTIN_MOD_TAP} desc={t("holdTap.scope.builtin", "Firmware-wide default")}>
-            <TapHoldEditor
-              behavior={builtinModTap}
-              isBuiltin
-              presets={userPresets}
-              getConfig={getConfig}
-              applyConfig={applyConfig}
-            />
-          </Section>
-        )}
-
-        {builtinLayerTap && (
-          <Section title={BUILTIN_LAYER_TAP} desc={t("holdTap.scope.builtin", "Firmware-wide default")}>
-            <TapHoldEditor
-              behavior={builtinLayerTap}
-              isBuiltin
-              presets={userPresets}
-              getConfig={getConfig}
-              applyConfig={applyConfig}
-            />
-          </Section>
-        )}
-
-        <Section title={t("holdTap.section.userPresets", "User Presets")} last>
-          {userPresets.length === 0 ? (
-            <p style={{ fontSize: 13, color: th.textHelper }}>
-              {t("holdTap.empty.userPresetsHint", "Define hold-tap variants named like ht_* in your keymap.")}
-            </p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {userPresets.length > 1 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {userPresets.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => setSelectedPresetId(p.id)}
-                      style={{
-                        padding: "6px 14px", fontSize: 13, cursor: "pointer",
-                        background: activePresetId === p.id ? th.interactive : th.fieldBg,
-                        color: activePresetId === p.id ? "#fff" : th.textSecondary,
-                        border: `1px solid ${activePresetId === p.id ? th.interactive : th.borderStrong}`,
-                        fontFamily: "var(--font-sans)",
-                      }}
-                    >
-                      {p.displayName}
-                    </button>
-                  ))}
+    <div className="flex min-h-0 h-full w-full">
+      <aside style={{
+        width: 240, flexShrink: 0, display: "flex", flexDirection: "column",
+        background: th.railBg, borderRight: `1px solid ${th.border}`,
+      }}>
+        <div style={{
+          padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`,
+          display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
+        }}>
+          <Zap size={16} style={{ color: th.interactive }} />
+          <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>
+            {t("other.feature.tapHold", "Tap-Hold")}
+          </span>
+          <span style={{ marginLeft: "auto", fontSize: 12, color: th.textHelper }}>
+            {allBehaviors.length}
+          </span>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto" }} className="custom-scrollbar">
+          {allBehaviors.map((b) => {
+            const isActive = active?.id === b.id;
+            const isBuiltin = isBuiltinHoldTap(b);
+            const cfgSummary = getConfig(b.id);
+            const sub = cfgSummary ? summarizeConfig(cfgSummary, t) : undefined;
+            return (
+              <button
+                key={b.id}
+                aria-pressed={isActive}
+                onClick={() => setSelectedId(b.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, width: "100%",
+                  minHeight: 44, padding: "0 14px", cursor: "pointer",
+                  textAlign: "left", border: "none",
+                  background: isActive ? th.selectedLayer : "transparent",
+                  borderLeft: `3px solid ${isActive ? th.interactive : "transparent"}`,
+                  fontFamily: "var(--font-sans)",
+                }}
+              >
+                <span style={{
+                  fontSize: 10, fontFamily: "var(--font-sans)", flexShrink: 0,
+                  fontWeight: 500, letterSpacing: "0.02em",
+                  padding: "1px 6px", borderRadius: 3,
+                  background: isActive ? th.interactive : th.fieldBg,
+                  color: isActive ? "#fff" : th.textHelper,
+                  border: `1px solid ${isActive ? th.interactive : th.borderStrong}`,
+                }}>
+                  {isBuiltin ? t("holdTap.scope.builtinShort", "内置") : t("holdTap.scope.user", "自定义")}
+                </span>
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 1 }}>
+                  <span style={{
+                    fontSize: 13, fontWeight: isActive ? 500 : 400,
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    color: th.textPrimary,
+                  }}>
+                    {b.displayName}
+                  </span>
+                  {sub && (
+                    <span style={{
+                      fontSize: 11, color: th.textHelper,
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    }}>
+                      {sub}
+                    </span>
+                  )}
                 </div>
-              )}
-              {activePreset && (
-                <TapHoldEditor
-                  key={activePreset.id}
-                  behavior={activePreset}
-                  isBuiltin={false}
-                  presets={userPresets}
-                  getConfig={getConfig}
-                  applyConfig={applyConfig}
-                />
-              )}
-            </div>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* ── Right content — editor ── */}
+      <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar">
+        <div className="max-w-2xl px-6 py-4 flex flex-col">
+          {active && (
+            <TapHoldEditor
+              key={active.id}
+              behavior={active}
+              isBuiltin={isBuiltinHoldTap(active)}
+              presets={userPresets}
+              getConfig={getConfig}
+              applyConfig={applyConfig}
+              th={th}
+            />
           )}
-        </Section>
+        </div>
       </div>
     </div>
   );
 };
 
 
-// Settings-page style titled block.
+// ── Section ──
 const Section = ({
   title,
   desc,
@@ -153,32 +185,29 @@ const Section = ({
   last?: boolean;
   children: React.ReactNode;
 }) => (
-  <div style={{ padding: "20px 0", borderBottom: last ? "none" : "1px solid var(--border-color, #393939)" }}>
-    <div style={{ marginBottom: 12 }}>
-      <h3 style={{ fontSize: 14, fontWeight: 600 }}>{title}</h3>
-      {desc ? <p style={{ fontSize: 12, color: "var(--text-helper, #8d8d8d)", marginTop: 4 }}>{desc}</p> : null}
+  <div className={`py-5 ${last ? "" : "border-b border-base-300"}`}>
+    <div className="mb-3">
+      <h3 className="text-[15px] font-semibold text-base-content">{title}</h3>
+      {desc ? <p className="text-sm text-base-content/55 mt-0.5">{desc}</p> : null}
     </div>
     {children}
   </div>
 );
 
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.6 }}>{children}</span>
-);
-
-// Self-contained editor for one hold-tap behavior
 const TapHoldEditor = ({
   behavior,
   isBuiltin,
   presets,
   getConfig,
   applyConfig,
+  th,
 }: {
   behavior: GetBehaviorDetailsResponse;
   isBuiltin: boolean;
   presets: GetBehaviorDetailsResponse[];
   getConfig: (id: number) => HoldTapConfig | null;
   applyConfig: (id: number, cfg: HoldTapConfig) => Promise<boolean>;
+  th: CarbonTheme;
 }) => {
   const { t } = useTranslation();
   const saved = getConfig(behavior.id);
@@ -226,16 +255,16 @@ const TapHoldEditor = ({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <HoldTapConfigFields cfg={cfg} onChange={update} />
+    <div className="flex flex-col gap-1">
+      <Section title={behavior.displayName} desc={isBuiltin ? t("holdTap.scope.builtin", "Firmware-wide default") : t("holdTap.scope.userPreset", "User-defined preset")}>
+        <HoldTapConfigFields cfg={cfg} onChange={update} />
+      </Section>
 
       {isBuiltin && presets.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--border-color, #393939)", paddingTop: 12 }}>
-          <SectionLabel>{t("holdTap.applyTitle", "Apply a preset")}</SectionLabel>
-          <p style={{ fontSize: 13, opacity: 0.6 }}>
-            {t("holdTap.applyHint", "Copy a preset's settings onto {{name}}.", { name: behavior.displayName })}
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <Section title={t("holdTap.applyTitle", "Apply a preset")}
+          desc={t("holdTap.applyHint", "Copy a preset's settings onto {{name}}.", { name: behavior.displayName })}
+        >
+          <div className="flex flex-wrap gap-1.5">
             {presets.map((p) => {
               const pc = getConfig(p.id);
               const active = matchedPresetId === p.id;
@@ -245,62 +274,48 @@ const TapHoldEditor = ({
                   disabled={!pc}
                   title={pc ? summarizeConfig(pc, t) : undefined}
                   onClick={() => pc && setDraft(pc)}
-                  style={{
-                    padding: "6px 14px", fontSize: 13, cursor: pc ? "pointer" : "default",
-                    background: active ? "#0f62fe" : "#2d2d2d",
-                    color: active ? "#fff" : "#c6c6c6",
-                    border: `1px solid ${active ? "#0f62fe" : "#6f6f6f"}`,
-                    fontFamily: "var(--font-sans)", opacity: pc ? 1 : 0.4,
-                  }}
+                  className={`px-3 py-1.5 rounded text-sm transition-colors cursor-pointer ${
+                    active
+                      ? "bg-primary text-primary-content"
+                      : "text-base-content/70 hover:bg-base-300"
+                  } disabled:opacity-40 disabled:cursor-default`}
                 >
                   {p.displayName}
                 </button>
               );
             })}
           </div>
-        </div>
+        </Section>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 4 }}>
+      <div className="flex items-center gap-2 pt-3">
         {isBuiltin && (
           <button
             onClick={() => builtinDefault && setDraft(builtinDefault)}
             disabled={!canReset || saving}
-            style={{
-              padding: "6px 12px", fontSize: 13, cursor: (!canReset || saving) ? "default" : "pointer",
-              background: "transparent", color: "#c6c6c6", border: "none",
-              fontFamily: "var(--font-sans)", opacity: (!canReset || saving) ? 0.4 : 1,
-            }}
+            className="px-3 py-1.5 text-sm text-base-content hover:bg-base-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {t("holdTap.resetDefault", "Restore default")}
           </button>
         )}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+        <div className="ml-auto flex gap-2">
           <button
             onClick={() => setDraft(null)}
             disabled={!dirty || saving}
-            style={{
-              padding: "6px 12px", fontSize: 13, cursor: (!dirty || saving) ? "default" : "pointer",
-              background: "transparent", color: "#c6c6c6", border: "none",
-              fontFamily: "var(--font-sans)", opacity: (!dirty || saving) ? 0.4 : 1,
-            }}
+            className="px-3 py-1.5 text-sm text-base-content hover:bg-base-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {t("holdTap.cancel", "Cancel")}
           </button>
           <button
             onClick={save}
             disabled={!dirty || saving}
-            style={{
-              padding: "6px 16px", fontSize: 13, fontWeight: 500, cursor: (!dirty || saving) ? "default" : "pointer",
-              background: "#0f62fe", color: "#fff", border: "none",
-              fontFamily: "var(--font-sans)", opacity: (!dirty || saving) ? 0.4 : 1,
-            }}
+            className="px-4 py-1.5 text-sm font-medium bg-primary text-primary-content hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? t("holdTap.saving", "Saving…") : t("holdTap.save", "Save")}
           </button>
         </div>
       </div>
-      {error ? <div style={{ fontSize: 13, color: "#fa4d56" }}>{error}</div> : null}
+      {error ? <div className="text-sm text-error pt-2">{error}</div> : null}
     </div>
   );
 };

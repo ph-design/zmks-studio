@@ -132,8 +132,11 @@ export const ComboPanel = ({ combos, loaded, behaviors, behaviorList, layers, la
                 }}
               >
                 <span style={{
-                  fontSize: 11, fontFamily: "var(--font-mono)", flexShrink: 0, width: 20,
-                  color: isActive ? th.interactive : th.textHelper,
+                  fontSize: 10, fontFamily: "var(--font-mono)", flexShrink: 0,
+                  fontWeight: 500, padding: "1px 6px", borderRadius: 3,
+                  background: isActive ? th.interactive : th.fieldBg,
+                  color: isActive ? "#fff" : th.textHelper,
+                  border: `1px solid ${isActive ? th.interactive : th.borderStrong}`,
                 }}>
                   {c.index}
                 </span>
