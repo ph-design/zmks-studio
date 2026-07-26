@@ -163,7 +163,6 @@ export const TapHoldView = ({ behaviors, th, getConfig, applyConfig }: TapHoldVi
               presets={userPresets}
               getConfig={getConfig}
               applyConfig={applyConfig}
-              th={th}
             />
           )}
         </div>
@@ -200,14 +199,12 @@ const TapHoldEditor = ({
   presets,
   getConfig,
   applyConfig,
-  th,
 }: {
   behavior: GetBehaviorDetailsResponse;
   isBuiltin: boolean;
   presets: GetBehaviorDetailsResponse[];
   getConfig: (id: number) => HoldTapConfig | null;
   applyConfig: (id: number, cfg: HoldTapConfig) => Promise<boolean>;
-  th: CarbonTheme;
 }) => {
   const { t } = useTranslation();
   const saved = getConfig(behavior.id);

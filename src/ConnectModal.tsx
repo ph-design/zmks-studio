@@ -5,7 +5,7 @@ import type { RpcTransport } from "@zmkfirmware/zmk-studio-ts-client/transport/i
 import { UserCancelledError } from "@zmkfirmware/zmk-studio-ts-client/transport/errors";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import type { AvailableDevice } from "./tauri/index";
-import { AlertCircle, Bluetooth, Cable, RefreshCw, Languages, Download, X, LoaderCircle, LockKeyhole, Play, Check, ChevronDown } from "lucide-react";
+import { AlertCircle, Bluetooth, Cable, RefreshCw, Languages, Download, X, LockKeyhole, Play, Check, ChevronDown } from "lucide-react";
 import {
   Key,
   ListBox,
@@ -281,7 +281,11 @@ function ConnectingStep({
 
   return (
     <FlowStep
-      icon={<LoaderCircle className="size-7 animate-spin" />}
+      icon={
+        <svg className="circular-spinner size-7" viewBox="25 25 50 50">
+          <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" strokeWidth="4" />
+        </svg>
+      }
       title={t(initializing ? "welcome.initializingTitle" : "welcome.connectingTitle")}
       body={t(initializing ? "welcome.initializingDescription" : "welcome.connectingDescription")}
     >
