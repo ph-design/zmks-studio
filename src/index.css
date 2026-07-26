@@ -311,3 +311,40 @@ body {
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
+
+html.rounded-mode * {
+  border-radius: 4px !important;
+}
+
+html.rounded-mode button:not([role="switch"]) {
+  border-radius: 6px !important;
+}
+
+html.rounded-mode input:not([type="range"]),
+html.rounded-mode textarea,
+html.rounded-mode select {
+  border-radius: 6px !important;
+}
+
+html.rounded-mode [data-key],
+html.rounded-mode [class*="keycap"] {
+  border-radius: 5px !important;
+}
+
+html.rounded-mode dialog,
+html.rounded-mode .modal-surface {
+  border-radius: 14px !important;
+}
+
+html.rounded-mode header,
+html.rounded-mode footer {
+  border-radius: 0 !important;
+}
+
+html.rounded-mode .circular-spinner,
+html.rounded-mode .circular-spinner *,
+html.rounded-mode [role="switch"],
+html.rounded-mode [role="switch"] * {
+  border-radius: 50% !important;
+}

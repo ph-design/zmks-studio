@@ -5,7 +5,7 @@ import type { CarbonTheme } from "./theme";
 import { useKeyboardModel } from "./useKeyboardModel";
 import LightingControl, { type LightSource } from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
-import { Loading } from "./CarbonChrome";
+import { Loading, NotSupportedHint } from "./CarbonChrome";
 
 interface LightingViewProps {
   model: ReturnType<typeof useKeyboardModel>;
@@ -38,6 +38,16 @@ export function LightingView({ model, th, t }: LightingViewProps) {
   }, [currentSource, model, sources.length]);
 
   if (!model.dataReady || !km || !model.layouts) return <Loading th={th} t={t} />;
+
+  if (sources.length === 0) {
+    return (
+      <NotSupportedHint th={th}
+        icon={<Lightbulb size={40} />}
+        title={t("lighting.emptyTitle", "灯光不可用")}
+        desc={t("lighting.emptyHint", "基于 ph-design/zmks 分支，添加 led_strip 节点并启用 CONFIG_ZMK_RGB_UNDERGLOW")}
+      />
+    );
+  }
 
   return (
     <div style={{ display: "flex", flex: 1, minHeight: 0 }}>

@@ -1,5 +1,6 @@
 import { Plus, Minus, Link2 } from "lucide-react";
 import type { CarbonTheme } from "./theme";
+import type { ReactNode } from "react";
 
 // ─── Shared style helpers ──────────────────────────────────────────────────────
 
@@ -16,6 +17,48 @@ export function secBtn(th: CarbonTheme): React.CSSProperties {
 }
 
 // ─── Shared form widgets ───────────────────────────────────────────────────────
+
+export function Toggle({ th, checked, onChange, disabled }: {
+  th: CarbonTheme;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      style={{
+        position: "relative",
+        width: 40,
+        height: 22,
+        borderRadius: 11,
+        border: "none",
+        cursor: disabled ? "default" : "pointer",
+        background: checked ? th.toggleOn : th.toggleOff,
+        opacity: disabled ? 0.5 : 1,
+        transition: "background 0.15s",
+        padding: 0,
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 2,
+          left: checked ? 20 : 2,
+          width: 18,
+          height: 18,
+          borderRadius: "50%",
+          background: "#fff",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+          transition: "left 0.15s",
+        }}
+      />
+    </button>
+  );
+}
 
 /** Carbon-style segmented button group. */
 export function SegmentedControl({ th, opts, value, onChange }: {
@@ -74,10 +117,24 @@ export function Loading({ th, t }: { th: CarbonTheme; t: (k: string, d: string) 
 
 export function CombosPlaceholder({ th, t }: { th: CarbonTheme; t: (k: string, d: string) => string }) {
   return (
+    <NotSupportedHint th={th} icon={<Link2 size={40} />}
+      title={t("carbon.combosTitle", "Combos")}
+      desc={t("carbon.combosDesc", "Combo editing is coming soon.")} />
+  );
+}
+
+// Unified "not supported / empty" placeholder used across Lighting, Tap-Hold, and Combos.
+export function NotSupportedHint({ th, icon, title, desc }: {
+  th: CarbonTheme;
+  icon: ReactNode;
+  title: string;
+  desc: string;
+}) {
+  return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, textAlign: "center", padding: 48 }}>
-      <Link2 size={40} style={{ color: th.iconSecondary, opacity: 0.6 }} />
-      <div style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary }}>{t("carbon.combosTitle", "Combos")}</div>
-      <div style={{ fontSize: 13, color: th.textHelper, maxWidth: 340 }}>{t("carbon.combosDesc", "Combo editing is coming soon.")}</div>
+      <div style={{ color: th.iconSecondary, opacity: 0.5, display: "flex" }}>{icon}</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary }}>{title}</div>
+      <div style={{ fontSize: 13, color: th.textHelper, maxWidth: 380 }}>{desc}</div>
     </div>
   );
 }

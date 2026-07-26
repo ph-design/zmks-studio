@@ -7,6 +7,7 @@ import type { Layer, PhysicalLayout as PhysicalLayoutMsg } from "@zmkfirmware/zm
 import type { CarbonTheme } from "../carbon/theme";
 import { PhysicalLayout } from "../keyboard/PhysicalLayout";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
+import { NotSupportedHint } from "../carbon/CarbonChrome";
 import { summarizeCombo, summarizeBinding } from "./comboUtils";
 import { combosEqual } from "./useCombos";
 
@@ -44,9 +45,11 @@ export const ComboPanel = ({ combos, loaded, behaviors, behaviorList, layers, la
   }
   if (combos.length === 0) {
     return (
-      <CenteredHint th={th}>
-        {t("combos.empty", "No combos defined. Add a `combos` node with `compatible = \"zmk,combos\"` to your keymap.")}
-      </CenteredHint>
+      <NotSupportedHint th={th}
+        icon={<Link2 size={40} />}
+        title={t("combos.emptyTitle", "组合键不可用")}
+        desc={t("combos.emptyHint", "基于 ph-design/zmks 分支，添加 /combos 节点，compatible = \"zmk,combos\"")}
+      />
     );
   }
 
@@ -173,10 +176,11 @@ export const ComboPanel = ({ combos, loaded, behaviors, behaviorList, layers, la
 };
 
 const CenteredHint = ({ children, th }: { children: React.ReactNode; th: CarbonTheme }) => (
-  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 48, textAlign: "center" }}>
-    <Link2 size={36} style={{ color: th.iconSecondary, opacity: 0.5 }} />
-    <div style={{ fontSize: 13, color: th.textHelper, maxWidth: 380 }}>{children}</div>
-  </div>
+  <NotSupportedHint th={th}
+    icon={<Link2 size={40} />}
+    title=""
+    desc={typeof children === "string" ? children : ""}
+  />
 );
 
 const Section = ({ title, desc, last, children }: { title: string; desc?: string; last?: boolean; children: React.ReactNode }) => (

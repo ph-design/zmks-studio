@@ -3,7 +3,7 @@ import { Cpu } from "lucide-react";
 import type { CarbonTheme } from "./theme";
 import { useKeyboardModel } from "./useKeyboardModel";
 import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
-import { SegmentedControl, SettingsBlock, normalizeLang } from "./CarbonChrome";
+import { SettingsBlock, normalizeLang } from "./CarbonChrome";
 
 type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "combos" | "settings";
 
@@ -20,9 +20,11 @@ interface QuickSettingsViewProps {
   defaultNav: NavId;
   setDefaultNav: (n: NavId) => void;
   navOptions: { id: NavId; label: string }[];
+  roundedCorners: boolean;
+  setRoundedCorners: (v: boolean) => void;
 }
 
-export function QuickSettingsView({ model, th, t, deviceName, serial, setting, setSetting, lang, setLang, defaultNav, setDefaultNav, navOptions }: QuickSettingsViewProps) {
+export function QuickSettingsView({ model, th, t, deviceName, serial, setting, setSetting, lang, setLang, defaultNav, setDefaultNav, navOptions, roundedCorners, setRoundedCorners }: QuickSettingsViewProps) {
   const rows: [string, string][] = [
     [t("carbon.deviceName", "Device name"), deviceName],
     ...(serial ? [[t("carbon.serialNumber", "Serial number"), serial] as [string, string]] : []),
@@ -64,20 +66,49 @@ export function QuickSettingsView({ model, th, t, deviceName, serial, setting, s
         {t("carbon.quickControls", "QUICK CONTROLS")}
       </div>
       <SettingsBlock th={th} label={t("carbon.theme", "Theme")}>
-        <SegmentedControl th={th} opts={[
-          { id: "system", label: t("carbon.themeSystem", "System") },
-          { id: "light", label: t("carbon.lightTheme", "Light") },
-          { id: "dark", label: t("carbon.darkTheme", "Dark") },
-        ]} value={setting} onChange={(v) => setSetting(v as "dark" | "light" | "system")} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {([
+            { id: "system", label: t("carbon.themeSystem", "System") },
+            { id: "light", label: t("carbon.lightTheme", "Light") },
+            { id: "dark", label: t("carbon.darkTheme", "Dark") },
+          ] as const).map((o) => (
+            <button key={o.id} onClick={() => setSetting(o.id)}
+              style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", background: setting === o.id ? th.interactive : th.fieldBg, color: setting === o.id ? "#fff" : th.textSecondary, border: `1px solid ${setting === o.id ? th.interactive : th.borderStrong}`, fontFamily: "var(--font-sans)" }}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </SettingsBlock>
+      <SettingsBlock th={th} label={t("carbon.roundedCorners", "圆角！(beta)")}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button onClick={() => setRoundedCorners(true)}
+            style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", background: roundedCorners ? th.interactive : th.fieldBg, color: roundedCorners ? "#fff" : th.textSecondary, border: `1px solid ${roundedCorners ? th.interactive : th.borderStrong}`, fontFamily: "var(--font-sans)" }}>
+            {t("carbon.roundedOnBtn", "开")}
+          </button>
+          <button onClick={() => setRoundedCorners(false)}
+            style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", background: !roundedCorners ? th.interactive : th.fieldBg, color: !roundedCorners ? "#fff" : th.textSecondary, border: `1px solid ${!roundedCorners ? th.interactive : th.borderStrong}`, fontFamily: "var(--font-sans)" }}>
+            {t("carbon.roundedOffBtn", "关")}
+          </button>
+        </div>
+        <span style={{ fontSize: 12, color: th.textHelper, display: "block", marginTop: 8 }}>
+          {roundedCorners ? t("carbon.roundedOn", "已开启 — 所有界面元素使用圆角") : t("carbon.roundedOff", "已关闭")}
+        </span>
       </SettingsBlock>
       <SettingsBlock th={th} label={t("carbon.language", "Language")}>
-        <SegmentedControl th={th} opts={[
-          { id: "en", label: "English" },
-          { id: "zh", label: "中文" },
-          { id: "ja", label: "日本語" },
-          { id: "fr", label: "Français" },
-          { id: "es", label: "Español" },
-        ]} value={normalizeLang(lang)} onChange={setLang} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {([
+            { id: "en", label: "English" },
+            { id: "zh", label: "中文" },
+            { id: "ja", label: "日本語" },
+            { id: "fr", label: "Français" },
+            { id: "es", label: "Español" },
+          ] as const).map((o) => (
+            <button key={o.id} onClick={() => setLang(o.id)}
+              style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", background: normalizeLang(lang) === o.id ? th.interactive : th.fieldBg, color: normalizeLang(lang) === o.id ? "#fff" : th.textSecondary, border: `1px solid ${normalizeLang(lang) === o.id ? th.interactive : th.borderStrong}`, fontFamily: "var(--font-sans)" }}>
+              {o.label}
+            </button>
+          ))}
+        </div>
       </SettingsBlock>
       <div style={{ padding: "16px 0" }}>
         <div style={{ fontSize: 14, color: th.textPrimary, fontWeight: 500, marginBottom: 8 }}>{t("carbon.defaultView", "Default view")}</div>

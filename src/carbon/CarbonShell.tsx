@@ -16,7 +16,6 @@ import { useCarbonTheme, type CarbonTheme } from "./theme";
 import { useKeyboardModel } from "./useKeyboardModel";
 import { useHoldTapConfigs } from "../behaviors/useHoldTapConfigs";
 import { isHoldTapShape } from "../behaviors/holdTapUtils";
-import { OtherPanel } from "../keyboard/OtherPanel";
 import { useCombos } from "../combos/useCombos";
 import { ComboPanel } from "../combos/ComboPanel";
 
@@ -24,6 +23,7 @@ import { LayersView } from "./LayersView";
 import { LightingView } from "./LightingView";
 import { QuickSettingsView } from "./QuickSettingsView";
 import { SettingsView } from "./SettingsView";
+import { TapHoldView } from "./TapHoldView";
 import { iconBtn } from "./CarbonChrome";
 
 type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "combos" | "settings";
@@ -47,6 +47,8 @@ export interface CarbonShellProps {
   onLightingChanged?: () => void;
   onShowAbout: () => void;
   onShowLicense: () => void;
+  roundedCorners: boolean;
+  setRoundedCorners: (v: boolean) => void;
 }
 
 export function CarbonShell(props: CarbonShellProps) {
@@ -65,6 +67,7 @@ export function CarbonShell(props: CarbonShellProps) {
     "zmk-studio-default-nav",
     "layers"
   );
+  const { roundedCorners, setRoundedCorners } = props;
   const [activeNav, setActiveNav] = useState<NavId>(defaultNav);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -150,8 +153,8 @@ export function CarbonShell(props: CarbonShellProps) {
   const NAV: { id: NavId; label: string; icon: React.ReactNode }[] = [
     { id: "keyboard", label: t("carbon.nav.quick", "Quick settings"), icon: <Gauge size={16} /> },
     { id: "layers", label: t("carbon.nav.map", "Map"), icon: <Layers size={16} /> },
-    { id: "behaviors", label: t("carbon.nav.behaviors", "Behaviors"), icon: <Zap size={16} /> },
     { id: "lighting", label: t("carbon.nav.lighting", "Lighting"), icon: <Lightbulb size={16} /> },
+    { id: "behaviors", label: t("carbon.nav.tapHold", "Tap-Hold"), icon: <Zap size={16} /> },
     { id: "combos", label: t("carbon.nav.combos", "Combos"), icon: <Link2 size={16} /> },
     { id: "settings", label: t("carbon.nav.settings", "Settings"), icon: <Settings size={16} /> },
   ];
@@ -282,18 +285,20 @@ export function CarbonShell(props: CarbonShellProps) {
               <LightingView model={model} th={th} t={t} />
             ) : activeNav === "behaviors" ? (
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
-                <OtherPanel behaviors={model.behaviorList} th={th} getConfig={holdTap.getConfig} applyConfig={holdTap.applyConfig} />
+                <TapHoldView behaviors={model.behaviorList} th={th} getConfig={holdTap.getConfig} applyConfig={holdTap.applyConfig} />
               </div>
             ) : activeNav === "keyboard" ? (
               <QuickSettingsView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
                 setting={setting} setSetting={setSetting} lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
-                navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))} />
+                navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
+                roundedCorners={roundedCorners} setRoundedCorners={setRoundedCorners} />
             ) : activeNav === "settings" ? (
               <SettingsView th={th} t={t} setting={setting} setSetting={setSetting} lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
-                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} onResetSettings={props.onResetSettings} />
+                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} onResetSettings={props.onResetSettings}
+                roundedCorners={roundedCorners} setRoundedCorners={setRoundedCorners} />
             ) : activeNav === "combos" ? (
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
                 <ComboPanel

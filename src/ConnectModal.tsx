@@ -5,7 +5,7 @@ import type { RpcTransport } from "@zmkfirmware/zmk-studio-ts-client/transport/i
 import { UserCancelledError } from "@zmkfirmware/zmk-studio-ts-client/transport/errors";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import type { AvailableDevice } from "./tauri/index";
-import { AlertCircle, Bluetooth, Cable, RefreshCw, Languages, Download, X, LoaderCircle, LockKeyhole } from "lucide-react";
+import { AlertCircle, Bluetooth, Cable, RefreshCw, Languages, Download, X, LoaderCircle, LockKeyhole, Play, Check, ChevronDown } from "lucide-react";
 import {
   Key,
   ListBox,
@@ -16,6 +16,7 @@ import {
 import { useModalRef } from "./misc/useModalRef";
 import { ExternalLink } from "./misc/ExternalLink";
 import { GenericModal } from "./GenericModal";
+import { connect as demo_connect, DEFAULT_DEMO_FEATURES, type DemoFeatures } from "./demo/mockTransport";
 
 export type TransportFactory = {
   label: string;
@@ -778,6 +779,7 @@ export const ConnectModal = ({
                 ? <ConnectOptions transports={transports} onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} open={open} />
                 : <NoTransportsOptionsPrompt />}
               {!isDesktopClient && <ClientRecommendation />}
+              <DemoModeCard onTransportCreated={onTransportCreated} />
             </>
           )}
           {footer}
@@ -786,3 +788,99 @@ export const ConnectModal = ({
     </GenericModal>
   );
 };
+
+// Demo mode: try ZMK Studio against a simulated keyboard, with toggles for
+// which features the fake firmware advertises. Collapsed by default.
+function DemoModeCard({
+  onTransportCreated,
+}: {
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [features, setFeatures] = useState<DemoFeatures>({ ...DEFAULT_DEMO_FEATURES });
+  const [launching, setLaunching] = useState(false);
+
+  const toggle = (key: keyof DemoFeatures) =>
+    setFeatures((f) => ({ ...f, [key]: !f[key] }));
+
+  const FEATURE_ROWS: { key: keyof DemoFeatures; label: string; desc: string }[] = [
+    { key: "combos", label: t("demo.feature.combos", "Combos"), desc: t("demo.feature.combosDesc", "Reserved combo slots, editable at runtime") },
+    { key: "holdTap", label: t("demo.feature.holdTap", "Tap-Hold"), desc: t("demo.feature.holdTapDesc", "Runtime hold-tap timing configs") },
+    { key: "lighting", label: t("demo.feature.lighting", "Lighting"), desc: t("demo.feature.lightingDesc", "RGB underglow & backlight") },
+  ];
+
+  const launch = async () => {
+    if (launching) return;
+    setLaunching(true);
+    try {
+      const transport = await demo_connect(features);
+      onTransportCreated(transport, { isWireless: false });
+    } finally {
+      setLaunching(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-2 rounded-md border border-dashed border-base-300 px-4 py-2.5 text-left text-sm text-base-content/70 transition-colors hover:border-primary hover:text-base-content"
+      >
+        <Play className="size-4 text-primary" />
+        <span className="flex-1">{t("demo.title", "Demo mode")}</span>
+        <span className="text-xs opacity-60">{t("demo.collapsedHint", "No keyboard? Try a simulated device")}</span>
+        <ChevronDown className="size-4 opacity-60" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-dashed border-base-300 bg-base-200/40 p-4">
+      <button onClick={() => setOpen(false)} className="flex w-full items-center gap-2 text-left">
+        <Play className="size-4 text-primary" />
+        <span className="flex-1 text-base font-medium">{t("demo.title", "Demo mode")}</span>
+        <ChevronDown className="size-4 opacity-60 transition-transform rotate-180" />
+      </button>
+      <p className="mt-1 text-sm opacity-75">{t("demo.desc", "Try ZMK Studio against a simulated device.")}</p>
+
+      <div className="mt-3 grid gap-1.5">
+        <p className="text-xs font-medium uppercase tracking-wide opacity-60">{t("demo.capabilities", "Simulated features")}</p>
+        <div className="grid gap-1 sm:grid-cols-2">
+          {FEATURE_ROWS.map((row) => {
+            const on = features[row.key];
+            return (
+              <button
+                key={row.key}
+                aria-pressed={on}
+                onClick={() => toggle(row.key)}
+                className={`flex items-start gap-2 rounded border px-2.5 py-2 text-left transition-colors ${
+                  on ? "border-primary bg-primary/10" : "border-base-300 hover:border-base-content/40"
+                }`}
+              >
+                <span className={`mt-0.5 grid size-4 flex-shrink-0 place-items-center rounded-sm border ${on ? "border-primary bg-primary text-primary-content" : "border-base-300"}`}>
+                  {on && <Check className="size-3" strokeWidth={3} />}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{row.label}</span>
+                  <span className="block text-xs opacity-60">{row.desc}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-3 flex justify-end">
+        <Button
+          className="flex items-center gap-1.5 rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-content hover:opacity-90 disabled:opacity-50"
+          isDisabled={launching}
+          onPress={launch}
+        >
+          <Play className="size-4" />
+          {launching ? t("demo.launching", "Starting…") : t("demo.launch", "Try demo")}
+        </Button>
+      </div>
+    </div>
+  );
+}
