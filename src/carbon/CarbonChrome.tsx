@@ -106,6 +106,21 @@ export function normalizeLang(lang: string): string {
 
 // ─── Small presentational components ───────────────────────────────────────────
 
+export function Badge({ active, children, th }: { active: boolean; children: React.ReactNode; th: CarbonTheme }) {
+  return (
+    <span style={{
+      width: 20, height: 20,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 11, fontWeight: 700,
+      fontFamily: "var(--font-mono)", flexShrink: 0,
+      background: active ? th.interactive : th.layer2,
+      color: active ? "#fff" : th.textHelper,
+    }}>
+      {children}
+    </span>
+  );
+}
+
 export function Loading({ th, t }: { th: CarbonTheme; t: (k: string, d: string) => string }) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>

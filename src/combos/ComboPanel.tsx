@@ -7,7 +7,7 @@ import type { Layer, PhysicalLayout as PhysicalLayoutMsg } from "@zmkfirmware/zm
 import type { CarbonTheme } from "../carbon/theme";
 import { PhysicalLayout } from "../keyboard/PhysicalLayout";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
-import { NotSupportedHint } from "../carbon/CarbonChrome";
+import { NotSupportedHint, Badge } from "../carbon/CarbonChrome";
 import { summarizeCombo, summarizeBinding } from "./comboUtils";
 import { combosEqual } from "./useCombos";
 
@@ -131,15 +131,9 @@ export const ComboPanel = ({ combos, loaded, behaviors, behaviorList, layers, la
                   fontFamily: "var(--font-sans)",
                 }}
               >
-                <span style={{
-                  fontSize: 10, fontFamily: "var(--font-mono)", flexShrink: 0,
-                  fontWeight: 500, padding: "1px 6px", borderRadius: 3,
-                  background: isActive ? th.interactive : th.fieldBg,
-                  color: isActive ? "#fff" : th.textHelper,
-                  border: `1px solid ${isActive ? th.interactive : th.borderStrong}`,
-                }}>
+                <Badge active={isActive} th={th}>
                   {c.index}
-                </span>
+                </Badge>
                 <span style={{
                   fontSize: 13, fontWeight: isActive ? 500 : 400, flex: 1, minWidth: 0,
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
