@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronUp, ChevronDown, Keyboard as KeyboardIcon, Layers,
-  Plus, Trash2, Pencil, Check, X, Lock, Unlock, Copy,
+  Plus, Trash2, Pencil, Check, Lock, Unlock, Copy,
 } from "lucide-react";
 
 import type { CarbonTheme } from "./theme";
@@ -34,6 +34,15 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
   // Live input feedback: highlight on-screen keys as they're physically pressed.
   const pressedUsages = usePressedKeys(true);
   const km = model.keymap;
+
+  // The binding picker is permanently open, so there's always a key under edit:
+  // fall back to the first position whenever nothing is selected.
+  const { selectedKeyPosition, setSelectedKeyPosition } = model;
+  useEffect(() => {
+    if (selectedKeyPosition === undefined && (km?.layers.length ?? 0) > 0) {
+      setSelectedKeyPosition(0);
+    }
+  }, [km, selectedKeyPosition, setSelectedKeyPosition]);
 
   if (!model.dataReady || !km || !model.layouts) {
     return <Loading th={th} t={t} />;
@@ -150,8 +159,7 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
           </div>
         )}
 
-        <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, overflow: "auto", minHeight: 0 }}
-          onClick={(e) => { if (!(e.target as HTMLElement).closest("button")) model.setSelectedKeyPosition(undefined); }}>
+        <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, overflow: "auto", minHeight: 0 }}>
           <KeymapComp
             keymap={km}
             layout={model.layouts[model.selectedPhysicalLayoutIndex]}
@@ -166,35 +174,29 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
         </div>
 
         <div
-          className={`keymap-drawer${model.selectedKeyPosition !== undefined ? " expanded" : ""}`}
+          className="keymap-drawer"
           style={{
             flexShrink: 0,
             borderTop: `1px solid ${th.border}`,
             background: th.layer1,
             display: "flex", flexDirection: "column",
             minHeight: 0,
-            transition: "height 0.2s ease",
           }}
         >
           {/* Compact single-line header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 36, padding: "0 8px 0 16px", borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-              {model.selectedKeyPosition !== undefined ? (
-                <>
-                  <span style={{ minWidth: 20, height: 18, padding: "0 5px", display: "flex", alignItems: "center", justifyContent: "center", background: th.interactive, color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)", flexShrink: 0 }}>
-                    {model.selectedKeyPosition}
-                  </span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: th.textPrimary }}>{t("carbon.editBinding", "Edit binding")}</span>
-                  <span style={{ fontSize: 12, color: th.textHelper, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    · {currentLayer?.name || `${t("carbon.layer", "Layer")} ${model.selectedLayerIndex}`}
-                  </span>
-                </>
-              ) : (
-                <span style={{ fontSize: 12, fontWeight: 600, color: th.textHelper }}>{t("carbon.editBinding", "Edit binding")}</span>
-              )}
-            </div>
-            {model.selectedKeyPosition !== undefined && !currentLocked && (
-              <button onClick={() => model.setSelectedKeyPosition(undefined)} title={t("carbon.close", "Close")} style={rowIcon(th)}><X size={15} /></button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, height: 36, padding: "0 16px", borderBottom: `1px solid ${th.border}`, flexShrink: 0, minWidth: 0 }}>
+            {model.selectedKeyPosition !== undefined ? (
+              <>
+                <span style={{ minWidth: 20, height: 18, padding: "0 5px", display: "flex", alignItems: "center", justifyContent: "center", background: th.interactive, color: "#fff", fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)", flexShrink: 0 }}>
+                  {model.selectedKeyPosition}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: th.textPrimary }}>{t("carbon.editBinding", "Edit binding")}</span>
+                <span style={{ fontSize: 12, color: th.textHelper, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  · {currentLayer?.name || `${t("carbon.layer", "Layer")} ${model.selectedLayerIndex}`}
+                </span>
+              </>
+            ) : (
+              <span style={{ fontSize: 12, fontWeight: 600, color: th.textHelper }}>{t("carbon.editBinding", "Edit binding")}</span>
             )}
           </div>
           {/* Body */}

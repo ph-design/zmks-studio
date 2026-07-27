@@ -53,7 +53,7 @@ export interface CarbonShellProps {
 
 export function CarbonShell(props: CarbonShellProps) {
   const { t, i18n } = useTranslation();
-  const { isDark, setting, setSetting, theme: th, toggle } = props.carbon;
+  const { isDark, setting, setSetting, theme: th, toggle, accent, setAccent, systemAccentHex } = props.carbon;
   const model = useKeyboardModel({
     onReady: props.onReady,
     onProgress: props.onProgress,
@@ -294,7 +294,9 @@ export function CarbonShell(props: CarbonShellProps) {
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
                 roundedCorners={roundedCorners} setRoundedCorners={setRoundedCorners} />
             ) : activeNav === "settings" ? (
-              <SettingsView th={th} t={t} setting={setting} setSetting={setSetting} lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
+              <SettingsView th={th} t={t} setting={setting} setSetting={setSetting}
+                accent={accent} setAccent={setAccent} systemAccentHex={systemAccentHex}
+                lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
                 onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} onResetSettings={props.onResetSettings}
