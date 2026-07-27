@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/ph-design/zmks-studio/compare/v0.2.1...v0.3.0) (2026-07-27)
+
+
+### Features
+
+* **ui:** Remake UI with IBM Carbon Design system ([be026ce](https://github.com/ph-design/zmks-studio/commit/be026ce551ae83238cfa2ffa8a3f7115ec0301cc))
+
+
+### Bug Fixes
+
+* move useMemo before conditional return in TapHoldEditor ([9f4fad0](https://github.com/ph-design/zmks-studio/commit/9f4fad03d621ab4f3588f53484e05031eb5c1d0c))
+* remove unused MT helper and unused t variable ([daaa608](https://github.com/ph-design/zmks-studio/commit/daaa6085133e45b9f2ee7258ce5a9d772f3a9e7e))
+
 ## [0.2.1](https://github.com/ph-design/zmks-studio/compare/v0.2.0...v0.2.1) (2026-06-09)
 
 
