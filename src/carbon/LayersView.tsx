@@ -11,7 +11,7 @@ import { useLocalStorageState } from "../misc/useLocalStorageState";
 import { Keymap as KeymapComp } from "../keyboard/Keymap";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
 import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
-import { Loading, ZoomControl, rowIcon } from "./CarbonChrome";
+import { Loading, ZoomControl, rowIcon, Badge } from "./CarbonChrome";
 
 interface LayersViewProps {
   model: ReturnType<typeof useKeyboardModel>;
@@ -91,7 +91,7 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
                   // Real button so the row is Tab-focusable and Enter/Space works.
                   <button onClick={() => model.setSelectedLayerIndex(idx)} aria-pressed={active} title={layerLabel}
                     style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, height: 44, padding: "0 8px 0 9px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontFamily: "var(--font-sans)" }}>
-                    <span style={{ width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, background: active || duping ? th.interactive : th.layer2, color: active || duping ? "#fff" : th.textHelper, fontFamily: "var(--font-mono)", flexShrink: 0 }}>{idx}</span>
+                    <Badge active={active || !!duping} th={th}>{idx}</Badge>
                     <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: active ? th.textPrimary : th.textSecondary, fontWeight: active ? 500 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {duping ? t("carbon.copying", "Copying…") : layerLabel}
                     </span>
