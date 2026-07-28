@@ -106,10 +106,15 @@ export function normalizeLang(lang: string): string {
 
 // ─── Small presentational components ───────────────────────────────────────────
 
-export function Badge({ active, children, th }: { active: boolean; children: React.ReactNode; th: CarbonTheme }) {
+/**
+ * Carbon tag. `square` keeps the corners sharp even in rounded-corners mode —
+ * used for the text scope tags (e.g. Tap-Hold's "built-in") where a pill shape
+ * reads as a button rather than a label.
+ */
+export function Badge({ active, children, th, square }: { active: boolean; children: React.ReactNode; th: CarbonTheme; square?: boolean }) {
   return (
-    <span style={{
-      width: 20, height: 20,
+    <span className={square ? "carbon-badge-square" : undefined} style={{
+      minWidth: 20, height: 20, padding: "0 4px",
       display: "flex", alignItems: "center", justifyContent: "center",
       fontSize: 11, fontWeight: 700,
       fontFamily: "var(--font-mono)", flexShrink: 0,

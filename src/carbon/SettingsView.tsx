@@ -1,6 +1,6 @@
-import { Info, FileText, RotateCcw } from "lucide-react";
+import { Info, FileText, RotateCcw, Check, Monitor } from "lucide-react";
 
-import type { CarbonTheme } from "./theme";
+import { ACCENT_PRESETS, type CarbonTheme } from "./theme";
 import { SettingsBlock, secBtn, normalizeLang } from "./CarbonChrome";
 
 type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "combos" | "settings";
@@ -10,6 +10,9 @@ interface SettingsViewProps {
   t: (k: string, d: string) => string;
   setting: string;
   setSetting: (s: "dark" | "light" | "system") => void;
+  accent: string;
+  setAccent: (a: string) => void;
+  systemAccentHex: string | null;
   lang: string;
   setLang: (l: string) => void;
   defaultNav: NavId;
@@ -22,7 +25,7 @@ interface SettingsViewProps {
   setRoundedCorners: (v: boolean) => void;
 }
 
-export function SettingsView({ th, t, setting, setSetting, lang, setLang, defaultNav, setDefaultNav, navOptions, onShowAbout, onShowLicense, onResetSettings, roundedCorners, setRoundedCorners }: SettingsViewProps) {
+export function SettingsView({ th, t, setting, setSetting, accent, setAccent, systemAccentHex, lang, setLang, defaultNav, setDefaultNav, navOptions, onShowAbout, onShowLicense, onResetSettings, roundedCorners, setRoundedCorners }: SettingsViewProps) {
   return (
     <div style={{ flex: 1, overflow: "auto", padding: 24, maxWidth: 560 }} className="custom-scrollbar">
       <h2 style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary, marginBottom: 20 }}>{t("carbon.nav.settings", "Settings")}</h2>
@@ -39,6 +42,35 @@ export function SettingsView({ th, t, setting, setSetting, lang, setLang, defaul
             </button>
           ))}
         </div>
+      </SettingsBlock>
+      <SettingsBlock th={th} label={t("carbon.accentColor", "Accent color")}>
+        <p style={{ fontSize: 12, color: th.textHelper, marginTop: -4, marginBottom: 10 }}>
+          {t("carbon.accentColorDesc", "Carbon interactive colors — used for selections, links and primary buttons.")}
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          {ACCENT_PRESETS.map((p) => {
+            const active = accent === p.id;
+            return (
+              <button key={p.id} onClick={() => setAccent(p.id)} aria-pressed={active}
+                title={t(`carbon.accent.${p.id}`, p.id)}
+                style={{ width: 30, height: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", background: p.hex, cursor: "pointer", border: `2px solid ${active ? th.textPrimary : th.border}` }}>
+                {active && <Check size={15} color="#fff" strokeWidth={3} />}
+              </button>
+            );
+          })}
+          <button onClick={() => setAccent("system")} aria-pressed={accent === "system"}
+            title={t("carbon.accentSystem", "Follow browser")}
+            style={{ display: "flex", alignItems: "center", gap: 6, height: 30, padding: "0 10px", fontSize: 13, cursor: "pointer", background: systemAccentHex ?? th.fieldBg, color: systemAccentHex ? "#fff" : th.textSecondary, border: `2px solid ${accent === "system" ? th.textPrimary : th.border}`, fontFamily: "var(--font-sans)" }}>
+            <Monitor size={14} />{t("carbon.accentSystem", "Follow browser")}
+          </button>
+        </div>
+        {accent === "system" && (
+          <span style={{ fontSize: 12, color: th.textHelper, display: "block", marginTop: 8 }}>
+            {systemAccentHex
+              ? t("carbon.accentSystemOn", "Following the browser's accent color.")
+              : t("carbon.accentSystemUnsupported", "This browser doesn't expose its accent color — falling back to Carbon Blue.")}
+          </span>
+        )}
       </SettingsBlock>
       <SettingsBlock th={th} label={t("carbon.roundedCorners", "圆角！(beta)")}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
