@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { PhysicalLayout } from "@zmkfirmware/zmk-studio-ts-client/keymap";
-import type { RgbUnderglowState } from "@zmkfirmware/zmk-studio-ts-client/lighting";
+import type { PhysicalLayout, Keymap } from "@zmkfirmware/zmk-studio-ts-client/keymap";
+import type {
+  RgbUnderglowState,
+  GetLayerLedColorsResponse,
+} from "@zmkfirmware/zmk-studio-ts-client/lighting";
 import {
   LayoutZoom,
   PhysicalLayout as PhysicalLayoutComp,
@@ -11,8 +14,11 @@ import { RgbEffectEngine, type LedPosition } from "./rgbEffectEngine";
 
 export interface RgbEffectPreviewProps {
   layout: PhysicalLayout;
+  keymap: Keymap;
   rgbState: RgbUnderglowState;
   scale: LayoutZoom;
+  ledData?: GetLayerLedColorsResponse | null;
+  selectedLayerIndex?: number;
 }
 
 // Interactive effects that respond to key clicks in the preview
@@ -20,8 +26,11 @@ const INTERACTIVE_EFFECTS = new Set([11, 12, 13, 14, 15]);
 
 export default function RgbEffectPreview({
   layout,
+  keymap,
   rgbState,
   scale,
+  ledData,
+  selectedLayerIndex,
 }: RgbEffectPreviewProps) {
   const { t } = useTranslation();
   const engineRef = useRef<RgbEffectEngine | null>(null);
@@ -59,6 +68,21 @@ export default function RgbEffectPreview({
     engineRef.current?.reset(rgbState.effect);
   }, [rgbState.effect]);
 
+  // Layer LED overlays for the current layer
+  const overlayRef = useRef<Map<number, number> | null>(null);
+  overlayRef.current = useMemo(() => {
+    if (!ledData || ledData.enabled === false) return null;
+    const layerId = keymap.layers[selectedLayerIndex ?? 0]?.id;
+    if (layerId === undefined) return null;
+    const layerConfig = ledData.layers.find((l) => l.layerId === layerId);
+    if (!layerConfig) return null;
+    const map = new Map<number, number>();
+    for (const b of layerConfig.bindings) {
+      if (b.color > 0) map.set(b.keyPosition, b.color);
+    }
+    return map.size > 0 ? map : null;
+  }, [ledData, keymap, selectedLayerIndex]);
+
   // Animation loop
   useEffect(() => {
     let raf = 0;
@@ -77,6 +101,16 @@ export default function RgbEffectPreview({
         };
         engine.advance(st.effect, st.speed, dt);
         engine.draw(st.effect, hsv, st.speed, buf);
+        const overlay = overlayRef.current;
+        if (overlay && st.on) {
+          const brt = (st.color?.b ?? 0) / 100;
+          for (const [pos, color] of overlay) {
+            if (pos * 3 + 2 >= buf.length) continue;
+            buf[pos * 3] = Math.pow(((color >> 16) & 0xff) / 255 * brt, 2.2);
+            buf[pos * 3 + 1] = Math.pow(((color >> 8) & 0xff) / 255 * brt, 2.2);
+            buf[pos * 3 + 2] = Math.pow((color & 0xff) / 255 * brt, 2.2);
+          }
+        }
         for (let i = 0; i < buf.length / 3; i++) {
           const div = colorDivsRef.current[i];
           if (!div) continue;

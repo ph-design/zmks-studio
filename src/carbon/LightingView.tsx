@@ -74,13 +74,28 @@ export function LightingView({ model, th, t }: LightingViewProps) {
 
       {/* Main: LED canvas + control drawer */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderBottom: `1px solid ${th.border}`, background: th.layer1, overflowX: "auto" }} className="custom-scrollbar">
+          <span style={{ fontSize: 12, color: th.textSecondary, marginRight: 6, flexShrink: 0 }}>{t("carbon.nav.layers", "Layers")}</span>
+          {km.layers.map((l, idx) => {
+            const active = idx === model.selectedLayerIndex;
+            return (
+              <button key={l.id} onClick={() => model.setSelectedLayerIndex(idx)}
+                style={{ flexShrink: 0, padding: "3px 10px", fontSize: 12, cursor: "pointer", border: `1px solid ${active ? th.interactive : th.border}`, background: active ? th.selectedLayer : "transparent", color: active ? th.textPrimary : th.textSecondary, fontFamily: "var(--font-sans)" }}>
+                {l.name || `${t("carbon.layer", "Layer")} ${idx}`}
+              </button>
+            );
+          })}
+        </div>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, overflow: "auto", minHeight: 0 }}>
           {currentSource === "rgb" && model.rgbState ? (
             <RgbEffectPreview
               key={model.selectedPhysicalLayoutIndex}
               layout={model.layouts[model.selectedPhysicalLayoutIndex]}
+              keymap={km}
               rgbState={model.rgbState}
               scale={model.keymapScale}
+              ledData={model.ledData}
+              selectedLayerIndex={model.selectedLayerIndex}
             />
           ) : (
             <LayerLedMap
