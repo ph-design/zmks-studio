@@ -5,6 +5,7 @@ import type { CarbonTheme } from "./theme";
 import { useKeyboardModel } from "./useKeyboardModel";
 import LightingControl, { type LightSource } from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
+import RgbEffectPreview from "../lighting/RgbEffectPreview";
 import { Loading, NotSupportedHint } from "./CarbonChrome";
 
 interface LightingViewProps {
@@ -74,17 +75,26 @@ export function LightingView({ model, th, t }: LightingViewProps) {
       {/* Main: LED canvas + control drawer */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, overflow: "auto", minHeight: 0 }}>
-          <LayerLedMap
-            keymap={km}
-            layout={model.layouts[model.selectedPhysicalLayoutIndex]}
-            scale={model.keymapScale}
-            selectedLayerIndex={model.selectedLayerIndex}
-            ledData={model.ledData}
-            selectedPositions={model.selectedLedPositions}
-            onSelectionChanged={(sel) => { if (!model.handleIndicatorPick(sel)) model.setSelectedLedPositions(sel); }}
-            indicatorPositions={model.indicatorPositions}
-            activeSource={model.lightingSource}
-          />
+          {currentSource === "rgb" && model.rgbState ? (
+            <RgbEffectPreview
+              key={model.selectedPhysicalLayoutIndex}
+              layout={model.layouts[model.selectedPhysicalLayoutIndex]}
+              rgbState={model.rgbState}
+              scale={model.keymapScale}
+            />
+          ) : (
+            <LayerLedMap
+              keymap={km}
+              layout={model.layouts[model.selectedPhysicalLayoutIndex]}
+              scale={model.keymapScale}
+              selectedLayerIndex={model.selectedLayerIndex}
+              ledData={model.ledData}
+              selectedPositions={model.selectedLedPositions}
+              onSelectionChanged={(sel) => { if (!model.handleIndicatorPick(sel)) model.setSelectedLedPositions(sel); }}
+              indicatorPositions={model.indicatorPositions}
+              activeSource={model.lightingSource}
+            />
+          )}
         </div>
         <div style={{ flexShrink: 0, height: 360, borderTop: `1px solid ${th.border}`, background: th.layer1, display: "flex", flexDirection: "column", minHeight: 0 }}>
           <LightingControl
