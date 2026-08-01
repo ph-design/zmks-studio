@@ -1,17 +1,27 @@
-import { Cpu } from "lucide-react";
+import { Cpu, RotateCcw } from "lucide-react";
 
 import type { CarbonTheme } from "./theme";
 import { useKeyboardModel } from "./useKeyboardModel";
 import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
 import { SettingsBlock, Toggle, normalizeLang } from "./CarbonChrome";
+import { UnlockPanel } from "../unlock/UnlockPanel";
+import type { UnlockPaths } from "../unlock/unlockPaths";
 import type { NavId } from "./navIds";
 
-interface QuickSettingsViewProps {
+/*
+ * What lives on the keyboard: identity, active layout, unlock shortcut and
+ * factory reset (all of which issue RPCs). App-level settings belong in
+ * PreferencesView — the quick-controls block below is a deliberate duplicate of
+ * the most-used ones, pending a call on whether to keep the shortcut.
+ */
+interface DeviceViewProps {
   model: ReturnType<typeof useKeyboardModel>;
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   deviceName: string;
   serial?: string;
+  unlockPaths: UnlockPaths;
+  onResetSettings: () => void;
   setting: string;
   setSetting: (s: "dark" | "light" | "system") => void;
   lang: string;
@@ -23,7 +33,7 @@ interface QuickSettingsViewProps {
   setRoundedCorners: (v: boolean) => void;
 }
 
-export function QuickSettingsView({ model, th, t, deviceName, serial, setting, setSetting, lang, setLang, defaultNav, setDefaultNav, navOptions, roundedCorners, setRoundedCorners }: QuickSettingsViewProps) {
+export function DeviceView({ model, th, t, deviceName, serial, unlockPaths, onResetSettings, setting, setSetting, lang, setLang, defaultNav, setDefaultNav, navOptions, roundedCorners, setRoundedCorners }: DeviceViewProps) {
   const rows: [string, string][] = [
     [t("carbon.deviceName", "Device name"), deviceName],
     ...(serial ? [[t("carbon.serialNumber", "Serial number"), serial] as [string, string]] : []),
@@ -59,6 +69,8 @@ export function QuickSettingsView({ model, th, t, deviceName, serial, setting, s
           <PhysicalLayoutPicker layouts={model.layouts} selectedPhysicalLayoutIndex={model.selectedPhysicalLayoutIndex} onPhysicalLayoutClicked={model.doSelectPhysicalLayout} />
         </SettingsBlock>
       }
+
+      <UnlockPanel th={th} t={t} paths={unlockPaths} />
 
       {/* Quick controls — streamlined duplicates of the most-used settings */}
       <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: th.textHelper, paddingTop: 12 }}>
@@ -110,6 +122,13 @@ export function QuickSettingsView({ model, th, t, deviceName, serial, setting, s
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Firmware action, so it belongs here rather than with app preferences. */}
+      <div style={{ paddingTop: 20 }}>
+        <button onClick={onResetSettings} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", fontSize: 13, background: "transparent", color: th.error, border: `1px solid ${th.error}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+          <RotateCcw size={14} />{t("carbon.factoryReset", "Restore stock settings")}
+        </button>
       </div>
     </div>
   );

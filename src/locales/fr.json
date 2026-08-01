@@ -330,7 +330,10 @@
     "body1": "Pour des raisons de sécurité, votre clavier doit être déverrouillé avant d'utiliser ZMK Studio.",
     "body2Prefix": "Si le déverrouillage Studio n'a pas été ajouté à votre keymap ou à un combo, consultez la",
     "docs": "documentation du comportement Studio Unlock",
-    "body2Suffix": "pour plus d'informations."
+    "body2Suffix": "pour plus d'informations.",
+    "press": "Appuyez sur",
+    "toUnlock": "pour déverrouiller",
+    "customHint": "Vous l'avez changé ? Utilisez votre propre raccourci."
   },
   "license": {
     "intro": "ZMK Studio est publié sous la licence open source Apache 2.0. Une copie du fichier NOTICE du dépôt ZMK Studio est incluse ici :"
@@ -357,14 +360,14 @@
   "carbon": {
     "nav": {
       "keyboard": "Clavier",
-      "quick": "Réglages rapides",
       "layers": "Couches",
       "map": "Carte",
       "behaviors": "Comportements",
       "lighting": "Éclairage",
       "combos": "Combos",
-      "settings": "Paramètres",
-      "motion": "Mouvement"
+      "motion": "Mouvement",
+      "device": "Appareil",
+      "preferences": "Préférences"
     },
     "config": "CONFIGURATION",
     "searchPlaceholder": "Rechercher des codes de touche…",
@@ -379,7 +382,6 @@
     "unsavedMark": "Modifications non enregistrées *",
     "allSaved": "Toutes les modifications enregistrées",
     "lockedTitle": "Clavier verrouillé",
-    "lockedDesc": "Appuyez sur la combinaison studio-unlock de votre clavier pour éditer.",
     "layer": "Couche",
     "rename": "Renommer",
     "delete": "Supprimer",
@@ -437,7 +439,10 @@
     "defaultView": "Vue par défaut",
     "defaultViewDesc": "Section ouverte lors de la connexion d'un clavier.",
     "keysUnit": "touches",
-    "layersUnit": "couches"
+    "layersUnit": "couches",
+    "lockedPress": "Appuyez sur",
+    "lockedToUnlock": "pour déverrouiller",
+    "lockedCustomHint": "Si vous avez changé le raccourci, utilisez le vôtre. Studio ne peut pas déverrouiller le clavier à votre place — c'est voulu."
   },
   "combos": {
     "loading": "Chargement…",
@@ -474,7 +479,9 @@
       "trigger": "Déclencheur",
       "timing": "Timing et comportement",
       "layers": "Couches"
-    }
+    },
+    "allReservedTitle": "Aucun combo modifiable",
+    "allReservedHint": "Tous les emplacements de combo de ce clavier sont réservés par le firmware. Le raccourci de déverrouillage se gère depuis la page Appareil."
   },
   "motion": {
     "emptyTitle": "Fonctions de mouvement indisponibles",
@@ -526,5 +533,16 @@
       "scopeSoftOff": "Extinction douce",
       "calibrateHint": "Prenez le clavier et marchez quelques pas pour voir la plage atteinte ; prenez le seuil de verrouillage au bas de cette plage et le seuil d'immobilité au niveau du bruit sur un bureau."
     }
+  },
+  "unlockPanel": {
+    "title": "Raccourci de déverrouillage",
+    "desc": "Le clavier se verrouille pour qu'une page web ne puisse pas modifier votre keymap sans vous. Le déverrouillage est toujours une action physique — Studio ne peut pas le faire à distance.",
+    "viaCombo": "Combo",
+    "viaKeymap": "Keymap",
+    "protected": "Protégé",
+    "protectedHint": "Le firmware réserve cet emplacement pour le déverrouillage : son comportement ne peut pas être changé.",
+    "noneTitle": "Aucun raccourci de déverrouillage trouvé",
+    "noneDesc": "Ce firmware n'expose aucune liaison studio unlock. Une fois le clavier verrouillé, Studio ne pourra plus le modifier — reflashez-le avant de le verrouiller.",
+    "changeComingSoon": "Changer le raccourci n'est pas encore disponible : le nouveau geste doit être vérifié avant d'abandonner l'ancien, ce qui demande un parcours guidé dédié."
   }
 }

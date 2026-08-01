@@ -8,7 +8,7 @@ import {
 
 type BehaviorMap = Record<number, GetBehaviorDetailsResponse>;
 
-function shortHidLabel(usage?: number): string {
+export function shortHidLabel(usage?: number): string {
   if (usage === undefined || usage === 0) return "?";
   const [page, id] = hid_usage_page_and_id_from_usage(usage & 0x00ffffff);
   return (hid_usage_get_label(page, id) || "?").replace(/^Keyboard /, "");

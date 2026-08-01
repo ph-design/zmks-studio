@@ -17,6 +17,8 @@ import { useModalRef } from "./misc/useModalRef";
 import { ExternalLink } from "./misc/ExternalLink";
 import { GenericModal } from "./GenericModal";
 import { connect as demo_connect, DEFAULT_DEMO_FEATURES, type DemoFeatures } from "./demo/mockTransport";
+import { GestureChips } from "./unlock/GestureChips";
+import { FACTORY_UNLOCK_KEYS } from "./unlock/unlockPaths";
 
 export type TransportFactory = {
   label: string;
@@ -323,6 +325,16 @@ function UnlockStep() {
       title={t("unlock.title")}
       body={t("unlock.body1")}
     >
+      {/* The factory gesture, since a locked keyboard reveals nothing about
+          itself — not even which keys its own unlock combo uses. */}
+      <div className="flex items-center justify-center gap-2 text-sm">
+        <span>{t("unlock.press", "Press")}</span>
+        <GestureChips keys={FACTORY_UNLOCK_KEYS} />
+        <span>{t("unlock.toUnlock", "to unlock")}</span>
+      </div>
+      <p className="text-sm opacity-75">
+        {t("unlock.customHint", "Changed it yourself? Use your own shortcut.")}
+      </p>
       <p className="text-sm opacity-75">
         {t("unlock.body2Prefix")} {" "}
         <ExternalLink href="https://zmk.dev/docs/keymaps/behaviors/studio-unlock">

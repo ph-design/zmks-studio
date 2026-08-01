@@ -330,7 +330,10 @@
     "body1": "セキュリティ上の理由により、ZMK Studio を使用する前にキーボードのロック解除が必要です。",
     "body2Prefix": "Studio のロック解除がキーマップやコンボに追加されていない場合は、",
     "docs": "Studio Unlock 動作のドキュメント",
-    "body2Suffix": "を参照してください。"
+    "body2Suffix": "を参照してください。",
+    "press": "押してください:",
+    "toUnlock": "でロック解除",
+    "customHint": "変更済みの場合はご自身の組み合わせで。"
   },
   "license": {
     "intro": "ZMK Studio はオープンソースの Apache 2.0 ライセンスで公開されています。ZMK Studio リポジトリの NOTICE ファイルのコピーをここに掲載します："
@@ -357,14 +360,14 @@
   "carbon": {
     "nav": {
       "keyboard": "キーボード",
-      "quick": "クイック設定",
       "layers": "レイヤー",
       "map": "マップ",
       "behaviors": "動作",
       "lighting": "ライティング",
       "combos": "コンボ",
-      "settings": "設定",
-      "motion": "モーション"
+      "motion": "モーション",
+      "device": "デバイス",
+      "preferences": "環境設定"
     },
     "config": "設定",
     "searchPlaceholder": "キーコードを検索…",
@@ -379,7 +382,6 @@
     "unsavedMark": "未保存の変更 *",
     "allSaved": "すべて保存済み",
     "lockedTitle": "キーボードがロックされています",
-    "lockedDesc": "編集するにはキーボードで studio-unlock のキーコンボを押してください。",
     "layer": "レイヤー",
     "rename": "名前を変更",
     "delete": "削除",
@@ -437,7 +439,10 @@
     "defaultView": "既定の画面",
     "defaultViewDesc": "キーボード接続時に開くセクション。",
     "keysUnit": "キー",
-    "layersUnit": "レイヤー"
+    "layersUnit": "レイヤー",
+    "lockedPress": "押してください:",
+    "lockedToUnlock": "でロック解除",
+    "lockedCustomHint": "解除ショートカットを変更した場合はご自身の組み合わせを使ってください。Studio から解除することはできません（それが仕様です）。"
   },
   "combos": {
     "loading": "読み込み中…",
@@ -474,7 +479,9 @@
       "trigger": "トリガー",
       "timing": "タイミングと動作",
       "layers": "レイヤー"
-    }
+    },
+    "allReservedTitle": "編集できるコンボがありません",
+    "allReservedHint": "このキーボードのコンボ枠はすべてファームウェアが予約しています。解除ショートカットは「デバイス」ページで管理します。"
   },
   "motion": {
     "emptyTitle": "モーション機能は利用できません",
@@ -526,5 +533,16 @@
       "scopeSoftOff": "ソフトオフ",
       "calibrateHint": "キーボードを持って数歩歩き、強度が収まる範囲を確認します。ロックしきい値はその下限、静止しきい値は机上のノイズ上限にします。"
     }
+  },
+  "unlockPanel": {
+    "title": "ロック解除ショートカット",
+    "desc": "ウェブページが勝手にキーマップを変更しないよう、キーボードは自動でロックされます。解除は必ずキーボード上の物理操作で、Studio からは行えません。",
+    "viaCombo": "コンボ",
+    "viaKeymap": "キーマップ",
+    "protected": "保護済み",
+    "protectedHint": "ファームウェアがこの枠を解除用に予約しているため、他の動作へ変更できません。",
+    "noneTitle": "解除ショートカットが見つかりません",
+    "noneDesc": "このファームウェアは studio unlock バインディングを公開していません。ロックされると Studio から編集できなくなります。ロック前に書き込み直してください。",
+    "changeComingSoon": "ショートカットの変更はまだ利用できません。新しい組み合わせが使えることを確認してから旧いものを手放す必要があるため、専用の手順が必要です。"
   }
 }

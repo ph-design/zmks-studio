@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronRight, Keyboard as KeyboardIcon, Layers, Zap, Link2,
   Settings, Sun, Moon, Save, Undo2, Redo2, LogOut,
-  Check, X, Lock, Gauge, Lightbulb, Waves,
+  Check, X, Lock, Cpu, Lightbulb, Waves,
 } from "lucide-react";
 
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
@@ -22,12 +22,14 @@ import { ComboPanel } from "../combos/ComboPanel";
 import { LayersView } from "./LayersView";
 import { LightingView } from "./LightingView";
 import { MotionView } from "./MotionView";
-import { QuickSettingsView } from "./QuickSettingsView";
-import { SettingsView } from "./SettingsView";
+import { DeviceView } from "./DeviceView";
+import { PreferencesView } from "./PreferencesView";
 import { TapHoldView } from "./TapHoldView";
 import { iconBtn } from "./CarbonChrome";
-import { resolveNav, type NavId } from "./navIds";
+import { deserializeNav, resolveNav, type NavId } from "./navIds";
 import { useMotion } from "../motion/useMotion";
+import { GestureChips } from "../unlock/GestureChips";
+import { collectUnlockPaths, FACTORY_UNLOCK_KEYS } from "../unlock/unlockPaths";
 
 export interface CarbonShellProps {
   carbon: ReturnType<typeof useCarbonTheme>;
@@ -76,7 +78,8 @@ export function CarbonShell(props: CarbonShellProps) {
 
   const [defaultNav, setDefaultNav] = useLocalStorageState<NavId>(
     "zmk-studio-default-nav",
-    "layers"
+    "layers",
+    { deserialize: deserializeNav }
   );
   const { roundedCorners, setRoundedCorners } = props;
   const [navSelection, setNavSelection] = useState<NavId>(defaultNav);
@@ -154,6 +157,23 @@ export function CarbonShell(props: CarbonShellProps) {
   const holdTap = useHoldTapConfigs(holdTapIds);
   const combos = useCombos();
 
+  /*
+   * Every way this keyboard can be unlocked. The reserved unlock combo is kept
+   * out of the Combos panel — it isn't a shortcut the user authored, it's the
+   * key to the front door, managed from the Device page instead.
+   */
+  const unlockPaths = useMemo(
+    () => collectUnlockPaths(model.behaviors, model.keymap, combos.combos),
+    [model.behaviors, model.keymap, combos.combos]
+  );
+  const userCombos = useMemo(
+    () =>
+      unlockPaths.behaviorId === undefined
+        ? combos.combos
+        : combos.combos.filter((c) => c.behavior?.behaviorId !== unlockPaths.behaviorId),
+    [combos.combos, unlockPaths.behaviorId]
+  );
+
   const deviceName = deviceInfo?.name || props.connectedDeviceName || "Keyboard";
   const serialHex = deviceInfo?.serialNumber && deviceInfo.serialNumber.length > 0
     ? Array.from(deviceInfo.serialNumber).map((b) => b.toString(16).padStart(2, "0")).join("")
@@ -172,13 +192,13 @@ export function CarbonShell(props: CarbonShellProps) {
    * probes, never from the device name, so firmware stays the single authority.
    */
   const NAV = [
-    { id: "keyboard" as NavId, label: t("carbon.nav.quick", "Quick settings"), icon: <Gauge size={16} />, available: true },
+    { id: "device" as NavId, label: t("carbon.nav.device", "Device"), icon: <Cpu size={16} />, available: true },
     { id: "layers" as NavId, label: t("carbon.nav.map", "Map"), icon: <Layers size={16} />, available: true },
     { id: "lighting" as NavId, label: t("carbon.nav.lighting", "Lighting"), icon: <Lightbulb size={16} />, available: hasLighting },
     { id: "behaviors" as NavId, label: t("carbon.nav.tapHold", "Tap-Hold"), icon: <Zap size={16} />, available: holdTapIds.length > 0 },
     { id: "combos" as NavId, label: t("carbon.nav.combos", "Combos"), icon: <Link2 size={16} />, available: combos.loaded },
     { id: "motion" as NavId, label: t("carbon.nav.motion", "Motion"), icon: <Waves size={16} />, available: motion.hasMotion },
-    { id: "settings" as NavId, label: t("carbon.nav.settings", "Settings"), icon: <Settings size={16} />, available: true },
+    { id: "preferences" as NavId, label: t("carbon.nav.preferences", "Preferences"), icon: <Settings size={16} />, available: true },
   ].filter((n) => n.available);
 
   // A stored default view can name a section this device lacks (switching from
@@ -316,24 +336,26 @@ export function CarbonShell(props: CarbonShellProps) {
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
                 <TapHoldView behaviors={model.behaviorList} th={th} getConfig={holdTap.getConfig} applyConfig={holdTap.applyConfig} />
               </div>
-            ) : activeNav === "keyboard" ? (
-              <QuickSettingsView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
+            ) : activeNav === "device" ? (
+              <DeviceView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
+                unlockPaths={unlockPaths} onResetSettings={props.onResetSettings}
                 setting={setting} setSetting={setSetting} lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
                 roundedCorners={roundedCorners} setRoundedCorners={setRoundedCorners} />
-            ) : activeNav === "settings" ? (
-              <SettingsView th={th} t={t} setting={setting} setSetting={setSetting}
+            ) : activeNav === "preferences" ? (
+              <PreferencesView th={th} t={t} setting={setting} setSetting={setSetting}
                 accent={accent} setAccent={setAccent} systemAccentHex={systemAccentHex}
                 lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
-                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} onResetSettings={props.onResetSettings}
+                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense}
                 roundedCorners={roundedCorners} setRoundedCorners={setRoundedCorners} />
             ) : activeNav === "combos" ? (
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
                 <ComboPanel
-                  combos={combos.combos}
+                  combos={userCombos}
+                  reservedCount={combos.combos.length - userCombos.length}
                   loaded={combos.loaded}
                   behaviors={model.behaviors}
                   behaviorList={model.behaviorList}
@@ -386,12 +408,26 @@ export function CarbonShell(props: CarbonShellProps) {
   );
 }
 
+/*
+ * Shown when the session gets re-locked mid-use. Nothing about the keyboard is
+ * readable while it is locked — not the keymap, not the combos, not even the
+ * serial number — so the gesture shown here can only be the factory default.
+ * Once firmware exposes the configured gesture in the locked state (see
+ * docs/unlock-combo.md) this can show the user's own shortcut instead.
+ */
 function LockedNotice({ th, t }: { th: CarbonTheme; t: (k: string, d: string) => string }) {
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, textAlign: "center" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, textAlign: "center", padding: 24 }}>
       <Lock size={40} style={{ color: th.warning }} />
       <div style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary }}>{t("carbon.lockedTitle", "Keyboard locked")}</div>
-      <div style={{ fontSize: 13, color: th.textHelper, maxWidth: 340 }}>{t("carbon.lockedDesc", "Press the studio-unlock key combo on your keyboard to edit.")}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: th.textSecondary }}>
+        <span>{t("carbon.lockedPress", "Press")}</span>
+        <GestureChips keys={FACTORY_UNLOCK_KEYS} />
+        <span>{t("carbon.lockedToUnlock", "to unlock")}</span>
+      </div>
+      <div style={{ fontSize: 12, color: th.textHelper, maxWidth: 360, lineHeight: 1.6 }}>
+        {t("carbon.lockedCustomHint", "If you changed the unlock shortcut, use your own instead. Studio can't unlock the keyboard for you — that's the point.")}
+      </div>
     </div>
   );
 }

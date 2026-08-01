@@ -330,7 +330,10 @@
     "body1": "出于安全原因，使用 ZMK Studio 前需要先解锁键盘。",
     "body2Prefix": "如果尚未在键位或组合键中添加解锁，请参阅",
     "docs": "Studio Unlock Behavior 文档",
-    "body2Suffix": "以获取更多信息。"
+    "body2Suffix": "以获取更多信息。",
+    "press": "按",
+    "toUnlock": "解锁",
+    "customHint": "自己改过？用你设定的组合。"
   },
   "license": {
     "intro": "ZMK Studio 以 Apache 2.0 开源许可证发布。此处包含 ZMK Studio 仓库中的 NOTICE 文件："
@@ -357,14 +360,14 @@
   "carbon": {
     "nav": {
       "keyboard": "键盘",
-      "quick": "快速设置",
       "layers": "图层",
       "map": "映射",
       "behaviors": "按键行为",
       "lighting": "灯光",
       "combos": "组合键",
-      "settings": "设置",
-      "motion": "体感"
+      "motion": "体感",
+      "device": "设备",
+      "preferences": "偏好"
     },
     "config": "配置",
     "searchPlaceholder": "搜索按键码…",
@@ -379,7 +382,6 @@
     "unsavedMark": "未保存 *",
     "allSaved": "已全部保存",
     "lockedTitle": "键盘已锁定",
-    "lockedDesc": "请在键盘上按下 studio-unlock 组合键以进行编辑。",
     "layer": "层",
     "rename": "重命名",
     "delete": "删除",
@@ -437,7 +439,10 @@
     "defaultView": "默认界面",
     "defaultViewDesc": "连接键盘后默认打开的功能区。",
     "keysUnit": "键",
-    "layersUnit": "图层"
+    "layersUnit": "图层",
+    "lockedPress": "按",
+    "lockedToUnlock": "解锁",
+    "lockedCustomHint": "如果你改过解锁组合，请用自己的那一组。Studio 无法替你解锁 —— 这正是它的设计意图。"
   },
   "combos": {
     "loading": "加载中…",
@@ -474,7 +479,9 @@
       "trigger": "触发",
       "timing": "时序与行为",
       "layers": "图层"
-    }
+    },
+    "allReservedTitle": "没有可编辑的组合键",
+    "allReservedHint": "这把键盘的组合键槽位全部被固件保留。解锁组合在「设备」页管理。"
   },
   "motion": {
     "emptyTitle": "体感功能不可用",
@@ -526,5 +533,16 @@
       "scopeSoftOff": "软关机",
       "calibrateHint": "拿起键盘走两步，看强度稳定在什么区间；锁定阈值取该区间下沿，静止阈值取放在桌面时的噪声上沿。"
     }
+  },
+  "unlockPanel": {
+    "title": "解锁组合",
+    "desc": "键盘会自动上锁，避免网页在你不知情时改动键位。解锁永远是键盘上的物理操作 —— Studio 无法远程完成。",
+    "viaCombo": "组合键",
+    "viaKeymap": "键位映射",
+    "protected": "已保护",
+    "protectedHint": "固件保留了这个槽位用于解锁，它的行为无法被改成别的。",
+    "noneTitle": "未找到解锁组合",
+    "noneDesc": "该固件没有暴露 studio unlock 绑定。一旦键盘上锁，Studio 将再也无法编辑 —— 请在上锁前重新刷入固件。",
+    "changeComingSoon": "更换组合暂未开放：新组合必须先被验证可用，才能替换掉旧的，所以需要一套独立的引导流程。"
   }
 }

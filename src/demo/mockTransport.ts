@@ -5,6 +5,7 @@ import type { ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
 import type { Layer } from "@zmkfirmware/zmk-studio-ts-client/keymap";
 import { setDemoMotionEnabled } from "./motionBackend";
 import { setDemoKeyMeta } from "./demoKeyMeta";
+import { hid_usage_from_page_and_id } from "../hid-usages";
 
 const FRAMING_SOF = 0xab;
 const FRAMING_ESC = 0xac;
@@ -27,12 +28,34 @@ const B = {
   capsWord: 13,
 };
 
-const KEY = (usage: number) => ({ behaviorId: B.kp, param1: usage, param2: 0 });
+/*
+ * Real firmware sends `&kp` parameters as a full HID usage — `(page << 16) | id`
+ * — so the bare ids below have to be encoded the same way, or every label in
+ * Studio resolves to "?" and live keypress highlighting never matches.
+ */
+const KB_PAGE = 7;
+const CONSUMER_PAGE = 0x0c;
+
+const KEY = (id: number) => ({
+  behaviorId: B.kp,
+  param1: hid_usage_from_page_and_id(KB_PAGE, id),
+  param2: 0,
+});
+const CKEY = (id: number) => ({
+  behaviorId: B.kp,
+  param1: hid_usage_from_page_and_id(CONSUMER_PAGE, id),
+  param2: 0,
+});
 const TRANS = { behaviorId: B.trans, param1: 0, param2: 0 };
 const MO = (l: number) => ({ behaviorId: B.mo, param1: l, param2: 0 });
-const LT = (l: number, usage: number) => ({ behaviorId: B.lt, param1: l, param2: usage });
+const LT = (l: number, id: number) => ({
+  behaviorId: B.lt,
+  param1: l,
+  param2: hid_usage_from_page_and_id(KB_PAGE, id),
+});
 
-// A handful of HID usages for the demo keymap (page 0x07 keyboard).
+// Bare usage ids. Keyboard page (0x07) unless noted; `idxOf` also matches on
+// these, so they stay unencoded here.
 const U = {
   ESC: 0x29, N1: 0x1e, N2: 0x1f, N3: 0x20, N4: 0x21, N5: 0x22, N6: 0x23, N7: 0x24,
   N8: 0x25, N9: 0x26, N0: 0x27, MINUS: 0x2d, EQUAL: 0x2e, BSPC: 0x2a, TAB: 0x2b,
@@ -50,7 +73,12 @@ const U = {
   KP_ENTER: 0x58, KP_1: 0x59, KP_2: 0x5a, KP_3: 0x5b, KP_4: 0x5c, KP_5: 0x5d,
   KP_6: 0x5e, KP_7: 0x5f, KP_8: 0x60, KP_9: 0x61, KP_0: 0x62, KP_DOT: 0x63,
   MENU: 0x65,
-  VOL_UP: 0x80, VOL_DN: 0x81, MUTE: 0x7f, PLAY_PAUSE: 0xcd, NEXT: 0xb5, PREV: 0xb6,
+};
+
+// Consumer page (0x0C) — media keys aren't on the keyboard page.
+const C = {
+  MUTE: 0xe2, VOL_UP: 0xe9, VOL_DN: 0xea,
+  PLAY_PAUSE: 0xcd, NEXT: 0xb5, PREV: 0xb6,
 };
 
 // Standard 104-key ANSI layout matching KLE format.
@@ -202,8 +230,8 @@ function buildLayers(): Layer[] {
     [idxOf(U.N7)]: KEY(U.F7), [idxOf(U.N8)]: KEY(U.F8),
     [idxOf(U.N9)]: KEY(U.F9), [idxOf(U.N0)]: KEY(U.F10), [idxOf(U.MINUS)]: KEY(U.F11), [idxOf(U.EQUAL)]: KEY(U.F12),
     [idxOf(U.Q)]: KEY(U.HOME), [idxOf(U.W)]: KEY(U.END), [idxOf(U.E)]: KEY(U.PG_UP), [idxOf(U.R)]: KEY(U.PG_DN),
-    [idxOf(U.A)]: KEY(U.MUTE), [idxOf(U.S)]: KEY(U.VOL_DN), [idxOf(U.D)]: KEY(U.VOL_UP),
-    [idxOf(U.Z)]: KEY(U.PREV), [idxOf(U.X)]: KEY(U.PLAY_PAUSE), [idxOf(U.C)]: KEY(U.NEXT),
+    [idxOf(U.A)]: CKEY(C.MUTE), [idxOf(U.S)]: CKEY(C.VOL_DN), [idxOf(U.D)]: CKEY(C.VOL_UP),
+    [idxOf(U.Z)]: CKEY(C.PREV), [idxOf(U.X)]: CKEY(C.PLAY_PAUSE), [idxOf(U.C)]: CKEY(C.NEXT),
   };
   Object.entries(ra).forEach(([i, b]) => { raise[Number(i)] = b; });
 
@@ -248,9 +276,24 @@ function buildCombos(): ComboConfig[] {
     editableKeyPositions: true,
   };
   return [
-    { ...base, index: 0, behavior: KEY(U.ESC), keyPositions: [idxOf(U.J), idxOf(U.K)] },
-    { ...base, index: 1, behavior: KEY(U.TAB), keyPositions: [idxOf(U.D), idxOf(U.F)] },
-    { ...base, index: 2, behavior: undefined, keyPositions: [] },
+    /*
+     * Slot 0 is the studio unlock shortcut, the keyboard's front door. Firmware
+     * reserves it: the trigger keys can be changed but the behavior can't be
+     * repointed, which is what stops anyone (Studio included) from deleting the
+     * only way back in. A generous timeout because Fn+\ can't be hit by
+     * accident while typing — Fn produces no keystroke of its own.
+     */
+    {
+      ...base,
+      index: 0,
+      behavior: { behaviorId: B.studioUnlock, param1: 0, param2: 0 },
+      // Fn + \ — MENU carries `&mo 3` on the base layer, so it stands in for Fn.
+      keyPositions: [idxOf(U.MENU), idxOf(U.BSLH)],
+      timeoutMs: 200,
+      editableBehavior: false,
+    },
+    { ...base, index: 1, behavior: KEY(U.ESC), keyPositions: [idxOf(U.J), idxOf(U.K)] },
+    { ...base, index: 2, behavior: KEY(U.TAB), keyPositions: [idxOf(U.D), idxOf(U.F)] },
     { ...base, index: 3, behavior: undefined, keyPositions: [] },
     { ...base, index: 4, behavior: undefined, keyPositions: [] },
   ];

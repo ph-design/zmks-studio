@@ -330,7 +330,10 @@
     "body1": "For security reasons, your keyboard requires unlocking before using ZMK Studio.",
     "body2Prefix": "If studio unlocking hasn't been added to your keymap or a combo, see the",
     "docs": "Studio Unlock Behavior documentation",
-    "body2Suffix": "for more infomation."
+    "body2Suffix": "for more infomation.",
+    "press": "Press",
+    "toUnlock": "to unlock",
+    "customHint": "Changed it yourself? Use your own shortcut."
   },
   "license": {
     "intro": "ZMK Studio is released under the open source Apache 2.0 license. A copy of the NOTICE file from the ZMK Studio repository is included here:"
@@ -357,14 +360,14 @@
   "carbon": {
     "nav": {
       "keyboard": "Keyboard",
-      "quick": "Quick settings",
       "layers": "Layers",
       "map": "Map",
       "behaviors": "Behaviors",
       "lighting": "Lighting",
       "combos": "Combos",
-      "settings": "Settings",
-      "motion": "Motion"
+      "motion": "Motion",
+      "device": "Device",
+      "preferences": "Preferences"
     },
     "config": "CONFIGURATION",
     "searchPlaceholder": "Search keycodes…",
@@ -379,7 +382,6 @@
     "unsavedMark": "Unsaved changes *",
     "allSaved": "All changes saved",
     "lockedTitle": "Keyboard locked",
-    "lockedDesc": "Press the studio-unlock key combo on your keyboard to edit.",
     "layer": "Layer",
     "rename": "Rename",
     "delete": "Delete",
@@ -437,7 +439,10 @@
     "defaultView": "Default view",
     "defaultViewDesc": "Which section opens when you connect a keyboard.",
     "keysUnit": "keys",
-    "layersUnit": "layers"
+    "layersUnit": "layers",
+    "lockedPress": "Press",
+    "lockedToUnlock": "to unlock",
+    "lockedCustomHint": "If you changed the unlock shortcut, use your own instead. Studio can't unlock the keyboard for you — that's the point."
   },
   "combos": {
     "loading": "Loading…",
@@ -474,7 +479,9 @@
       "trigger": "Trigger",
       "timing": "Timing & Behavior",
       "layers": "Layers"
-    }
+    },
+    "allReservedTitle": "No editable combos",
+    "allReservedHint": "Every combo slot on this keyboard is reserved by firmware. The unlock shortcut is managed from the Device page."
   },
   "motion": {
     "emptyTitle": "Motion features unavailable",
@@ -526,5 +533,16 @@
       "scopeSoftOff": "Soft off",
       "calibrateHint": "Pick the keyboard up and walk a few steps to see the range it settles into; take the lock threshold from the bottom of that range and the still threshold from the noise floor on a desk."
     }
+  },
+  "unlockPanel": {
+    "title": "Unlock shortcut",
+    "desc": "The keyboard locks itself so a web page can't change your keymap without you. Unlocking is always a physical action — Studio cannot do it remotely.",
+    "viaCombo": "Combo",
+    "viaKeymap": "Keymap",
+    "protected": "Protected",
+    "protectedHint": "Firmware reserves this slot for unlocking, so it can't be repointed at another behavior.",
+    "noneTitle": "No unlock shortcut found",
+    "noneDesc": "This firmware exposes no studio unlock binding. Once the keyboard locks, Studio won't be able to edit it again — reflash before locking it.",
+    "changeComingSoon": "Changing the shortcut isn't available yet: the new gesture has to be proven to work before the old one is given up, so it needs its own guided flow."
   }
 }

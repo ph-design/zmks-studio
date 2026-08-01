@@ -330,7 +330,10 @@
     "body1": "Por razones de seguridad, tu teclado requiere desbloqueo antes de usar ZMK Studio.",
     "body2Prefix": "Si el desbloqueo de Studio no se ha añadido a tu keymap o a un combo, consulta la",
     "docs": "documentación del comportamiento Studio Unlock",
-    "body2Suffix": "para más información."
+    "body2Suffix": "para más información.",
+    "press": "Pulsa",
+    "toUnlock": "para desbloquear",
+    "customHint": "¿Lo cambiaste? Usa tu propio atajo."
   },
   "license": {
     "intro": "ZMK Studio se publica bajo la licencia de código abierto Apache 2.0. Aquí se incluye una copia del archivo NOTICE del repositorio de ZMK Studio:"
@@ -357,14 +360,14 @@
   "carbon": {
     "nav": {
       "keyboard": "Teclado",
-      "quick": "Ajustes rápidos",
       "layers": "Capas",
       "map": "Mapa",
       "behaviors": "Comportamientos",
       "lighting": "Iluminación",
       "combos": "Combos",
-      "settings": "Ajustes",
-      "motion": "Movimiento"
+      "motion": "Movimiento",
+      "device": "Dispositivo",
+      "preferences": "Preferencias"
     },
     "config": "CONFIGURACIÓN",
     "searchPlaceholder": "Buscar códigos de tecla…",
@@ -379,7 +382,6 @@
     "unsavedMark": "Cambios sin guardar *",
     "allSaved": "Todos los cambios guardados",
     "lockedTitle": "Teclado bloqueado",
-    "lockedDesc": "Pulsa la combinación studio-unlock en tu teclado para editar.",
     "layer": "Capa",
     "rename": "Renombrar",
     "delete": "Eliminar",
@@ -437,7 +439,10 @@
     "defaultView": "Vista predeterminada",
     "defaultViewDesc": "Qué sección se abre al conectar un teclado.",
     "keysUnit": "teclas",
-    "layersUnit": "capas"
+    "layersUnit": "capas",
+    "lockedPress": "Pulsa",
+    "lockedToUnlock": "para desbloquear",
+    "lockedCustomHint": "Si cambiaste el atajo, usa el tuyo. Studio no puede desbloquear el teclado por ti — es intencionado."
   },
   "combos": {
     "loading": "Cargando…",
@@ -474,7 +479,9 @@
       "trigger": "Disparador",
       "timing": "Tiempo y comportamiento",
       "layers": "Capas"
-    }
+    },
+    "allReservedTitle": "No hay combos editables",
+    "allReservedHint": "El firmware reserva todas las ranuras de combo de este teclado. El atajo de desbloqueo se gestiona en la página Dispositivo."
   },
   "motion": {
     "emptyTitle": "Funciones de movimiento no disponibles",
@@ -526,5 +533,16 @@
       "scopeSoftOff": "Apagado suave",
       "calibrateHint": "Coge el teclado y camina unos pasos para ver en qué rango se estabiliza; toma el umbral de bloqueo del extremo inferior y el de quietud del ruido sobre la mesa."
     }
+  },
+  "unlockPanel": {
+    "title": "Atajo de desbloqueo",
+    "desc": "El teclado se bloquea para que ninguna página web cambie tu keymap sin ti. Desbloquear es siempre una acción física — Studio no puede hacerlo en remoto.",
+    "viaCombo": "Combo",
+    "viaKeymap": "Keymap",
+    "protected": "Protegido",
+    "protectedHint": "El firmware reserva esta ranura para el desbloqueo, así que no puede apuntar a otro comportamiento.",
+    "noneTitle": "No se encontró atajo de desbloqueo",
+    "noneDesc": "Este firmware no expone ninguna asignación de studio unlock. Cuando el teclado se bloquee, Studio ya no podrá editarlo — reflashéalo antes de bloquearlo.",
+    "changeComingSoon": "Cambiar el atajo aún no está disponible: hay que comprobar que el nuevo gesto funciona antes de renunciar al anterior, así que necesita su propio flujo guiado."
   }
 }

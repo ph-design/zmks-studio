@@ -1,10 +1,14 @@
-import { Info, FileText, RotateCcw, Check, Monitor } from "lucide-react";
+import { Info, FileText, Check, Monitor } from "lucide-react";
 
 import { ACCENT_PRESETS, type CarbonTheme } from "./theme";
 import { SettingsBlock, Toggle, secBtn, normalizeLang } from "./CarbonChrome";
 import type { NavId } from "./navIds";
 
-interface SettingsViewProps {
+/*
+ * App preferences only — nothing here talks to the keyboard. Device-side state
+ * (identity, active layout, unlock shortcut, factory reset) lives in DeviceView.
+ */
+interface PreferencesViewProps {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   setting: string;
@@ -19,15 +23,14 @@ interface SettingsViewProps {
   navOptions: { id: NavId; label: string }[];
   onShowAbout: () => void;
   onShowLicense: () => void;
-  onResetSettings: () => void;
   roundedCorners: boolean;
   setRoundedCorners: (v: boolean) => void;
 }
 
-export function SettingsView({ th, t, setting, setSetting, accent, setAccent, systemAccentHex, lang, setLang, defaultNav, setDefaultNav, navOptions, onShowAbout, onShowLicense, onResetSettings, roundedCorners, setRoundedCorners }: SettingsViewProps) {
+export function PreferencesView({ th, t, setting, setSetting, accent, setAccent, systemAccentHex, lang, setLang, defaultNav, setDefaultNav, navOptions, onShowAbout, onShowLicense, roundedCorners, setRoundedCorners }: PreferencesViewProps) {
   return (
     <div style={{ flex: 1, overflow: "auto", padding: 24, maxWidth: 560 }} className="custom-scrollbar">
-      <h2 style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary, marginBottom: 20 }}>{t("carbon.nav.settings", "Settings")}</h2>
+      <h2 style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary, marginBottom: 20 }}>{t("carbon.nav.preferences", "Preferences")}</h2>
       <SettingsBlock th={th} label={t("carbon.theme", "Theme")}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {([
@@ -112,11 +115,6 @@ export function SettingsView({ th, t, setting, setSetting, accent, setAccent, sy
           <button onClick={onShowLicense} style={secBtn(th)}><FileText size={13} />{t("carbon.license", "License")}</button>
         </div>
       </SettingsBlock>
-      <div style={{ paddingTop: 20 }}>
-        <button onClick={onResetSettings} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", fontSize: 13, background: "transparent", color: th.error, border: `1px solid ${th.error}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
-          <RotateCcw size={14} />{t("carbon.factoryReset", "Restore stock settings")}
-        </button>
-      </div>
     </div>
   );
 }
