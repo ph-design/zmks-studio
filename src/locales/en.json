@@ -104,7 +104,9 @@
       "sideKey": "Frame button",
       "sideKeyDesc": "An extra per-layer key on the case edge",
       "motion": "Motion",
-      "motionDesc": "IMU case-tap action & walk-detect lock"
+      "motionDesc": "IMU case-tap action & walk-detect lock",
+      "unlockCombo": "Reserved unlock combo",
+      "unlockComboDesc": "Firmware-protected unlock slot (not shipping yet)"
     }
   },
   "layer": {
@@ -544,7 +546,9 @@
     "noneDesc": "This firmware exposes no studio unlock binding. Once the keyboard locks, Studio won't be able to edit it again — reflash before locking it.",
     "change": "Change shortcut",
     "changeHint": "You'll be asked to perform the new gesture before it replaces the current one, and the keyboard stays unlocked throughout.",
-    "noSpareSlot": "Changing the shortcut needs one free combo slot to confirm the new gesture with. Free a slot on the Combos page first."
+    "noSpareSlot": "Setting up a combo shortcut needs one free combo slot to confirm the gesture with. Free a slot on the Combos page first.",
+    "create": "Add a combo shortcut",
+    "createHint": "Sets up a key combination that unlocks the keyboard, alongside the existing unlock key. You'll be asked to perform it once before it's saved."
   },
   "unlockChange": {
     "title": "Change unlock shortcut",
@@ -580,6 +584,11 @@
     "timeoutSwallowed": "If pressing them together shows nothing at all, the combo IS firing — ZMK swallows the keys it consumes and sends the test key instead, so only the test key is going missing. Try a different one. (Seeing the keys individually just means the chord didn't complete.)",
     "slotReadback": "Slot",
     "errStoredBehavior": "Firmware accepted the test but didn't store the test keystroke on the slot. That's why the chord swallows keys and emits nothing — the trigger landed and the behavior didn't. This needs a firmware fix; the read-back above is the evidence.",
-    "errStoredPositions": "Firmware accepted the test but stored different trigger keys, so this device isn't taking the write as sent."
+    "errStoredPositions": "Firmware accepted the test but stored different trigger keys, so this device isn't taking the write as sent.",
+    "titleCreate": "Add an unlock shortcut",
+    "pickHintCreate": "Your existing unlock key stays as it is, so this is purely an addition.",
+    "doneCreate": "Unlock shortcut added",
+    "warnOverlap": "These keys are also used by another combo",
+    "warnOverlapHint": "Overlapping combos compete, and the other one may win — which makes the test below look like it failed for no reason."
   }
 }

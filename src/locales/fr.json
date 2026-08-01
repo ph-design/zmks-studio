@@ -104,7 +104,9 @@
       "sideKey": "Touche de châssis",
       "sideKeyDesc": "Une touche supplémentaire par calque sur le bord",
       "motion": "Mouvement",
-      "motionDesc": "Action de tape IMU et verrouillage en déplacement"
+      "motionDesc": "Action de tape IMU et verrouillage en déplacement",
+      "unlockCombo": "Combo de déverrouillage réservé",
+      "unlockComboDesc": "Emplacement protégé par le firmware (pas encore livré)"
     }
   },
   "layer": {
@@ -544,7 +546,9 @@
     "noneDesc": "Ce firmware n'expose aucune liaison studio unlock. Une fois le clavier verrouillé, Studio ne pourra plus le modifier — reflashez-le avant de le verrouiller.",
     "change": "Changer le raccourci",
     "changeHint": "Vous devrez exécuter le nouveau geste avant qu'il remplace l'actuel, et le clavier reste déverrouillé pendant toute l'opération.",
-    "noSpareSlot": "Changer le raccourci demande un emplacement de combo libre pour confirmer le nouveau geste. Libérez-en un depuis la page Combos."
+    "noSpareSlot": "Configurer un combo demande un emplacement libre pour confirmer le geste. Libérez-en un sur la page Combos.",
+    "create": "Ajouter un raccourci combo",
+    "createHint": "Définit une combinaison de touches qui déverrouille le clavier, en plus de la touche existante. Il vous sera demandé de l'exécuter une fois avant l'enregistrement."
   },
   "unlockChange": {
     "title": "Changer le raccourci de déverrouillage",
@@ -580,6 +584,11 @@
     "timeoutSwallowed": "Si rien n'apparaît quand vous les pressez ensemble, l'accord se déclenche bien — ZMK absorbe les touches qu'il consomme et envoie la touche de test à la place ; seule celle-ci manque. Essayez-en une autre. (Les voir individuellement signifie juste que l'accord n'a pas abouti.)",
     "slotReadback": "Emplacement",
     "errStoredBehavior": "Le firmware a accepté le test mais n'a pas enregistré la touche de test sur l'emplacement. C'est pourquoi l'accord absorbe les touches sans rien émettre : le déclencheur a été pris en compte, le comportement non. Cela demande un correctif firmware ; la relecture ci-dessus en est la preuve.",
-    "errStoredPositions": "Le firmware a accepté le test mais a enregistré d'autres touches de déclenchement que celles envoyées."
+    "errStoredPositions": "Le firmware a accepté le test mais a enregistré d'autres touches de déclenchement que celles envoyées.",
+    "titleCreate": "Ajouter un raccourci de déverrouillage",
+    "pickHintCreate": "Votre touche de déverrouillage actuelle reste en place : c'est purement un ajout.",
+    "doneCreate": "Raccourci de déverrouillage ajouté",
+    "warnOverlap": "Ces touches sont aussi utilisées par un autre combo",
+    "warnOverlapHint": "Les combos qui se chevauchent se disputent la priorité et l'autre peut gagner — le test ci-dessous semblerait alors échouer sans raison."
   }
 }

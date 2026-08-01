@@ -9,12 +9,17 @@ import type { UnlockPaths } from "./unlockPaths";
  * UnlockChangeFlow, which proves the new one works before giving up the old —
  * see docs/unlock-combo.md.
  */
-export function UnlockPanel({ th, t, paths, canChange, noSpareSlot, onChange }: {
+export function UnlockPanel({ th, t, paths, mode, noSpareSlot, onChange }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   paths: UnlockPaths;
-  canChange?: boolean;
-  /** Re-triggering needs a free slot to borrow while confirming the gesture. */
+  /**
+   * `create` when no combo unlocks this keyboard yet — the normal state on
+   * firmware whose factory gesture is a keymap binding. `null` when neither is
+   * possible (no free slot, or no studio unlock behavior at all).
+   */
+  mode: "change" | "create" | null;
+  /** Confirming a gesture needs a free slot to borrow. */
   noSpareSlot?: boolean;
   onChange?: () => void;
 }) {
@@ -81,24 +86,34 @@ export function UnlockPanel({ th, t, paths, canChange, noSpareSlot, onChange }: 
         </div>
       )}
 
-      {canChange && (
+      {mode && (
         <div style={{ marginTop: 12 }}>
-          {/* Cautioned, not destructive: the flow refuses to give up a working
-              gesture, but this is still the keyboard's only key. Warning outline
-              rather than the plain secondary button it started as. */}
+          {/*
+            Adding is safe — the existing unlock key stays — so it gets the plain
+            secondary treatment. Replacing an existing combo is cautioned: the
+            flow won't give up a working gesture, but it is still the keyboard's
+            only key, and it shouldn't look like changing the theme.
+          */}
           <button onClick={onChange}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", fontSize: 13, background: "transparent", color: th.warning, border: `1px solid ${th.warning}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
-            <KeyRound size={13} />{t("unlockPanel.change", "Change shortcut")}
+            style={mode === "create"
+              ? { display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", fontSize: 13, background: th.layer2, color: th.textPrimary, border: "none", cursor: "pointer", fontFamily: "var(--font-sans)" }
+              : { display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", fontSize: 13, background: "transparent", color: th.warning, border: `1px solid ${th.warning}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+            <KeyRound size={13} />
+            {mode === "create"
+              ? t("unlockPanel.create", "Add a combo shortcut")
+              : t("unlockPanel.change", "Change shortcut")}
           </button>
           <p style={{ fontSize: 12, color: th.textHelper, marginTop: 8, lineHeight: 1.6 }}>
-            {t("unlockPanel.changeHint", "You'll be asked to perform the new gesture before it replaces the current one, and the keyboard stays unlocked throughout.")}
+            {mode === "create"
+              ? t("unlockPanel.createHint", "Sets up a key combination that unlocks the keyboard, alongside the existing unlock key. You'll be asked to perform it once before it's saved.")
+              : t("unlockPanel.changeHint", "You'll be asked to perform the new gesture before it replaces the current one, and the keyboard stays unlocked throughout.")}
           </p>
         </div>
       )}
 
-      {noSpareSlot && (
+      {!mode && noSpareSlot && (
         <p style={{ fontSize: 12, color: th.textHelper, marginTop: 12, lineHeight: 1.6 }}>
-          {t("unlockPanel.noSpareSlot", "Changing the shortcut needs one free combo slot to confirm the new gesture with. Free a slot on the Combos page first.")}
+          {t("unlockPanel.noSpareSlot", "Setting up a combo shortcut needs one free combo slot to confirm the gesture with. Free a slot on the Combos page first.")}
         </p>
       )}
     </div>

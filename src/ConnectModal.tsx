@@ -826,6 +826,7 @@ function DemoModeCard({
     { key: "lighting", label: t("demo.feature.lighting", "Lighting"), desc: t("demo.feature.lightingDesc", "RGB underglow & backlight") },
     { key: "sideKey", label: t("demo.feature.sideKey", "Frame button"), desc: t("demo.feature.sideKeyDesc", "An extra per-layer key on the case edge") },
     { key: "motion", label: t("demo.feature.motion", "Motion"), desc: t("demo.feature.motionDesc", "IMU case-tap action & walk-detect lock") },
+    { key: "unlockCombo", label: t("demo.feature.unlockCombo", "Reserved unlock combo"), desc: t("demo.feature.unlockComboDesc", "Firmware-protected unlock slot (not shipping yet)") },
   ];
 
   const launch = async () => {

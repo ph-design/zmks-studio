@@ -266,7 +266,7 @@ function buildLayers(): Layer[] {
   ];
 }
 
-function buildCombos(): ComboConfig[] {
+function buildCombos(reserveUnlock: boolean): ComboConfig[] {
   const base = {
     timeoutMs: 50,
     requirePriorIdleMs: -1,
@@ -275,23 +275,31 @@ function buildCombos(): ComboConfig[] {
     editableBehavior: true,
     editableKeyPositions: true,
   };
+
+  /*
+   * Slot 0 as the studio unlock shortcut — the keyboard's front door. Firmware
+   * reserves it: the trigger keys can be changed but the behavior can't be
+   * repointed, which is what stops anyone (Studio included) from deleting the
+   * only way back in. A generous timeout because Fn+\ can't be hit by accident
+   * while typing — Fn produces no keystroke of its own.
+   *
+   * Shipping firmware doesn't do this yet, so it's off unless asked for; the
+   * unlock binding lives in the keymap instead (see the Adjust layer).
+   */
+  const slot0 = reserveUnlock
+    ? {
+        ...base,
+        index: 0,
+        behavior: { behaviorId: B.studioUnlock, param1: 0, param2: 0 },
+        // Fn + \ — MENU carries `&mo 3` on the base layer, so it stands in for Fn.
+        keyPositions: [idxOf(U.MENU), idxOf(U.BSLH)],
+        timeoutMs: 200,
+        editableBehavior: false,
+      }
+    : { ...base, index: 0, behavior: undefined, keyPositions: [] };
+
   return [
-    /*
-     * Slot 0 is the studio unlock shortcut, the keyboard's front door. Firmware
-     * reserves it: the trigger keys can be changed but the behavior can't be
-     * repointed, which is what stops anyone (Studio included) from deleting the
-     * only way back in. A generous timeout because Fn+\ can't be hit by
-     * accident while typing — Fn produces no keystroke of its own.
-     */
-    {
-      ...base,
-      index: 0,
-      behavior: { behaviorId: B.studioUnlock, param1: 0, param2: 0 },
-      // Fn + \ — MENU carries `&mo 3` on the base layer, so it stands in for Fn.
-      keyPositions: [idxOf(U.MENU), idxOf(U.BSLH)],
-      timeoutMs: 200,
-      editableBehavior: false,
-    },
+    slot0,
     { ...base, index: 1, behavior: KEY(U.ESC), keyPositions: [idxOf(U.J), idxOf(U.K)] },
     { ...base, index: 2, behavior: KEY(U.TAB), keyPositions: [idxOf(U.D), idxOf(U.F)] },
     { ...base, index: 3, behavior: undefined, keyPositions: [] },
@@ -324,6 +332,13 @@ export interface DemoFeatures {
   lighting: boolean;    // RGB underglow / backlight subsystem
   sideKey: boolean;     // a frame-mounted programmable key position (ES60)
   motion: boolean;      // IMU: case-tap action + walk-detect lock (PH60SCV2EVO)
+  /**
+   * Off by default, matching shipping firmware: the factory unlock gesture is a
+   * keymap binding, not a reserved combo slot. Turning it on previews the
+   * reserved-slot design in docs/unlock-combo.md, which is what makes the
+   * *change* path (rather than the *add* path) reachable.
+   */
+  unlockCombo: boolean;
 }
 
 export const DEFAULT_DEMO_FEATURES: DemoFeatures = {
@@ -332,6 +347,7 @@ export const DEFAULT_DEMO_FEATURES: DemoFeatures = {
   lighting: true,
   sideKey: true,
   motion: true,
+  unlockCombo: false,
 };
 
 // In-memory demo firmware: answers the RPCs ZMK Studio issues during connect
@@ -339,13 +355,14 @@ export const DEFAULT_DEMO_FEATURES: DemoFeatures = {
 // session — nothing is persisted.
 class DemoFirmware {
   layers: Layer[];
-  combos = buildCombos();
+  combos: ComboConfig[];
   availableLayers = 5;
   unsaved = false;
   features: DemoFeatures;
 
   constructor(features: DemoFeatures) {
     this.features = features;
+    this.combos = buildCombos(features.unlockCombo);
     this.layers = this.freshLayers();
   }
 
@@ -388,7 +405,7 @@ class DemoFirmware {
       }
       if (c.resetSettings) {
         this.layers = this.freshLayers();
-        this.combos = buildCombos();
+        this.combos = buildCombos(this.features.unlockCombo);
         this.unsaved = false;
         return respond({ core: { resetSettings: true } });
       }

@@ -14,6 +14,8 @@ import { GestureChips } from "./GestureChips";
 import { useKeyProbe } from "./useKeyProbe";
 import {
   conflictingCombos,
+  NEW_UNLOCK_TIMEOUT_MS,
+  overlappingCombos,
   gestureResistsTyping,
   probeUsage,
   TYPING_GUARD_IDLE_MS,
@@ -29,10 +31,21 @@ type Step = "pick" | "arming" | "waiting" | "committing" | "done";
 interface UnlockChangeFlowProps {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
-  /** The reserved slot being re-triggered; its behavior is left untouched. */
-  unlockCombo: ComboConfig;
-  /** An unused slot the probe binding borrows for the duration of the test. */
+  /**
+   * `change` re-triggers an existing unlock combo; `create` turns a free slot
+   * into one. Firmware doesn't ship a reserved unlock combo today — the factory
+   * gesture is a keymap binding — so `create` is the path most users hit first.
+   */
+  mode: "change" | "create";
+  /** Change mode only: the slot being re-triggered; its behavior is untouched. */
+  unlockCombo?: ComboConfig;
+  /**
+   * The slot borrowed for the probe. In `create` mode it also becomes the unlock
+   * combo, so one free slot is enough for the whole flow.
+   */
   spareCombo: ComboConfig;
+  /** Create mode only: what to bind once the gesture is confirmed. */
+  unlockBehaviorId: number;
   allCombos: ComboConfig[];
   keymap: Keymap | undefined;
   behaviors: Record<number, GetBehaviorDetailsResponse>;
@@ -56,13 +69,26 @@ interface UnlockChangeFlowProps {
  * failed attempt leaves the user exactly where they started.
  */
 export function UnlockChangeFlow({
-  th, t, unlockCombo, spareCombo, allCombos, keymap, behaviors, layout,
-  scale, setScale, otherPathCount, applyCombo, readCombo, onClose,
+  th, t, mode, unlockCombo, spareCombo, unlockBehaviorId, allCombos, keymap,
+  behaviors, layout, scale, setScale, otherPathCount, applyCombo, readCombo, onClose,
 }: UnlockChangeFlowProps) {
   const [step, setStep] = useState<Step>("pick");
   const [selected, setSelected] = useState<Set<number>>(
-    () => new Set(unlockCombo.keyPositions)
+    () => new Set(unlockCombo?.keyPositions ?? [])
   );
+
+  /*
+   * Trigger conditions the probe must reproduce. In change mode they come from
+   * the combo being replaced, so the test is faithful to it; in create mode
+   * there's nothing to copy, so use a deliberately generous timeout and leave
+   * the gesture active on every layer.
+   */
+  const trigger = unlockCombo ?? {
+    timeoutMs: NEW_UNLOCK_TIMEOUT_MS,
+    requirePriorIdleMs: -1,
+    layerMask: 0,
+    slowRelease: false,
+  };
   const [error, setError] = useState<string | null>(null);
   const [timedOut, setTimedOut] = useState(false);
   const [priorIdleApplied, setPriorIdleApplied] = useState(false);
@@ -76,8 +102,21 @@ export function UnlockChangeFlow({
   const labels = positions.map((p) => unlockKeyLabel(p, keymap, behaviors));
 
   const conflicts = useMemo(
-    () => conflictingCombos(allCombos, positions, unlockCombo.index),
-    [allCombos, positions, unlockCombo.index]
+    () => conflictingCombos(allCombos, positions, unlockCombo?.index ?? spareCombo.index),
+    [allCombos, positions, unlockCombo?.index, spareCombo.index]
+  );
+
+  /*
+   * Combos merely sharing a key aren't a clash, but ZMK resolves overlapping
+   * combos against each other and the winner isn't predictable from here. A
+   * hand-made F+J combo silently beating the probe is exactly how this looked
+   * broken in testing, so say it rather than let it be debugged the hard way.
+   */
+  const overlaps = useMemo(
+    () =>
+      overlappingCombos(allCombos, positions, unlockCombo?.index ?? spareCombo.index)
+        .filter((c) => !conflicts.some((x) => x.index === c.index)),
+    [allCombos, positions, unlockCombo?.index, spareCombo.index, conflicts]
   );
   const resistsTyping = useMemo(
     () => gestureResistsTyping(positions, keymap, behaviors),
@@ -168,10 +207,10 @@ export function UnlockChangeFlow({
     const ok = await applyCombo({
       ...spareCombo,
       keyPositions: positions,
-      timeoutMs: unlockCombo.timeoutMs,
-      requirePriorIdleMs: unlockCombo.requirePriorIdleMs,
-      layerMask: unlockCombo.layerMask,
-      slowRelease: unlockCombo.slowRelease,
+      timeoutMs: trigger.timeoutMs,
+      requirePriorIdleMs: trigger.requirePriorIdleMs,
+      layerMask: trigger.layerMask,
+      slowRelease: trigger.slowRelease,
       behavior: { behaviorId: kpBehaviorId, param1: probeUsage(probe.hidId), param2: 0 },
     });
 
@@ -205,15 +244,23 @@ export function UnlockChangeFlow({
     setStep("committing");
 
     /*
-     * Only the trigger keys change; the behavior stays exactly as firmware
-     * reported it, since the slot is reserved and a differing behavior would
-     * (rightly) be rejected. Prior-idle is added when the gesture could
-     * otherwise fire mid-typing — some firmware may refuse that field on a
-     * reserved slot, so fall back to a positions-only write rather than
-     * failing the whole change.
+     * Change mode rewrites only the trigger keys, echoing the behavior back
+     * exactly as firmware reported it — a reserved slot would (rightly) reject a
+     * differing behavior. Create mode instead keeps the borrowed slot and binds
+     * studio unlock to it, so the probe slot becomes the real thing and no
+     * second free slot is needed.
      */
-    const base = { ...unlockCombo, keyPositions: positions };
-    const needsGuard = !resistsTyping && unlockCombo.requirePriorIdleMs < TYPING_GUARD_IDLE_MS;
+    const base = unlockCombo
+      ? { ...unlockCombo, keyPositions: positions }
+      : {
+          ...spareCombo,
+          keyPositions: positions,
+          timeoutMs: NEW_UNLOCK_TIMEOUT_MS,
+          layerMask: 0,
+          slowRelease: false,
+          behavior: { behaviorId: unlockBehaviorId, param1: 0, param2: 0 },
+        };
+    const needsGuard = !resistsTyping && trigger.requirePriorIdleMs < TYPING_GUARD_IDLE_MS;
 
     let ok = false;
     let guarded = false;
@@ -230,8 +277,10 @@ export function UnlockChangeFlow({
     }
 
     setPriorIdleApplied(guarded);
-    if (armedRef.current) {
-      armedRef.current = false;
+    // In create mode the borrowed slot *is* the new unlock combo, so releasing it
+    // would immediately undo the change.
+    armedRef.current = false;
+    if (unlockCombo) {
       await releaseSpare();
     }
     setStep("done");
@@ -252,7 +301,9 @@ export function UnlockChangeFlow({
     <div style={{ display: "flex", alignItems: "center", gap: 10, height: 48, padding: "0 20px", background: th.layer1, borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
       <KeyRound size={15} style={{ color: th.interactive, flexShrink: 0 }} />
       <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: th.textPrimary }}>
-        {t("unlockChange.title", "Change unlock shortcut")}
+        {mode === "create"
+          ? t("unlockChange.titleCreate", "Add an unlock shortcut")
+          : t("unlockChange.title", "Change unlock shortcut")}
       </span>
       {step !== "done" && (
         <button onClick={cancel}
@@ -281,6 +332,7 @@ export function UnlockChangeFlow({
           <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
             <p style={{ margin: 0, padding: "12px 20px 0", fontSize: 13, color: th.textSecondary }}>
               {t("unlockChange.pickHint", "Click the keys the shortcut should use — at least two, pressed together.")}
+              {mode === "create" && ` ${t("unlockChange.pickHintCreate", "Your existing unlock key stays as it is, so this is purely an addition.")}`}
             </p>
             {layout ? (
               <KeyboardCanvas th={th} t={t} scale={scale} setScale={setScale}>
@@ -321,6 +373,8 @@ export function UnlockChangeFlow({
             {error && notice("error", error)}
             {conflicts.length > 0 && notice("warn",
               t("unlockChange.warnConflict", "Another combo already uses exactly these keys. Pick a different set."))}
+            {overlaps.length > 0 && notice("warn",
+              `${t("unlockChange.warnOverlap", "These keys are also used by another combo")} (${overlaps.map((c) => `#${c.index}`).join(", ")}). ${t("unlockChange.warnOverlapHint", "Overlapping combos compete, and the other one may win — which makes the test below look like it failed for no reason.")}`)}
             {positions.length >= 2 && !resistsTyping && notice("warn",
               t("unlockChange.warnTyping", "These are all ordinary keys, so the chord could fire while typing. Studio will require a brief pause before it counts — including one layer or modifier key is safer."))}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -432,7 +486,9 @@ export function UnlockChangeFlow({
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24, textAlign: "center" }}>
           <Check size={36} style={{ color: th.success }} />
           <div style={{ fontSize: 15, fontWeight: 600, color: th.textPrimary }}>
-            {t("unlockChange.done", "Unlock shortcut updated")}
+            {mode === "create"
+              ? t("unlockChange.doneCreate", "Unlock shortcut added")
+              : t("unlockChange.done", "Unlock shortcut updated")}
           </div>
           <GestureChips keys={labels} />
           {priorIdleApplied && notice("ok",

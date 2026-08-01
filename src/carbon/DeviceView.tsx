@@ -38,7 +38,7 @@ export function DeviceView({
    * the flow down halfway through its own test.
    */
   const [unlockEdit, setUnlockEdit] = useState<
-    { unlockCombo: ComboConfig; spareCombo: ComboConfig } | null
+    { mode: "change" | "create"; unlockCombo?: ComboConfig; spareCombo: ComboConfig } | null
   >(null);
 
   const rows: [string, string][] = [
@@ -48,20 +48,32 @@ export function DeviceView({
     [t("carbon.layerCount", "Layers"), String(model.keymap?.layers.length ?? 0)],
   ];
 
-  // Only the reserved slot can be re-triggered, and only with a spare slot to
-  // borrow for the confirmation step.
+  /*
+   * Two shapes, both needing one free slot to confirm the gesture with:
+   * re-trigger an existing unlock combo, or — the usual case, since firmware
+   * ships its factory gesture as a keymap binding rather than a combo — turn a
+   * free slot into one.
+   */
   const editableUnlockCombo = unlockPaths.combos.find(
     (p) => p.combo.editableKeyPositions
   )?.combo;
   const spareCombo = findSpareComboSlot(combos, unlockPaths.behaviorId);
-  const canChangeUnlock = !!editableUnlockCombo && !!spareCombo;
+  const unlockMode: "change" | "create" | null = !spareCombo
+    ? null
+    : editableUnlockCombo
+      ? "change"
+      : unlockPaths.behaviorId !== undefined
+        ? "create"
+        : null;
 
   if (unlockEdit) {
     return (
       <UnlockChangeFlow
         th={th} t={t}
+        mode={unlockEdit.mode}
         unlockCombo={unlockEdit.unlockCombo}
         spareCombo={unlockEdit.spareCombo}
+        unlockBehaviorId={unlockPaths.behaviorId ?? -1}
         allCombos={combos}
         keymap={model.keymap}
         behaviors={model.behaviors}
@@ -108,12 +120,15 @@ export function DeviceView({
         }
 
         <UnlockPanel th={th} t={t} paths={unlockPaths}
-          canChange={canChangeUnlock}
-          noSpareSlot={!!editableUnlockCombo && !spareCombo}
+          mode={unlockMode}
+          noSpareSlot={!spareCombo && unlockPaths.behaviorId !== undefined}
           onChange={() => {
-            if (editableUnlockCombo && spareCombo) {
-              setUnlockEdit({ unlockCombo: editableUnlockCombo, spareCombo });
-            }
+            if (!spareCombo || !unlockMode) return;
+            setUnlockEdit({
+              mode: unlockMode,
+              unlockCombo: unlockMode === "change" ? editableUnlockCombo : undefined,
+              spareCombo,
+            });
           }} />
 
         <div style={{ paddingTop: 20 }}>

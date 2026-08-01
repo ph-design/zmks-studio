@@ -104,7 +104,9 @@
       "sideKey": "Tecla del chasis",
       "sideKeyDesc": "Una tecla extra por capa en el borde",
       "motion": "Movimiento",
-      "motionDesc": "Acción de toque IMU y bloqueo en movimiento"
+      "motionDesc": "Acción de toque IMU y bloqueo en movimiento",
+      "unlockCombo": "Combo de desbloqueo reservado",
+      "unlockComboDesc": "Ranura protegida por el firmware (aún no en producción)"
     }
   },
   "layer": {
@@ -544,7 +546,9 @@
     "noneDesc": "Este firmware no expone ninguna asignación de studio unlock. Cuando el teclado se bloquee, Studio ya no podrá editarlo — reflashéalo antes de bloquearlo.",
     "change": "Cambiar atajo",
     "changeHint": "Se te pedirá ejecutar el nuevo gesto antes de que sustituya al actual, y el teclado permanece desbloqueado en todo momento.",
-    "noSpareSlot": "Cambiar el atajo necesita una ranura de combo libre para confirmar el nuevo gesto. Libera una en la página de Combos."
+    "noSpareSlot": "Configurar un combo necesita una ranura libre para confirmar el gesto. Libera una en la página de Combos.",
+    "create": "Añadir un atajo de combo",
+    "createHint": "Configura una combinación de teclas que desbloquea el teclado, junto a la tecla de desbloqueo actual. Se te pedirá ejecutarla una vez antes de guardarla."
   },
   "unlockChange": {
     "title": "Cambiar atajo de desbloqueo",
@@ -580,6 +584,11 @@
     "timeoutSwallowed": "Si al pulsarlas juntas no aparece nada, el acorde SÍ se está disparando: ZMK absorbe las teclas que consume y envía la tecla de prueba en su lugar, así que solo falta esa. Prueba con otra. (Verlas por separado solo significa que el acorde no se completó.)",
     "slotReadback": "Ranura",
     "errStoredBehavior": "El firmware aceptó la prueba pero no guardó la tecla de prueba en la ranura. Por eso el acorde absorbe las teclas y no emite nada: el disparador se aplicó y el comportamiento no. Necesita un arreglo en el firmware; la relectura de arriba es la prueba.",
-    "errStoredPositions": "El firmware aceptó la prueba pero guardó teclas de disparo distintas a las enviadas."
+    "errStoredPositions": "El firmware aceptó la prueba pero guardó teclas de disparo distintas a las enviadas.",
+    "titleCreate": "Añadir un atajo de desbloqueo",
+    "pickHintCreate": "Tu tecla de desbloqueo actual se mantiene, así que esto es solo una adición.",
+    "doneCreate": "Atajo de desbloqueo añadido",
+    "warnOverlap": "Estas teclas también las usa otro combo",
+    "warnOverlapHint": "Los combos que se solapan compiten y puede ganar el otro, lo que haría que la prueba de abajo pareciera fallar sin motivo."
   }
 }

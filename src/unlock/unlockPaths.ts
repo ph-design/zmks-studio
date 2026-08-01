@@ -184,7 +184,7 @@ export function findSpareComboSlot(
   );
 }
 
-/** Combos already using exactly these keys, which would fight the new gesture. */
+/** Combos already using exactly these keys — an outright clash. */
 export function conflictingCombos(
   combos: ComboConfig[],
   positions: number[],
@@ -198,6 +198,29 @@ export function conflictingCombos(
       [...c.keyPositions].sort((a, b) => a - b).join(",") === key
   );
 }
+
+/**
+ * Combos sharing any key with the chord. Not a clash, but ZMK resolves
+ * overlapping combos against each other, so whichever wins is hard to predict
+ * from the UI — and if the other one wins, the test looks like it silently
+ * failed. Worth saying out loud rather than letting the user debug it.
+ */
+export function overlappingCombos(
+  combos: ComboConfig[],
+  positions: number[],
+  exceptIndex: number
+): ComboConfig[] {
+  const picked = new Set(positions);
+  return combos.filter(
+    (c) =>
+      c.index !== exceptIndex &&
+      c.keyPositions.length > 0 &&
+      c.keyPositions.some((p) => picked.has(p))
+  );
+}
+
+/** Generous by design: a deliberate chord, not something typed at speed. */
+export const NEW_UNLOCK_TIMEOUT_MS = 200;
 
 /**
  * Whether a gesture is safe to leave without a prior-idle requirement.

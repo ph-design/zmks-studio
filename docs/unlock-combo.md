@@ -22,6 +22,12 @@ Firmware should also default to locked. Studio assumes it.
 
 ## 1. Reserve one combo slot (no proto change needed)
 
+**Not how shipping firmware behaves yet.** Today the factory unlock gesture is a
+keymap binding (`Fn + \` via `&studio_unlock` on a layer) and no combo slot is
+reserved, so Studio's usual job is *adding* an unlock combo next to that binding
+rather than re-triggering an existing one. Both paths are implemented; see
+step 3. What follows is the target design.
+
 The unlock combo is slot 0, reported with the existing per-slot flags:
 
 ```
@@ -57,23 +63,41 @@ varies per build.
 > breaks the moment a name is changed or localized, and Studio already relies on
 > it in several places.
 
-## 3. Changing the gesture
+## 3. Adding or changing the gesture
 
-A new gesture must be **performed once** before the old one is given up. Studio
-does this today without any firmware change and without ever locking the
-keyboard:
+Two shapes, sharing one flow:
 
-1. The user picks key positions on the layout (at least two). Studio warns if the
-   chord duplicates another combo, or if it's made only of ordinary keys.
-2. The positions are written to a **spare** slot bound to `&kp F13`, using the
-   real unlock combo's timings so the test is faithful.
-3. The user performs the gesture; Studio watches for that keystroke arriving at
-   the host — the same channel the key tester uses.
-4. Only then is the reserved slot rewritten, and only its `key_positions`. The
-   behavior is echoed back exactly as firmware reported it, since a differing
-   behavior would (rightly) be rejected on a reserved slot.
-5. The borrowed slot is released — including if the user cancels or navigates
-   away mid-test.
+- **Add** (today's normal case): no combo unlocks the keyboard yet, so a free
+  slot is bound to `&studio_unlock`. Purely additive — the keymap gesture stays
+  — so there is no way to strand anyone.
+- **Change**: an unlock combo exists and only its `key_positions` are rewritten.
+
+Either way the new gesture must be **performed once** first. Studio does this
+without any firmware change and without ever locking the keyboard:
+
+1. The user picks key positions on the layout (at least two). Studio blocks a
+   chord that exactly duplicates another combo, and warns when one merely
+   *overlaps* another or is made only of ordinary keys. Overlap matters: ZMK
+   resolves competing combos against each other, and a hand-made combo sharing a
+   key will quietly win and make the test below look like it failed.
+2. The positions go to a free slot bound to a probe keystroke, reproducing the
+   unlock combo's `timeout_ms`, `require_prior_idle_ms`, `layer_mask` and
+   `slow_release` so the test is faithful. (Inheriting `layer_mask` from the
+   borrowed slot instead was a bug: `0` means "all layers", so a slot restricted
+   to other layers yields a combo that can never fire.)
+3. Studio reads the slot back with `get_combo` and shows what firmware actually
+   stored. A combo that swallows its keys but emits nothing is indistinguishable
+   from a broken test otherwise, and the two have opposite causes — the trigger
+   landing without the behavior points at firmware.
+4. The user performs the gesture; Studio watches for that keystroke arriving at
+   the host — the same channel the key tester uses. The probe key walks a ladder
+   (F13 → ordinary letters) because no key is delivered on every platform.
+5. Only then is the real write made: binding `&studio_unlock` to the slot (add),
+   or rewriting `key_positions` on the existing one and releasing the borrowed
+   slot (change). In change mode the behavior is echoed back exactly as firmware
+   reported it, since a differing behavior would rightly be rejected on a
+   reserved slot.
+6. The borrowed slot is released if the user cancels or navigates away mid-test.
 
 `require_prior_idle_ms` is raised to 200ms when the chord contains no layer or
 modifier key, so an all-letters gesture can't fire mid-typing. Firmware may
