@@ -86,7 +86,8 @@ interface TimedEvent {
 const RIPPLE_WIDTH = 40; // in 0-255 distance space, like firmware
 const REACTIVE_WIDE_RADIUS = 0.35;
 const NEXUS_ARM_TOLERANCE = 0.08;
-const HEATMAP_SPREAD = 0.28;
+const HEATMAP_SPREAD_X = 0.28;
+const HEATMAP_SPREAD_Y = 0.45;
 const HEATMAP_AREA_LIMIT = 24;
 const HEATMAP_INCREASE_STEP = 32;
 
@@ -166,10 +167,11 @@ export class RgbEffectEngine {
     this.heatmapTemp[best] = Math.min(255, this.heatmapTemp[best] + HEATMAP_INCREASE_STEP);
     for (let i = 0; i < this.numLeds; i++) {
       if (i === best) continue;
-      const dx = this.posX[i] - x, dy = this.posY[i] - y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist <= HEATMAP_SPREAD) {
-        const amount = Math.floor((1 - dist / HEATMAP_SPREAD) * HEATMAP_AREA_LIMIT);
+      const nx = (this.posX[i] - x) / HEATMAP_SPREAD_X;
+      const ny = (this.posY[i] - y) / HEATMAP_SPREAD_Y;
+      const nd = Math.sqrt(nx * nx + ny * ny);
+      if (nd <= 1) {
+        const amount = Math.floor((1 - nd) * HEATMAP_AREA_LIMIT);
         this.heatmapTemp[i] = Math.min(255, this.heatmapTemp[i] + amount);
       }
     }
