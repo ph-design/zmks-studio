@@ -568,7 +568,7 @@
     "timeoutRisky": "Applying without confirmation means that if the gesture doesn't work, the keyboard can't be edited again without reflashing.",
     "applyAnyway": "Apply without confirmation",
     "done": "Unlock shortcut updated",
-    "doneHint": "Save to keyboard to keep it across a power cycle.",
+    "doneHint": "It's active right now. If a “Save to keyboard” button is showing, use it — otherwise power-cycle the keyboard once to check the shortcut survived.",
     "close": "Done",
     "priorIdleApplied": "A brief pause is now required before the chord counts, so it can't fire while typing.",
     "warnUnverified": "Applied without confirmation — test it before you let the keyboard lock.",

@@ -119,19 +119,20 @@ export function collectUnlockPaths(
 /*
  * Candidates, walked in order when one doesn't arrive.
  *
- * The F-row above F12 is the tidy choice — nothing is bound to it, so nothing
- * reacts — but it's also the least reliable: those keys don't exist on most
- * keyboards and plenty of systems never surface them to the browser. So the
- * ladder drops to ordinary letters, which every platform delivers. Their
- * keystroke is swallowed by the probe listener, so nothing is typed anywhere;
- * they're `typed: true` only so the UI can say so.
+ * Ordinary letters go first because they're the only ones every platform
+ * actually delivers — F13 tested as never reaching the browser on Windows, which
+ * turned the default path into a 30-second dead end before the user could even
+ * reach a working key. The keystroke is swallowed by the probe listener, so
+ * nothing is typed anywhere; `typed: true` exists only so the UI can say so.
+ *
+ * The F-row above F12 stays as a fallback: it's the tidier choice when it works,
+ * since nothing anywhere is bound to it.
  */
 export const PROBE_KEYS = [
-  { code: "F13", hidId: 0x68, label: "F13", typed: false },
   { code: "KeyZ", hidId: 0x1d, label: "Z", typed: true },
   { code: "KeyQ", hidId: 0x14, label: "Q", typed: true },
+  { code: "F13", hidId: 0x68, label: "F13", typed: false },
   { code: "F14", hidId: 0x69, label: "F14", typed: false },
-  { code: "F15", hidId: 0x6a, label: "F15", typed: false },
   { code: "Pause", hidId: 0x48, label: "Pause", typed: false },
 ];
 

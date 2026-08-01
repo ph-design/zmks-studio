@@ -568,7 +568,7 @@
     "timeoutRisky": "Aplicar sin confirmar implica que, si el gesto no funciona, el teclado no podrá editarse sin volver a flashearlo.",
     "applyAnyway": "Aplicar sin confirmar",
     "done": "Atajo de desbloqueo actualizado",
-    "doneHint": "Guarda en el teclado para conservarlo tras apagarlo.",
+    "doneHint": "Ya está activo. Si aparece el botón «Guardar en el teclado», púlsalo; si no, apaga y enciende el teclado una vez para comprobar que el atajo se mantuvo.",
     "close": "Hecho",
     "priorIdleApplied": "Ahora hace falta una pausa breve, así que el acorde no puede dispararse al escribir.",
     "warnUnverified": "Aplicado sin confirmar — pruébalo antes de dejar que el teclado se bloquee.",

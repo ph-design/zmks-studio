@@ -513,7 +513,10 @@ export function UnlockChangeFlow({
             t("unlockChange.priorIdleApplied", "A brief pause is now required before the chord counts, so it can't fire while typing."))}
           {error && notice("warn", error)}
           <p style={{ maxWidth: 420, fontSize: 12, color: th.textHelper, lineHeight: 1.6 }}>
-            {t("unlockChange.doneHint", "Save to keyboard to keep it across a power cycle.")}
+            {/* Deliberately not "press Save": a combo write doesn't mark the
+                session dirty, so that button may not even be showing. Whether
+                combos persist on their own is a firmware question. */}
+            {t("unlockChange.doneHint", "It's active right now. If a “Save to keyboard” button is showing, use it — otherwise power-cycle the keyboard once to check the shortcut survived.")}
           </p>
           <button onClick={onClose}
             style={{ padding: "8px 18px", fontSize: 13, fontWeight: 500, border: "none", background: th.interactive, color: "#fff", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
