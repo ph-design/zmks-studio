@@ -560,8 +560,8 @@
     "confirmedHint": "Le clavier a produit la frappe de test, donc ce geste fonctionne. L'appliquer comme raccourci de déverrouillage ?",
     "apply": "Appliquer",
     "applying": "Application…",
-    "timeoutSafe": "Aucune frappe de test reçue — certains systèmes ne transmettent pas cette touche. Vous pouvez appliquer quand même : ce clavier garde un autre moyen de déverrouillage.",
-    "timeoutRisky": "Aucune frappe de test reçue — certains systèmes ne transmettent pas cette touche. Appliquer quand même signifie que si le geste ne fonctionne pas, le clavier ne pourra plus être modifié sans reflashage.",
+    "timeoutSafe": "Vous pouvez appliquer sans confirmation : ce clavier garde un autre moyen de déverrouillage.",
+    "timeoutRisky": "Appliquer sans confirmation signifie que si le geste ne fonctionne pas, le clavier ne pourra plus être modifié sans reflashage.",
     "applyAnyway": "Appliquer sans confirmation",
     "done": "Raccourci de déverrouillage mis à jour",
     "doneHint": "Enregistrez sur le clavier pour le conserver après une coupure.",
@@ -570,6 +570,12 @@
     "warnUnverified": "Appliqué sans confirmation — testez-le avant de laisser le clavier se verrouiller.",
     "errArm": "Impossible de préparer le test. Rien n'a été modifié.",
     "errCommit": "L'écriture du nouveau raccourci a échoué. L'ancien fonctionne toujours.",
-    "errNoKeyPress": "Ce firmware n'a pas de comportement Key Press, le geste ne peut pas être testé."
+    "errNoKeyPress": "Ce firmware n'a pas de comportement Key Press, le geste ne peut pas être testé.",
+    "probeKey": "Touche de test",
+    "keysSeen": "Frappes reçues par Studio",
+    "noKeysSeen": "Aucune frappe reçue pour l'instant",
+    "timeoutComboIssue": "D'autres frappes arrivent mais pas la touche de test : l'accord ne se déclenche pas sur le clavier. Vérifiez que les touches sont pressées ensemble, ou essayez une autre touche de test.",
+    "timeoutNoInput": "Aucune frappe n'arrive à Studio. Vérifiez que cette fenêtre a le focus et que le clavier écrit bien sur cet ordinateur.",
+    "tryAnotherProbe": "Réessayer avec une autre touche de test"
   }
 }

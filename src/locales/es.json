@@ -560,8 +560,8 @@
     "confirmedHint": "El teclado produjo la pulsación de prueba, así que este gesto funciona. ¿Aplicarlo como atajo de desbloqueo?",
     "apply": "Aplicar",
     "applying": "Aplicando…",
-    "timeoutSafe": "No llegó la pulsación de prueba — algunos sistemas no pasan esta tecla. Puedes aplicarlo igualmente: este teclado conserva otra forma de desbloquearse.",
-    "timeoutRisky": "No llegó la pulsación de prueba — algunos sistemas no pasan esta tecla. Aplicarlo igualmente implica que, si el gesto no funciona, el teclado no podrá editarse sin volver a flashearlo.",
+    "timeoutSafe": "Puedes aplicarlo sin confirmar; este teclado conserva otra forma de desbloquearse.",
+    "timeoutRisky": "Aplicar sin confirmar implica que, si el gesto no funciona, el teclado no podrá editarse sin volver a flashearlo.",
     "applyAnyway": "Aplicar sin confirmar",
     "done": "Atajo de desbloqueo actualizado",
     "doneHint": "Guarda en el teclado para conservarlo tras apagarlo.",
@@ -570,6 +570,12 @@
     "warnUnverified": "Aplicado sin confirmar — pruébalo antes de dejar que el teclado se bloquee.",
     "errArm": "No se pudo preparar la prueba. No se cambió nada.",
     "errCommit": "Falló la escritura del nuevo atajo. El anterior sigue funcionando.",
-    "errNoKeyPress": "Este firmware no tiene comportamiento Key Press, así que el gesto no se puede probar."
+    "errNoKeyPress": "Este firmware no tiene comportamiento Key Press, así que el gesto no se puede probar.",
+    "probeKey": "Tecla de prueba",
+    "keysSeen": "Pulsaciones que llegan a Studio",
+    "noKeysSeen": "Aún no llega ninguna pulsación",
+    "timeoutComboIssue": "Llegan otras pulsaciones pero no la tecla de prueba, así que el acorde no se dispara en el teclado. Comprueba que las teclas se pulsan juntas, o prueba otra tecla de prueba.",
+    "timeoutNoInput": "No llega ninguna pulsación a Studio. Asegúrate de que esta ventana tiene el foco y que el teclado escribe en este ordenador.",
+    "tryAnotherProbe": "Reintentar con otra tecla de prueba"
   }
 }

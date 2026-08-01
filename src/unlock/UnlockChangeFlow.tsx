@@ -8,12 +8,15 @@ import type { Keymap, PhysicalLayout as PhysicalLayoutMsg } from "@zmkfirmware/z
 import type { CarbonTheme } from "../carbon/theme";
 import { PhysicalLayout, type LayoutZoom } from "../keyboard/PhysicalLayout";
 import { KeyboardCanvas } from "../keyboard/KeyboardCanvas";
+import { usePressedKeys } from "../carbon/usePressedKeys";
+import { shortHidLabel } from "../combos/comboUtils";
 import { GestureChips } from "./GestureChips";
 import { useKeyProbe } from "./useKeyProbe";
 import {
   conflictingCombos,
   gestureResistsTyping,
-  PROBE_KEY,
+  PROBE_KEYS,
+  probeUsage,
   TYPING_GUARD_IDLE_MS,
   unlockKeyLabel,
 } from "./unlockPaths";
@@ -77,8 +80,36 @@ export function UnlockChangeFlow({
     [positions, keymap, behaviors]
   );
 
-  const hits = useKeyProbe(PROBE_KEY.code, step === "waiting");
+  // Which probe key we're currently bound to; the user can move on if their
+  // system doesn't deliver it.
+  const [probeIndex, setProbeIndex] = useState(0);
+  const probe = PROBE_KEYS[Math.min(probeIndex, PROBE_KEYS.length - 1)];
+  const hasAnotherProbe = probeIndex < PROBE_KEYS.length - 1;
+
+  const hits = useKeyProbe(probe.code, step === "waiting");
   const sawProbe = hits > 0;
+
+  /*
+   * Anything else the keyboard is sending while we wait. If these light up but
+   * the probe key never arrives, the host link is fine and the combo isn't
+   * firing; if nothing arrives at all, the keystrokes aren't reaching Studio.
+   * That distinction is the difference between a firmware problem and a focus
+   * problem, and it's invisible without showing it.
+   */
+  const otherKeys = usePressedKeys(step === "waiting");
+  const [seenKeys, setSeenKeys] = useState<string[]>([]);
+  useEffect(() => {
+    if (step !== "waiting") {
+      setSeenKeys([]);
+      return;
+    }
+    if (otherKeys.size === 0) return;
+    setSeenKeys((prev) => {
+      const next = new Set(prev);
+      for (const usage of otherKeys) next.add(shortHidLabel(usage));
+      return [...next].slice(-8);
+    });
+  }, [otherKeys, step]);
 
   // Restore the borrowed slot no matter how the flow ends, including unmount.
   const releaseSpare = useCallback(async () => {
@@ -109,12 +140,21 @@ export function UnlockChangeFlow({
       return;
     }
 
+    /*
+     * Mirror the unlock combo's trigger conditions, `layerMask` included —
+     * inheriting the spare slot's mask instead was a real bug: `0` means "all
+     * layers", so a spare slot restricted to layers the user isn't on gives a
+     * combo that can never fire, and the test looks broken for no visible
+     * reason.
+     */
     const ok = await applyCombo({
       ...spareCombo,
       keyPositions: positions,
       timeoutMs: unlockCombo.timeoutMs,
       requirePriorIdleMs: unlockCombo.requirePriorIdleMs,
-      behavior: { behaviorId: kpBehaviorId, param1: probeUsage(), param2: 0 },
+      layerMask: unlockCombo.layerMask,
+      slowRelease: unlockCombo.slowRelease,
+      behavior: { behaviorId: kpBehaviorId, param1: probeUsage(probe.hidId), param2: 0 },
     });
 
     if (!ok) {
@@ -300,12 +340,36 @@ export function UnlockChangeFlow({
               <p style={{ maxWidth: 440, fontSize: 12, color: th.textHelper, lineHeight: 1.6 }}>
                 {t("unlockChange.pressHint", "Your current shortcut is untouched until this one is confirmed, and the keyboard stays unlocked throughout — so nothing is at risk if it doesn't work.")}
               </p>
+
+              {/* What Studio is watching for, and what it's actually receiving. */}
+              {step === "waiting" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", fontSize: 11, color: th.textHelper }}>
+                  <span>
+                    {t("unlockChange.probeKey", "Test key")}: <span style={{ fontFamily: "var(--font-mono)", color: th.textSecondary }}>{probe.label}</span>
+                  </span>
+                  <span>
+                    {seenKeys.length > 0
+                      ? `${t("unlockChange.keysSeen", "Keystrokes reaching Studio")}: ${seenKeys.join(" ")}`
+                      : t("unlockChange.noKeysSeen", "No keystrokes reaching Studio yet")}
+                  </span>
+                </div>
+              )}
+
               {error && notice("error", error)}
               {timedOut && step === "waiting" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 460 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 470 }}>
+                  {notice("warn", seenKeys.length > 0
+                    ? t("unlockChange.timeoutComboIssue", "Other keystrokes are reaching Studio but the test key isn't, so the chord isn't firing on the keyboard. Check that the keys are pressed together, or try a different test key.")
+                    : t("unlockChange.timeoutNoInput", "No keystrokes are reaching Studio at all. Make sure this window has focus and that the keyboard is typing into this computer."))}
+                  {hasAnotherProbe && (
+                    <button onClick={() => { setProbeIndex((i) => i + 1); arm(); }}
+                      style={{ alignSelf: "center", padding: "8px 16px", fontSize: 13, background: th.layer2, color: th.textPrimary, border: "none", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+                      {t("unlockChange.tryAnotherProbe", "Retry with a different test key")}
+                    </button>
+                  )}
                   {notice("warn", otherPathCount > 1
-                    ? t("unlockChange.timeoutSafe", "No test keystroke arrived — some systems don't pass this key through. You can apply anyway; this keyboard still has another way to unlock.")
-                    : t("unlockChange.timeoutRisky", "No test keystroke arrived — some systems don't pass this key through. Applying anyway means that if the gesture doesn't work, the keyboard can't be edited again without reflashing."))}
+                    ? t("unlockChange.timeoutSafe", "You can apply without confirmation; this keyboard still has another way to unlock.")
+                    : t("unlockChange.timeoutRisky", "Applying without confirmation means that if the gesture doesn't work, the keyboard can't be edited again without reflashing."))}
                   <button onClick={() => commit(false)}
                     style={{ alignSelf: "center", padding: "8px 16px", fontSize: 13, background: "transparent", color: th.warning, border: `1px solid ${th.warning}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
                     {t("unlockChange.applyAnyway", "Apply without confirmation")}
@@ -349,7 +413,3 @@ function findKeyPressBehaviorId(
   return undefined;
 }
 
-function probeUsage(): number {
-  // HID keyboard page (0x07), shifted the way `&kp` parameters are encoded.
-  return (7 << 16) + PROBE_KEY.hidId;
-}

@@ -1,4 +1,4 @@
-import { KeyRound, ShieldCheck, AlertTriangle, Pencil } from "lucide-react";
+import { KeyRound, ShieldCheck, AlertTriangle } from "lucide-react";
 
 import type { CarbonTheme } from "../carbon/theme";
 import { GestureChips } from "./GestureChips";
@@ -83,9 +83,12 @@ export function UnlockPanel({ th, t, paths, canChange, noSpareSlot, onChange }: 
 
       {canChange && (
         <div style={{ marginTop: 12 }}>
+          {/* Cautioned, not destructive: the flow refuses to give up a working
+              gesture, but this is still the keyboard's only key. Warning outline
+              rather than the plain secondary button it started as. */}
           <button onClick={onChange}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", fontSize: 13, background: th.layer2, color: th.textPrimary, border: "none", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
-            <Pencil size={13} />{t("unlockPanel.change", "Change shortcut")}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", fontSize: 13, background: "transparent", color: th.warning, border: `1px solid ${th.warning}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+            <KeyRound size={13} />{t("unlockPanel.change", "Change shortcut")}
           </button>
           <p style={{ fontSize: 12, color: th.textHelper, marginTop: 8, lineHeight: 1.6 }}>
             {t("unlockPanel.changeHint", "You'll be asked to perform the new gesture before it replaces the current one, and the keyboard stays unlocked throughout.")}

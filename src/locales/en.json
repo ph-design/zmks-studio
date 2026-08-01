@@ -560,8 +560,8 @@
     "confirmedHint": "The keyboard produced the test keystroke, so this gesture works. Apply it as the unlock shortcut?",
     "apply": "Apply",
     "applying": "Applying…",
-    "timeoutSafe": "No test keystroke arrived — some systems don't pass this key through. You can apply anyway; this keyboard still has another way to unlock.",
-    "timeoutRisky": "No test keystroke arrived — some systems don't pass this key through. Applying anyway means that if the gesture doesn't work, the keyboard can't be edited again without reflashing.",
+    "timeoutSafe": "You can apply without confirmation; this keyboard still has another way to unlock.",
+    "timeoutRisky": "Applying without confirmation means that if the gesture doesn't work, the keyboard can't be edited again without reflashing.",
     "applyAnyway": "Apply without confirmation",
     "done": "Unlock shortcut updated",
     "doneHint": "Save to keyboard to keep it across a power cycle.",
@@ -570,6 +570,12 @@
     "warnUnverified": "Applied without confirmation — test it before you let the keyboard lock.",
     "errArm": "Couldn't set up the test. Nothing was changed.",
     "errCommit": "Writing the new shortcut failed. Your old one still works.",
-    "errNoKeyPress": "This firmware has no Key Press behavior, so the gesture can't be tested."
+    "errNoKeyPress": "This firmware has no Key Press behavior, so the gesture can't be tested.",
+    "probeKey": "Test key",
+    "keysSeen": "Keystrokes reaching Studio",
+    "noKeysSeen": "No keystrokes reaching Studio yet",
+    "timeoutComboIssue": "Other keystrokes are reaching Studio but the test key isn't, so the chord isn't firing on the keyboard. Check that the keys are pressed together, or try a different test key.",
+    "timeoutNoInput": "No keystrokes are reaching Studio at all. Make sure this window has focus and that the keyboard is typing into this computer.",
+    "tryAnotherProbe": "Retry with a different test key"
   }
 }

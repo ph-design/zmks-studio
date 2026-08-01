@@ -116,13 +116,23 @@ export function collectUnlockPaths(
  * during the test, so a gesture the user turns out not to be able to perform
  * strands nobody.
  */
-export const PROBE_KEY = {
-  /** `KeyboardEvent.code` we listen for. */
-  code: "F13",
-  /** HID keyboard page id for F13. */
-  hidId: 0x68,
-  label: "F13",
-};
+/*
+ * Candidates, tried in order. No key is delivered to the browser on every
+ * platform — F13-F15 don't exist on many keyboards and some systems swallow
+ * them, Pause is absent on most Macs — so the user gets to move to the next one
+ * rather than being stuck on a key their OS eats.
+ */
+export const PROBE_KEYS = [
+  { code: "F13", hidId: 0x68, label: "F13" },
+  { code: "F14", hidId: 0x69, label: "F14" },
+  { code: "F15", hidId: 0x6a, label: "F15" },
+  { code: "Pause", hidId: 0x48, label: "Pause" },
+];
+
+/** `&kp` parameters are HID usages: page in the high half, id in the low. */
+export function probeUsage(hidId: number): number {
+  return (7 << 16) + hidId;
+}
 
 /** An unused, fully editable slot the probe binding can borrow. */
 export function findSpareComboSlot(

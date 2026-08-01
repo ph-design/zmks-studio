@@ -89,40 +89,35 @@ export function DeviceView({
         </div>
       </div>
 
-      {/* Two columns where there's room, stacked when there isn't. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 32, alignItems: "start", maxWidth: 1180 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ border: `1px solid ${th.border}` }}>
-            {rows.map(([k, v], i) => (
-              <div key={k} style={{ display: "flex", padding: "10px 16px", borderBottom: i < rows.length - 1 ? `1px solid ${th.border}` : "none", background: i % 2 === 0 ? th.layer1 : th.bg }}>
-                <span style={{ width: 140, fontSize: 13, color: th.textHelper, flexShrink: 0 }}>{k}</span>
-                <span style={{ fontSize: 13, color: th.textPrimary, fontFamily: "var(--font-mono)", minWidth: 0, wordBreak: "break-all" }}>{v}</span>
-              </div>
-            ))}
-          </div>
-
-          {model.layouts && model.layouts.length > 1 &&
-            <SettingsBlock th={th} label={t("carbon.activeLayout", "Active layout")}>
-              <PhysicalLayoutPicker layouts={model.layouts} selectedPhysicalLayoutIndex={model.selectedPhysicalLayoutIndex} onPhysicalLayoutClicked={model.doSelectPhysicalLayout} />
-            </SettingsBlock>
-          }
-
-          <div style={{ paddingTop: 20 }}>
-            <button onClick={onResetSettings} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", fontSize: 13, background: "transparent", color: th.error, border: `1px solid ${th.error}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
-              <RotateCcw size={14} />{t("carbon.factoryReset", "Restore stock settings")}
-            </button>
-          </div>
+      <div style={{ maxWidth: 720 }}>
+        <div style={{ border: `1px solid ${th.border}` }}>
+          {rows.map(([k, v], i) => (
+            <div key={k} style={{ display: "flex", padding: "10px 16px", borderBottom: i < rows.length - 1 ? `1px solid ${th.border}` : "none", background: i % 2 === 0 ? th.layer1 : th.bg }}>
+              <span style={{ width: 140, fontSize: 13, color: th.textHelper, flexShrink: 0 }}>{k}</span>
+              <span style={{ fontSize: 13, color: th.textPrimary, fontFamily: "var(--font-mono)", minWidth: 0, wordBreak: "break-all" }}>{v}</span>
+            </div>
+          ))}
         </div>
 
-        <div style={{ minWidth: 0 }}>
-          <UnlockPanel th={th} t={t} paths={unlockPaths}
-            canChange={canChangeUnlock}
-            noSpareSlot={!!editableUnlockCombo && !spareCombo}
-            onChange={() => {
-              if (editableUnlockCombo && spareCombo) {
-                setUnlockEdit({ unlockCombo: editableUnlockCombo, spareCombo });
-              }
-            }} />
+        {model.layouts && model.layouts.length > 1 &&
+          <SettingsBlock th={th} label={t("carbon.activeLayout", "Active layout")}>
+            <PhysicalLayoutPicker layouts={model.layouts} selectedPhysicalLayoutIndex={model.selectedPhysicalLayoutIndex} onPhysicalLayoutClicked={model.doSelectPhysicalLayout} />
+          </SettingsBlock>
+        }
+
+        <UnlockPanel th={th} t={t} paths={unlockPaths}
+          canChange={canChangeUnlock}
+          noSpareSlot={!!editableUnlockCombo && !spareCombo}
+          onChange={() => {
+            if (editableUnlockCombo && spareCombo) {
+              setUnlockEdit({ unlockCombo: editableUnlockCombo, spareCombo });
+            }
+          }} />
+
+        <div style={{ paddingTop: 20 }}>
+          <button onClick={onResetSettings} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", fontSize: 13, background: "transparent", color: th.error, border: `1px solid ${th.error}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+            <RotateCcw size={14} />{t("carbon.factoryReset", "Restore stock settings")}
+          </button>
         </div>
       </div>
     </div>
