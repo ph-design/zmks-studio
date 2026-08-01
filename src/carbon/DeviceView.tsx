@@ -25,11 +25,12 @@ interface DeviceViewProps {
   unlockPaths: UnlockPaths;
   combos: ComboConfig[];
   applyCombo: (cfg: ComboConfig) => Promise<boolean>;
+  readCombo: (index: number) => Promise<ComboConfig | null>;
   onResetSettings: () => void;
 }
 
 export function DeviceView({
-  model, th, t, deviceName, serial, unlockPaths, combos, applyCombo, onResetSettings,
+  model, th, t, deviceName, serial, unlockPaths, combos, applyCombo, readCombo, onResetSettings,
 }: DeviceViewProps) {
   /*
    * The two slots are snapshotted on entry rather than re-derived: writing the
@@ -69,6 +70,7 @@ export function DeviceView({
         setScale={model.setKeymapScale}
         otherPathCount={unlockPaths.total}
         applyCombo={applyCombo}
+        readCombo={readCombo}
         onClose={() => setUnlockEdit(null)}
       />
     );

@@ -577,6 +577,9 @@
     "timeoutNoInput": "No keystrokes are reaching Studio at all. Make sure this window has focus and that the keyboard is typing into this computer.",
     "tryAnotherProbe": "Retry with a different test key",
     "probeTyped": "swallowed, not typed anywhere",
-    "timeoutSwallowed": "If pressing them together shows nothing at all, the combo IS firing — ZMK swallows the keys it consumes and sends the test key instead, so only the test key is going missing. Try a different one. (Seeing the keys individually just means the chord didn't complete.)"
+    "timeoutSwallowed": "If pressing them together shows nothing at all, the combo IS firing — ZMK swallows the keys it consumes and sends the test key instead, so only the test key is going missing. Try a different one. (Seeing the keys individually just means the chord didn't complete.)",
+    "slotReadback": "Slot",
+    "errStoredBehavior": "Firmware accepted the test but didn't store the test keystroke on the slot. That's why the chord swallows keys and emits nothing — the trigger landed and the behavior didn't. This needs a firmware fix; the read-back above is the evidence.",
+    "errStoredPositions": "Firmware accepted the test but stored different trigger keys, so this device isn't taking the write as sent."
   }
 }

@@ -42,6 +42,8 @@ interface UnlockChangeFlowProps {
   /** Total unlock paths; more than one means a bad guess isn't fatal. */
   otherPathCount: number;
   applyCombo: (cfg: ComboConfig) => Promise<boolean>;
+  /** Reads a slot back from firmware, to confirm the write actually landed. */
+  readCombo: (index: number) => Promise<ComboConfig | null>;
   onClose: () => void;
 }
 
@@ -55,7 +57,7 @@ interface UnlockChangeFlowProps {
  */
 export function UnlockChangeFlow({
   th, t, unlockCombo, spareCombo, allCombos, keymap, behaviors, layout,
-  scale, setScale, otherPathCount, applyCombo, onClose,
+  scale, setScale, otherPathCount, applyCombo, readCombo, onClose,
 }: UnlockChangeFlowProps) {
   const [step, setStep] = useState<Step>("pick");
   const [selected, setSelected] = useState<Set<number>>(
@@ -64,6 +66,8 @@ export function UnlockChangeFlow({
   const [error, setError] = useState<string | null>(null);
   const [timedOut, setTimedOut] = useState(false);
   const [priorIdleApplied, setPriorIdleApplied] = useState(false);
+  /** What firmware reports is in the borrowed slot once the test is armed. */
+  const [armedSlot, setArmedSlot] = useState<ComboConfig | null>(null);
 
   const positions = useMemo(
     () => [...selected].sort((a, b) => a - b),
@@ -92,6 +96,16 @@ export function UnlockChangeFlow({
 
   const hits = useKeyProbe(probe.code, step === "waiting");
   const sawProbe = hits > 0;
+
+  // Did the write land? A slot that triggers but emits nothing usually means the
+  // behavior was dropped while the key positions took effect.
+  const armedBehaviorWrong =
+    !!armedSlot &&
+    ((armedSlot.behavior?.behaviorId ?? -1) < 0 ||
+      armedSlot.behavior?.param1 !== probeUsage(probe.hidId));
+  const armedPositionsWrong =
+    !!armedSlot &&
+    [...armedSlot.keyPositions].sort((a, b) => a - b).join(",") !== positions.join(",");
 
   /*
    * Anything else the keyboard is sending while we wait. If these light up but
@@ -168,6 +182,15 @@ export function UnlockChangeFlow({
     }
     armedRef.current = true;
     setStep("waiting");
+
+    /*
+     * Read the slot back from firmware rather than trusting the write's own
+     * "ok". A combo that swallows its keys but emits nothing looks identical to
+     * a broken test, and the two have opposite causes: the trigger landed and
+     * the behavior didn't. Showing what firmware actually holds settles it.
+     */
+    const stored = await readCombo(spareCombo.index);
+    setArmedSlot(stored);
   };
 
   // Give the user a way forward if the host never delivers the probe key.
@@ -357,8 +380,23 @@ export function UnlockChangeFlow({
                       ? `${t("unlockChange.keysSeen", "Keystrokes reaching Studio")}: ${seenKeys.join(" ")}`
                       : t("unlockChange.noKeysSeen", "No keystrokes reaching Studio yet")}
                   </span>
+                  {armedSlot && (
+                    <span style={{ fontFamily: "var(--font-mono)", color: th.textSecondary }}>
+                      {t("unlockChange.slotReadback", "Slot")} #{armedSlot.index}
+                      {" · keys ["}{armedSlot.keyPositions.join(",")}{"]"}
+                      {" · behavior "}{armedSlot.behavior?.behaviorId ?? "none"}
+                      {" · param1 0x"}{(armedSlot.behavior?.param1 ?? 0).toString(16)}
+                      {" · layers 0x"}{armedSlot.layerMask.toString(16)}
+                      {" · "}{armedSlot.timeoutMs}ms
+                    </span>
+                  )}
                 </div>
               )}
+
+              {armedSlot && (armedBehaviorWrong || armedPositionsWrong) && notice("error",
+                armedPositionsWrong
+                  ? t("unlockChange.errStoredPositions", "Firmware accepted the test but stored different trigger keys, so this device isn't taking the write as sent.")
+                  : t("unlockChange.errStoredBehavior", "Firmware accepted the test but didn't store the test keystroke on the slot. That's why the chord swallows keys and emits nothing — the trigger landed and the behavior didn't. This needs a firmware fix; the read-back above is the evidence."))}
 
               {error && notice("error", error)}
               {timedOut && step === "waiting" && (

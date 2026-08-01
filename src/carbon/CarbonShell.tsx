@@ -338,7 +338,8 @@ export function CarbonShell(props: CarbonShellProps) {
               </div>
             ) : activeNav === "device" ? (
               <DeviceView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
-                unlockPaths={unlockPaths} combos={combos.combos} applyCombo={combos.applyConfig}
+                unlockPaths={unlockPaths} combos={combos.combos}
+                applyCombo={combos.applyConfig} readCombo={combos.readCombo}
                 onResetSettings={props.onResetSettings} />
             ) : activeNav === "preferences" ? (
               <PreferencesView th={th} t={t} setting={setting} setSetting={setSetting}

@@ -37,6 +37,24 @@ export function useCombos() {
     refresh();
   }, [conn, unlocked, refresh]);
 
+  /**
+   * Reads one slot straight from firmware, bypassing the optimistic local copy.
+   * Needed when the question is "did the write actually land", which the local
+   * state can't answer because it assumes success.
+   */
+  const readCombo = useCallback(
+    async (index: number): Promise<ComboConfig | null> => {
+      if (!conn) return null;
+      try {
+        const resp = await call_rpc(conn, { combos: { getCombo: { index } } });
+        return resp.combos?.getCombo ?? null;
+      } catch {
+        return null;
+      }
+    },
+    [conn]
+  );
+
   const applyConfig = useCallback(
     async (config: ComboConfig): Promise<boolean> => {
       if (!conn) return false;
@@ -58,7 +76,7 @@ export function useCombos() {
     [conn]
   );
 
-  return { combos, loaded, applyConfig, refresh };
+  return { combos, loaded, applyConfig, readCombo, refresh };
 }
 
 export function combosEqual(a: ComboConfig, b: ComboConfig): boolean {

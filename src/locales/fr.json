@@ -577,6 +577,9 @@
     "timeoutNoInput": "Aucune frappe n'arrive à Studio. Vérifiez que cette fenêtre a le focus et que le clavier écrit bien sur cet ordinateur.",
     "tryAnotherProbe": "Réessayer avec une autre touche de test",
     "probeTyped": "interceptée, rien n'est saisi",
-    "timeoutSwallowed": "Si rien n'apparaît quand vous les pressez ensemble, l'accord se déclenche bien — ZMK absorbe les touches qu'il consomme et envoie la touche de test à la place ; seule celle-ci manque. Essayez-en une autre. (Les voir individuellement signifie juste que l'accord n'a pas abouti.)"
+    "timeoutSwallowed": "Si rien n'apparaît quand vous les pressez ensemble, l'accord se déclenche bien — ZMK absorbe les touches qu'il consomme et envoie la touche de test à la place ; seule celle-ci manque. Essayez-en une autre. (Les voir individuellement signifie juste que l'accord n'a pas abouti.)",
+    "slotReadback": "Emplacement",
+    "errStoredBehavior": "Le firmware a accepté le test mais n'a pas enregistré la touche de test sur l'emplacement. C'est pourquoi l'accord absorbe les touches sans rien émettre : le déclencheur a été pris en compte, le comportement non. Cela demande un correctif firmware ; la relecture ci-dessus en est la preuve.",
+    "errStoredPositions": "Le firmware a accepté le test mais a enregistré d'autres touches de déclenchement que celles envoyées."
   }
 }

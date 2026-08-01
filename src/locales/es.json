@@ -577,6 +577,9 @@
     "timeoutNoInput": "No llega ninguna pulsación a Studio. Asegúrate de que esta ventana tiene el foco y que el teclado escribe en este ordenador.",
     "tryAnotherProbe": "Reintentar con otra tecla de prueba",
     "probeTyped": "interceptada, no se escribe en ningún sitio",
-    "timeoutSwallowed": "Si al pulsarlas juntas no aparece nada, el acorde SÍ se está disparando: ZMK absorbe las teclas que consume y envía la tecla de prueba en su lugar, así que solo falta esa. Prueba con otra. (Verlas por separado solo significa que el acorde no se completó.)"
+    "timeoutSwallowed": "Si al pulsarlas juntas no aparece nada, el acorde SÍ se está disparando: ZMK absorbe las teclas que consume y envía la tecla de prueba en su lugar, así que solo falta esa. Prueba con otra. (Verlas por separado solo significa que el acorde no se completó.)",
+    "slotReadback": "Ranura",
+    "errStoredBehavior": "El firmware aceptó la prueba pero no guardó la tecla de prueba en la ranura. Por eso el acorde absorbe las teclas y no emite nada: el disparador se aplicó y el comportamiento no. Necesita un arreglo en el firmware; la relectura de arriba es la prueba.",
+    "errStoredPositions": "El firmware aceptó la prueba pero guardó teclas de disparo distintas a las enviadas."
   }
 }
