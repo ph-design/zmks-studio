@@ -589,6 +589,8 @@
     "pickHintCreate": "Votre touche de déverrouillage actuelle reste en place : c'est purement un ajout.",
     "doneCreate": "Raccourci de déverrouillage ajouté",
     "warnOverlap": "Ces touches sont aussi utilisées par un autre combo",
-    "warnOverlapHint": "Les combos qui se chevauchent se disputent la priorité et l'autre peut gagner — le test ci-dessous semblerait alors échouer sans raison."
+    "warnOverlapHint": "Les combos qui se chevauchent se disputent la priorité et l'autre peut gagner — le test ci-dessous semblerait alors échouer sans raison.",
+    "warnSameAsCurrent": "C'est le raccourci déjà utilisé : il n'y a rien à confirmer. Choisissez d'autres touches, ou annulez pour le conserver tel quel.",
+    "warnShadowedByUnlock": "Ces touches recouvrent votre raccourci de déverrouillage actuel, qui reste actif pendant le test. Il gagnerait l'accord et déverrouillerait au lieu de produire la touche de test : le test ne peut donc rien confirmer. Choisissez des touches qu'il ne partage pas."
   }
 }

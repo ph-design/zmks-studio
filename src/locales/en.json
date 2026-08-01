@@ -589,6 +589,8 @@
     "pickHintCreate": "Your existing unlock key stays as it is, so this is purely an addition.",
     "doneCreate": "Unlock shortcut added",
     "warnOverlap": "These keys are also used by another combo",
-    "warnOverlapHint": "Overlapping combos compete, and the other one may win — which makes the test below look like it failed for no reason."
+    "warnOverlapHint": "Overlapping combos compete, and the other one may win — which makes the test below look like it failed for no reason.",
+    "warnSameAsCurrent": "That's the shortcut already in use, so there's nothing to confirm. Pick different keys — or cancel to keep it as it is.",
+    "warnShadowedByUnlock": "These keys overlap your current unlock shortcut, which stays live during the test. It would win the chord and unlock instead of producing the test keystroke, so the test can't confirm anything. Pick keys it doesn't share."
   }
 }

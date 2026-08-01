@@ -102,23 +102,40 @@ export function UnlockChangeFlow({
   );
   const labels = positions.map((p) => unlockKeyLabel(p, keymap, behaviors));
 
+  /*
+   * Two different questions, and answering only the first was a bug.
+   *
+   * `conflicts` is about the *end state*: would the finished combo duplicate
+   * another one? The slot being rewritten is excluded, since reusing its own keys
+   * is fine.
+   *
+   * `overlaps` is about the *test*: the probe lives in a borrowed slot while
+   * every existing combo — the unlock combo very much included, still holding its
+   * old trigger — is still live. ZMK resolves competing combos against each
+   * other, and the unlock combo tends to win, in which case the chord swallows
+   * its keys and emits nothing at all because studio unlock produces no
+   * keystroke. That reads exactly like a broken test. So nothing is excluded here
+   * except the probe's own slot.
+   */
   const conflicts = useMemo(
     () => conflictingCombos(allCombos, positions, unlockCombo?.index ?? spareCombo.index),
     [allCombos, positions, unlockCombo?.index, spareCombo.index]
   );
 
-  /*
-   * Combos merely sharing a key aren't a clash, but ZMK resolves overlapping
-   * combos against each other and the winner isn't predictable from here. A
-   * hand-made F+J combo silently beating the probe is exactly how this looked
-   * broken in testing, so say it rather than let it be debugged the hard way.
-   */
   const overlaps = useMemo(
     () =>
-      overlappingCombos(allCombos, positions, unlockCombo?.index ?? spareCombo.index)
+      overlappingCombos(allCombos, positions, spareCombo.index)
         .filter((c) => !conflicts.some((x) => x.index === c.index)),
-    [allCombos, positions, unlockCombo?.index, spareCombo.index, conflicts]
+    [allCombos, positions, spareCombo.index, conflicts]
   );
+  const shadowedByUnlock =
+    !!unlockCombo && overlaps.some((c) => c.index === unlockCombo.index);
+
+  /** Re-testing the gesture that's already in use has nothing to confirm. */
+  const sameAsCurrent =
+    !!unlockCombo &&
+    positions.length > 0 &&
+    [...unlockCombo.keyPositions].sort((a, b) => a - b).join(",") === positions.join(",");
   const resistsTyping = useMemo(
     () => gestureResistsTyping(positions, keymap, behaviors),
     [positions, keymap, behaviors]
@@ -391,7 +408,11 @@ export function UnlockChangeFlow({
             {error && notice("error", error)}
             {conflicts.length > 0 && notice("warn",
               t("unlockChange.warnConflict", "Another combo already uses exactly these keys. Pick a different set."))}
-            {overlaps.length > 0 && notice("warn",
+            {sameAsCurrent && notice("warn",
+              t("unlockChange.warnSameAsCurrent", "That's the shortcut already in use, so there's nothing to confirm. Pick different keys — or cancel to keep it as it is."))}
+            {shadowedByUnlock && !sameAsCurrent && notice("warn",
+              t("unlockChange.warnShadowedByUnlock", "These keys overlap your current unlock shortcut, which stays live during the test. It would win the chord and unlock instead of producing the test keystroke, so the test can't confirm anything. Pick keys it doesn't share."))}
+            {overlaps.length > 0 && !shadowedByUnlock && notice("warn",
               `${t("unlockChange.warnOverlap", "These keys are also used by another combo")} (${overlaps.map((c) => `#${c.index}`).join(", ")}). ${t("unlockChange.warnOverlapHint", "Overlapping combos compete, and the other one may win — which makes the test below look like it failed for no reason.")}`)}
             {positions.length >= 2 && !resistsTyping && notice("warn",
               t("unlockChange.warnTyping", "These are all ordinary keys, so the chord could fire while typing. Studio will require a brief pause before it counts — including one layer or modifier key is safer."))}
@@ -401,10 +422,19 @@ export function UnlockChangeFlow({
                   ? <GestureChips keys={labels} />
                   : <span style={{ fontSize: 12, color: th.textHelper }}>{t("unlockChange.nothingPicked", "Nothing picked yet")}</span>}
               </span>
-              <button onClick={() => arm()} disabled={positions.length < 2 || conflicts.length > 0}
-                style={{ padding: "8px 16px", fontSize: 13, fontWeight: 500, border: "none", background: th.interactive, color: "#fff", cursor: positions.length < 2 || conflicts.length > 0 ? "not-allowed" : "pointer", opacity: positions.length < 2 || conflicts.length > 0 ? 0.5 : 1, fontFamily: "var(--font-sans)" }}>
-                {t("unlockChange.next", "Test this shortcut")}
-              </button>
+              {/* Blocked when the test provably can't conclude anything: too few
+                  keys, a duplicate chord, the gesture already in use, or one the
+                  live unlock combo would win. */}
+              {(() => {
+                const blocked =
+                  positions.length < 2 || conflicts.length > 0 || sameAsCurrent || shadowedByUnlock;
+                return (
+                  <button onClick={() => arm()} disabled={blocked}
+                    style={{ padding: "8px 16px", fontSize: 13, fontWeight: 500, border: "none", background: th.interactive, color: "#fff", cursor: blocked ? "not-allowed" : "pointer", opacity: blocked ? 0.5 : 1, fontFamily: "var(--font-sans)" }}>
+                    {t("unlockChange.next", "Test this shortcut")}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </>

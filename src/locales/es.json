@@ -589,6 +589,8 @@
     "pickHintCreate": "Tu tecla de desbloqueo actual se mantiene, así que esto es solo una adición.",
     "doneCreate": "Atajo de desbloqueo añadido",
     "warnOverlap": "Estas teclas también las usa otro combo",
-    "warnOverlapHint": "Los combos que se solapan compiten y puede ganar el otro, lo que haría que la prueba de abajo pareciera fallar sin motivo."
+    "warnOverlapHint": "Los combos que se solapan compiten y puede ganar el otro, lo que haría que la prueba de abajo pareciera fallar sin motivo.",
+    "warnSameAsCurrent": "Ese es el atajo que ya está en uso, así que no hay nada que confirmar. Elige otras teclas, o cancela para dejarlo como está.",
+    "warnShadowedByUnlock": "Estas teclas se solapan con tu atajo de desbloqueo actual, que sigue activo durante la prueba. Ganaría el acorde y desbloquearía en vez de producir la tecla de prueba, así que la prueba no puede confirmar nada. Elige teclas que no comparta."
   }
 }
