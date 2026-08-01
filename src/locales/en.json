@@ -574,8 +574,9 @@
     "probeKey": "Test key",
     "keysSeen": "Keystrokes reaching Studio",
     "noKeysSeen": "No keystrokes reaching Studio yet",
-    "timeoutComboIssue": "Other keystrokes are reaching Studio but the test key isn't, so the chord isn't firing on the keyboard. Check that the keys are pressed together, or try a different test key.",
     "timeoutNoInput": "No keystrokes are reaching Studio at all. Make sure this window has focus and that the keyboard is typing into this computer.",
-    "tryAnotherProbe": "Retry with a different test key"
+    "tryAnotherProbe": "Retry with a different test key",
+    "probeTyped": "swallowed, not typed anywhere",
+    "timeoutSwallowed": "If pressing them together shows nothing at all, the combo IS firing — ZMK swallows the keys it consumes and sends the test key instead, so only the test key is going missing. Try a different one. (Seeing the keys individually just means the chord didn't complete.)"
   }
 }

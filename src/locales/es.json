@@ -574,8 +574,9 @@
     "probeKey": "Tecla de prueba",
     "keysSeen": "Pulsaciones que llegan a Studio",
     "noKeysSeen": "Aún no llega ninguna pulsación",
-    "timeoutComboIssue": "Llegan otras pulsaciones pero no la tecla de prueba, así que el acorde no se dispara en el teclado. Comprueba que las teclas se pulsan juntas, o prueba otra tecla de prueba.",
     "timeoutNoInput": "No llega ninguna pulsación a Studio. Asegúrate de que esta ventana tiene el foco y que el teclado escribe en este ordenador.",
-    "tryAnotherProbe": "Reintentar con otra tecla de prueba"
+    "tryAnotherProbe": "Reintentar con otra tecla de prueba",
+    "probeTyped": "interceptada, no se escribe en ningún sitio",
+    "timeoutSwallowed": "Si al pulsarlas juntas no aparece nada, el acorde SÍ se está disparando: ZMK absorbe las teclas que consume y envía la tecla de prueba en su lugar, así que solo falta esa. Prueba con otra. (Verlas por separado solo significa que el acorde no se completó.)"
   }
 }

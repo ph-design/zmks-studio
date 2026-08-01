@@ -117,17 +117,53 @@ export function collectUnlockPaths(
  * strands nobody.
  */
 /*
- * Candidates, tried in order. No key is delivered to the browser on every
- * platform — F13-F15 don't exist on many keyboards and some systems swallow
- * them, Pause is absent on most Macs — so the user gets to move to the next one
- * rather than being stuck on a key their OS eats.
+ * Candidates, walked in order when one doesn't arrive.
+ *
+ * The F-row above F12 is the tidy choice — nothing is bound to it, so nothing
+ * reacts — but it's also the least reliable: those keys don't exist on most
+ * keyboards and plenty of systems never surface them to the browser. So the
+ * ladder drops to ordinary letters, which every platform delivers. Their
+ * keystroke is swallowed by the probe listener, so nothing is typed anywhere;
+ * they're `typed: true` only so the UI can say so.
  */
 export const PROBE_KEYS = [
-  { code: "F13", hidId: 0x68, label: "F13" },
-  { code: "F14", hidId: 0x69, label: "F14" },
-  { code: "F15", hidId: 0x6a, label: "F15" },
-  { code: "Pause", hidId: 0x48, label: "Pause" },
+  { code: "F13", hidId: 0x68, label: "F13", typed: false },
+  { code: "KeyZ", hidId: 0x1d, label: "Z", typed: true },
+  { code: "KeyQ", hidId: 0x14, label: "Q", typed: true },
+  { code: "F14", hidId: 0x69, label: "F14", typed: false },
+  { code: "F15", hidId: 0x6a, label: "F15", typed: false },
+  { code: "Pause", hidId: 0x48, label: "Pause", typed: false },
 ];
+
+export type ProbeKey = (typeof PROBE_KEYS)[number];
+
+/**
+ * Candidates that aren't part of the chord being tested — otherwise a key that
+ * merely passed through would be mistaken for the combo firing.
+ */
+export function usableProbeKeys(
+  positions: number[],
+  keymap: Keymap | undefined,
+  behaviors: BehaviorMap
+): ProbeKey[] {
+  const chordIds = new Set<number>();
+  for (const p of positions) {
+    const binding = keymap?.layers[0]?.bindings[p];
+    if (!binding) continue;
+    // Only a keypress-ish binding carries a usage in param1; a layer key's
+    // param1 is a layer number and would filter candidates for no reason.
+    const name = behaviors[binding.behaviorId]?.displayName;
+    if (name === "Key Press" || name === "Mod-Tap") {
+      chordIds.add(binding.param1 & 0xffff);
+    }
+    if (name === "Mod-Tap" || name === "Layer-Tap") {
+      chordIds.add(binding.param2 & 0xffff);
+    }
+  }
+
+  const free = PROBE_KEYS.filter((k) => !chordIds.has(k.hidId));
+  return free.length > 0 ? free : PROBE_KEYS;
+}
 
 /** `&kp` parameters are HID usages: page in the high half, id in the low. */
 export function probeUsage(hidId: number): number {

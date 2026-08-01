@@ -574,8 +574,9 @@
     "probeKey": "测试按键",
     "keysSeen": "Studio 收到的按键",
     "noKeysSeen": "尚未收到任何按键",
-    "timeoutComboIssue": "Studio 能收到其他按键，但收不到测试键 —— 说明这个组合在键盘上没有触发。确认几个键是同时按下的，或者换一个测试键。",
     "timeoutNoInput": "Studio 完全没有收到任何按键。请确认这个窗口处于焦点状态，且键盘正在向这台电脑输入。",
-    "tryAnotherProbe": "换一个测试键重试"
+    "tryAnotherProbe": "换一个测试键重试",
+    "probeTyped": "会被拦截，不会输入到任何地方",
+    "timeoutSwallowed": "如果同时按下时什么都没显示，说明组合其实已经触发了 —— ZMK 会吞掉参与组合的按键，改为发出测试键，所以缺的只是测试键没送达。换一个测试键试试。（分开按能看到按键是正常的，那表示组合没有成立。）"
   }
 }

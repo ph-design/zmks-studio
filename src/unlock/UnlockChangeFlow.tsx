@@ -15,10 +15,10 @@ import { useKeyProbe } from "./useKeyProbe";
 import {
   conflictingCombos,
   gestureResistsTyping,
-  PROBE_KEYS,
   probeUsage,
   TYPING_GUARD_IDLE_MS,
   unlockKeyLabel,
+  usableProbeKeys,
 } from "./unlockPaths";
 
 /** How long to wait for the probe keystroke before offering a way out. */
@@ -83,8 +83,12 @@ export function UnlockChangeFlow({
   // Which probe key we're currently bound to; the user can move on if their
   // system doesn't deliver it.
   const [probeIndex, setProbeIndex] = useState(0);
-  const probe = PROBE_KEYS[Math.min(probeIndex, PROBE_KEYS.length - 1)];
-  const hasAnotherProbe = probeIndex < PROBE_KEYS.length - 1;
+  const probeCandidates = useMemo(
+    () => usableProbeKeys(positions, keymap, behaviors),
+    [positions, keymap, behaviors]
+  );
+  const probe = probeCandidates[Math.min(probeIndex, probeCandidates.length - 1)];
+  const hasAnotherProbe = probeIndex < probeCandidates.length - 1;
 
   const hits = useKeyProbe(probe.code, step === "waiting");
   const sawProbe = hits > 0;
@@ -346,6 +350,7 @@ export function UnlockChangeFlow({
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", fontSize: 11, color: th.textHelper }}>
                   <span>
                     {t("unlockChange.probeKey", "Test key")}: <span style={{ fontFamily: "var(--font-mono)", color: th.textSecondary }}>{probe.label}</span>
+                    {probe.typed && ` · ${t("unlockChange.probeTyped", "swallowed, not typed anywhere")}`}
                   </span>
                   <span>
                     {seenKeys.length > 0
@@ -359,12 +364,16 @@ export function UnlockChangeFlow({
               {timedOut && step === "waiting" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 470 }}>
                   {notice("warn", seenKeys.length > 0
-                    ? t("unlockChange.timeoutComboIssue", "Other keystrokes are reaching Studio but the test key isn't, so the chord isn't firing on the keyboard. Check that the keys are pressed together, or try a different test key.")
+                    ? t("unlockChange.timeoutSwallowed", "If pressing them together shows nothing at all, the combo IS firing — ZMK swallows the keys it consumes and sends the test key instead, so only the test key is going missing. Try a different one. (Seeing the keys individually just means the chord didn't complete.)")
                     : t("unlockChange.timeoutNoInput", "No keystrokes are reaching Studio at all. Make sure this window has focus and that the keyboard is typing into this computer."))}
                   {hasAnotherProbe && (
-                    <button onClick={() => { setProbeIndex((i) => i + 1); arm(); }}
+                    <button onClick={() => { setProbeIndex((i) => i + 1); setTimedOut(false); arm(); }}
                       style={{ alignSelf: "center", padding: "8px 16px", fontSize: 13, background: th.layer2, color: th.textPrimary, border: "none", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
                       {t("unlockChange.tryAnotherProbe", "Retry with a different test key")}
+                      {" — "}
+                      <span style={{ fontFamily: "var(--font-mono)" }}>
+                        {probeCandidates[probeIndex + 1]?.label}
+                      </span>
                     </button>
                   )}
                   {notice("warn", otherPathCount > 1
