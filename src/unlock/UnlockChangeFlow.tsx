@@ -21,6 +21,7 @@ import {
   TYPING_GUARD_IDLE_MS,
   unlockKeyLabel,
   usableProbeKeys,
+  type ProbeKey,
 } from "./unlockPaths";
 
 /** How long to wait for the probe keystroke before offering a way out. */
@@ -123,25 +124,32 @@ export function UnlockChangeFlow({
     [positions, keymap, behaviors]
   );
 
-  // Which probe key we're currently bound to; the user can move on if their
-  // system doesn't deliver it.
+  /*
+   * Two separate things, and conflating them was a bug: `probeIndex` points at
+   * the candidate to arm *next*, while `armedProbe` is the key actually written
+   * to the keyboard. Deriving the listener and the on-screen label from the
+   * former meant that after switching keys, Studio watched for the new key while
+   * the keyboard still emitted the old one — so the test could never succeed, and
+   * the output always lagged one step behind the label.
+   */
   const [probeIndex, setProbeIndex] = useState(0);
+  const [armedProbe, setArmedProbe] = useState<ProbeKey | null>(null);
   const probeCandidates = useMemo(
     () => usableProbeKeys(positions, keymap, behaviors),
     [positions, keymap, behaviors]
   );
-  const probe = probeCandidates[Math.min(probeIndex, probeCandidates.length - 1)];
-  const hasAnotherProbe = probeIndex < probeCandidates.length - 1;
+  const nextProbe = probeCandidates[probeIndex + 1];
+  const hasAnotherProbe = !!nextProbe;
 
-  const hits = useKeyProbe(probe.code, step === "waiting");
+  const hits = useKeyProbe(armedProbe?.code ?? "", step === "waiting");
   const sawProbe = hits > 0;
 
   // Did the write land? A slot that triggers but emits nothing usually means the
   // behavior was dropped while the key positions took effect.
   const armedBehaviorWrong =
-    !!armedSlot &&
+    !!armedSlot && !!armedProbe &&
     ((armedSlot.behavior?.behaviorId ?? -1) < 0 ||
-      armedSlot.behavior?.param1 !== probeUsage(probe.hidId));
+      armedSlot.behavior?.param1 !== probeUsage(armedProbe.hidId));
   const armedPositionsWrong =
     !!armedSlot &&
     [...armedSlot.keyPositions].sort((a, b) => a - b).join(",") !== positions.join(",");
@@ -185,9 +193,17 @@ export function UnlockChangeFlow({
     };
   }, []);
 
-  const arm = async () => {
+  /*
+   * `candidate` is passed in rather than read from state: the retry button sets
+   * `probeIndex` and re-arms in the same handler, and a state update isn't
+   * visible to the closure that follows it.
+   */
+  const arm = async (candidate?: ProbeKey) => {
+    const useProbe = candidate ?? probeCandidates[Math.min(probeIndex, probeCandidates.length - 1)];
     setError(null);
     setTimedOut(false);
+    setArmedProbe(null);
+    setArmedSlot(null);
     setStep("arming");
 
     const kpBehaviorId = findKeyPressBehaviorId(behaviors);
@@ -211,7 +227,7 @@ export function UnlockChangeFlow({
       requirePriorIdleMs: trigger.requirePriorIdleMs,
       layerMask: trigger.layerMask,
       slowRelease: trigger.slowRelease,
-      behavior: { behaviorId: kpBehaviorId, param1: probeUsage(probe.hidId), param2: 0 },
+      behavior: { behaviorId: kpBehaviorId, param1: probeUsage(useProbe.hidId), param2: 0 },
     });
 
     if (!ok) {
@@ -220,6 +236,8 @@ export function UnlockChangeFlow({
       return;
     }
     armedRef.current = true;
+    // Only now start watching for it: the keyboard is armed with this key.
+    setArmedProbe(useProbe);
     setStep("waiting");
 
     /*
@@ -383,7 +401,7 @@ export function UnlockChangeFlow({
                   ? <GestureChips keys={labels} />
                   : <span style={{ fontSize: 12, color: th.textHelper }}>{t("unlockChange.nothingPicked", "Nothing picked yet")}</span>}
               </span>
-              <button onClick={arm} disabled={positions.length < 2 || conflicts.length > 0}
+              <button onClick={() => arm()} disabled={positions.length < 2 || conflicts.length > 0}
                 style={{ padding: "8px 16px", fontSize: 13, fontWeight: 500, border: "none", background: th.interactive, color: "#fff", cursor: positions.length < 2 || conflicts.length > 0 ? "not-allowed" : "pointer", opacity: positions.length < 2 || conflicts.length > 0 ? 0.5 : 1, fontFamily: "var(--font-sans)" }}>
                 {t("unlockChange.next", "Test this shortcut")}
               </button>
@@ -426,8 +444,8 @@ export function UnlockChangeFlow({
               {step === "waiting" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", fontSize: 11, color: th.textHelper }}>
                   <span>
-                    {t("unlockChange.probeKey", "Test key")}: <span style={{ fontFamily: "var(--font-mono)", color: th.textSecondary }}>{probe.label}</span>
-                    {probe.typed && ` · ${t("unlockChange.probeTyped", "swallowed, not typed anywhere")}`}
+                    {t("unlockChange.probeKey", "Test key")}: <span style={{ fontFamily: "var(--font-mono)", color: th.textSecondary }}>{armedProbe?.label ?? "…"}</span>
+                    {armedProbe?.typed && ` · ${t("unlockChange.probeTyped", "swallowed, not typed anywhere")}`}
                   </span>
                   <span>
                     {seenKeys.length > 0
@@ -459,12 +477,12 @@ export function UnlockChangeFlow({
                     ? t("unlockChange.timeoutSwallowed", "If pressing them together shows nothing at all, the combo IS firing — ZMK swallows the keys it consumes and sends the test key instead, so only the test key is going missing. Try a different one. (Seeing the keys individually just means the chord didn't complete.)")
                     : t("unlockChange.timeoutNoInput", "No keystrokes are reaching Studio at all. Make sure this window has focus and that the keyboard is typing into this computer."))}
                   {hasAnotherProbe && (
-                    <button onClick={() => { setProbeIndex((i) => i + 1); setTimedOut(false); arm(); }}
+                    <button onClick={() => { setProbeIndex(probeIndex + 1); arm(nextProbe); }}
                       style={{ alignSelf: "center", padding: "8px 16px", fontSize: 13, background: th.layer2, color: th.textPrimary, border: "none", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
                       {t("unlockChange.tryAnotherProbe", "Retry with a different test key")}
                       {" — "}
                       <span style={{ fontFamily: "var(--font-mono)" }}>
-                        {probeCandidates[probeIndex + 1]?.label}
+                        {nextProbe?.label}
                       </span>
                     </button>
                   )}
