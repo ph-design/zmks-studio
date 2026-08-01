@@ -1,18 +1,22 @@
-import { KeyRound, ShieldCheck, AlertTriangle } from "lucide-react";
+import { KeyRound, ShieldCheck, AlertTriangle, Pencil } from "lucide-react";
 
 import type { CarbonTheme } from "../carbon/theme";
 import { GestureChips } from "./GestureChips";
 import type { UnlockPaths } from "./unlockPaths";
 
 /*
- * Read-only view of how this keyboard can be unlocked. Editing the gesture is a
- * separate, riskier flow (the new one has to be proven to work before the old
- * one is given up) and isn't wired up yet — see docs/unlock-combo.md.
+ * How this keyboard can be unlocked. Changing the gesture hands off to
+ * UnlockChangeFlow, which proves the new one works before giving up the old —
+ * see docs/unlock-combo.md.
  */
-export function UnlockPanel({ th, t, paths }: {
+export function UnlockPanel({ th, t, paths, canChange, noSpareSlot, onChange }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   paths: UnlockPaths;
+  canChange?: boolean;
+  /** Re-triggering needs a free slot to borrow while confirming the gesture. */
+  noSpareSlot?: boolean;
+  onChange?: () => void;
 }) {
   const rowStyle: React.CSSProperties = {
     display: "flex",
@@ -77,9 +81,21 @@ export function UnlockPanel({ th, t, paths }: {
         </div>
       )}
 
-      {paths.total > 0 && (
-        <p style={{ fontSize: 12, color: th.textHelper, marginTop: 8, lineHeight: 1.6 }}>
-          {t("unlockPanel.changeComingSoon", "Changing the shortcut isn't available yet: the new gesture has to be proven to work before the old one is given up, so it needs its own guided flow.")}
+      {canChange && (
+        <div style={{ marginTop: 12 }}>
+          <button onClick={onChange}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", fontSize: 13, background: th.layer2, color: th.textPrimary, border: "none", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+            <Pencil size={13} />{t("unlockPanel.change", "Change shortcut")}
+          </button>
+          <p style={{ fontSize: 12, color: th.textHelper, marginTop: 8, lineHeight: 1.6 }}>
+            {t("unlockPanel.changeHint", "You'll be asked to perform the new gesture before it replaces the current one, and the keyboard stays unlocked throughout.")}
+          </p>
+        </div>
+      )}
+
+      {noSpareSlot && (
+        <p style={{ fontSize: 12, color: th.textHelper, marginTop: 12, lineHeight: 1.6 }}>
+          {t("unlockPanel.noSpareSlot", "Changing the shortcut needs one free combo slot to confirm the new gesture with. Free a slot on the Combos page first.")}
         </p>
       )}
     </div>

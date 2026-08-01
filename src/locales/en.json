@@ -388,7 +388,6 @@
     "addLayer": "Add layer",
     "model": "Model",
     "clickKeyHint": "Click any key to edit its binding",
-    "quickControls": "Quick controls",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "zoomFit": "Fit",
@@ -543,6 +542,34 @@
     "protectedHint": "Firmware reserves this slot for unlocking, so it can't be repointed at another behavior.",
     "noneTitle": "No unlock shortcut found",
     "noneDesc": "This firmware exposes no studio unlock binding. Once the keyboard locks, Studio won't be able to edit it again — reflash before locking it.",
-    "changeComingSoon": "Changing the shortcut isn't available yet: the new gesture has to be proven to work before the old one is given up, so it needs its own guided flow."
+    "change": "Change shortcut",
+    "changeHint": "You'll be asked to perform the new gesture before it replaces the current one, and the keyboard stays unlocked throughout.",
+    "noSpareSlot": "Changing the shortcut needs one free combo slot to confirm the new gesture with. Free a slot on the Combos page first."
+  },
+  "unlockChange": {
+    "title": "Change unlock shortcut",
+    "pickHint": "Click the keys the shortcut should use — at least two, pressed together.",
+    "noLayout": "No physical layout reported, so keys can't be picked.",
+    "nothingPicked": "Nothing picked yet",
+    "next": "Test this shortcut",
+    "warnConflict": "Another combo already uses exactly these keys. Pick a different set.",
+    "warnTyping": "These are all ordinary keys, so the chord could fire while typing. Studio will require a brief pause before it counts — including one layer or modifier key is safer.",
+    "pressNow": "Press the shortcut now",
+    "pressHint": "Your current shortcut is untouched until this one is confirmed, and the keyboard stays unlocked throughout — so nothing is at risk if it doesn't work.",
+    "confirmed": "Shortcut fired",
+    "confirmedHint": "The keyboard produced the test keystroke, so this gesture works. Apply it as the unlock shortcut?",
+    "apply": "Apply",
+    "applying": "Applying…",
+    "timeoutSafe": "No test keystroke arrived — some systems don't pass this key through. You can apply anyway; this keyboard still has another way to unlock.",
+    "timeoutRisky": "No test keystroke arrived — some systems don't pass this key through. Applying anyway means that if the gesture doesn't work, the keyboard can't be edited again without reflashing.",
+    "applyAnyway": "Apply without confirmation",
+    "done": "Unlock shortcut updated",
+    "doneHint": "Save to keyboard to keep it across a power cycle.",
+    "close": "Done",
+    "priorIdleApplied": "A brief pause is now required before the chord counts, so it can't fire while typing.",
+    "warnUnverified": "Applied without confirmation — test it before you let the keyboard lock.",
+    "errArm": "Couldn't set up the test. Nothing was changed.",
+    "errCommit": "Writing the new shortcut failed. Your old one still works.",
+    "errNoKeyPress": "This firmware has no Key Press behavior, so the gesture can't be tested."
   }
 }

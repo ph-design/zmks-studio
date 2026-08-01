@@ -1,7 +1,7 @@
 import type { RpcTransport } from "@zmkfirmware/zmk-studio-ts-client/transport/index";
 import { Request, Response, RequestResponse } from "@zmkfirmware/zmk-studio-ts-client";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
-import type { ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
+import { SetComboErrorCode, type ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
 import type { Layer } from "@zmkfirmware/zmk-studio-ts-client/keymap";
 import { setDemoMotionEnabled } from "./motionBackend";
 import { setDemoKeyMeta } from "./demoKeyMeta";
@@ -492,12 +492,40 @@ class DemoFirmware {
       if (c.setCombo?.combo) {
         const idx = c.setCombo.index;
         const i = this.combos.findIndex((x) => x.index === idx);
-        if (i >= 0) {
-          this.combos[i] = { ...c.setCombo.combo, index: idx, editableBehavior: true, editableKeyPositions: true };
-          this.unsaved = true;
-          return respond({ combos: { setCombo: { ok: true } } });
+        if (i < 0) {
+          return respond({ combos: { setCombo: { err: SetComboErrorCode.SET_COMBO_ERR_INVALID_INDEX } } });
         }
-        return respond({ combos: { setCombo: { err: 2 } } });
+
+        /*
+         * The editable flags belong to firmware — a client can't grant itself
+         * permission by echoing them back as true. This is what keeps the
+         * reserved studio-unlock slot pointed at unlock no matter which client
+         * is talking, so the keyboard always has a way back in.
+         */
+        const existing = this.combos[i];
+        const next = c.setCombo.combo;
+        const behaviorChanged =
+          (next.behavior?.behaviorId ?? -1) !== (existing.behavior?.behaviorId ?? -1) ||
+          (next.behavior?.param1 ?? 0) !== (existing.behavior?.param1 ?? 0) ||
+          (next.behavior?.param2 ?? 0) !== (existing.behavior?.param2 ?? 0);
+        const positionsChanged =
+          next.keyPositions.join(",") !== existing.keyPositions.join(",");
+
+        if (
+          (!existing.editableBehavior && behaviorChanged) ||
+          (!existing.editableKeyPositions && positionsChanged)
+        ) {
+          return respond({ combos: { setCombo: { err: SetComboErrorCode.SET_COMBO_ERR_UNSUPPORTED_FIELD } } });
+        }
+
+        this.combos[i] = {
+          ...next,
+          index: idx,
+          editableBehavior: existing.editableBehavior,
+          editableKeyPositions: existing.editableKeyPositions,
+        };
+        this.unsaved = true;
+        return respond({ combos: { setCombo: { ok: true } } });
       }
     }
 

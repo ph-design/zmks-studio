@@ -1,8 +1,8 @@
 # Studio unlock, as a reserved combo
 
 What Studio needs from firmware so the unlock gesture can be shown, protected,
-and eventually changed by the user. Steps 1–2 below are implemented; step 3 is
-blocked on the firmware items marked **needed**.
+and changed by the user. All three steps below are implemented; the items marked
+**needed** would each remove a compromise, but none of them blocks the feature.
 
 ## The constraint everything follows from
 
@@ -59,8 +59,33 @@ varies per build.
 
 ## 3. Changing the gesture
 
-The requirement is that a new gesture must be **performed once** before the old
-one is given up. Two firmware gaps stand in the way.
+A new gesture must be **performed once** before the old one is given up. Studio
+does this today without any firmware change and without ever locking the
+keyboard:
+
+1. The user picks key positions on the layout (at least two). Studio warns if the
+   chord duplicates another combo, or if it's made only of ordinary keys.
+2. The positions are written to a **spare** slot bound to `&kp F13`, using the
+   real unlock combo's timings so the test is faithful.
+3. The user performs the gesture; Studio watches for that keystroke arriving at
+   the host — the same channel the key tester uses.
+4. Only then is the reserved slot rewritten, and only its `key_positions`. The
+   behavior is echoed back exactly as firmware reported it, since a differing
+   behavior would (rightly) be rejected on a reserved slot.
+5. The borrowed slot is released — including if the user cancels or navigates
+   away mid-test.
+
+`require_prior_idle_ms` is raised to 200ms when the chord contains no layer or
+modifier key, so an all-letters gesture can't fire mid-typing. Firmware may
+refuse that field on a reserved slot; Studio then retries with positions only, so
+the change still lands.
+
+Because the keyboard is never locked during the test, a gesture the user turns
+out not to be able to perform strands nobody. The one soft spot is a host that
+swallows F13: after 30s Studio offers to apply without confirmation, stating the
+consequence, and says whether another unlock path still exists.
+
+Two firmware additions would each remove a compromise.
 
 > **Needed: an unlock hint readable while locked.** Nothing about the keyboard is
 > readable in the locked state, so the lock screen can only show the factory
@@ -81,27 +106,16 @@ one is given up. Two firmware gaps stand in the way.
 > access, and the gesture is printed in the manual.
 
 > **Needed: report which combo unlocked the keyboard.** Either a field on the
-> `lockStateChanged` notification or a `getLastUnlockSource` request. Without it,
-> a lock-and-retry verification is ambiguous — during the test both the old and
-> new gestures work, so pressing the old one would falsely confirm the new one.
+> `lockStateChanged` notification or a `getLastUnlockSource` request. That would
+> let the test confirm the real `&studio_unlock` binding rather than a stand-in
+> keystroke, removing the dependency on the host delivering F13.
+>
+> Note it can't be done by locking the keyboard and retrying *without* this:
+> during such a test both the old and new gestures work, so pressing the old one
+> would falsely confirm the new one — and a wrong conclusion there is exactly the
+> failure that strands a user.
 
-Until those land, Studio can still verify a gesture without any firmware change
-and without ever locking the keyboard:
-
-1. Write the candidate key positions into a **spare** combo slot bound to
-   `&kp F13` (an otherwise unused key), with the same `timeoutMs` the real unlock
-   combo will use.
-2. Ask the user to perform the gesture, and watch for that keystroke arriving at
-   the host — Studio already observes host keystrokes for the key tester.
-3. On success, write the positions into the reserved unlock slot and clear the
-   spare.
-
-This verifies the only genuinely uncertain part — whether this user can press
-these keys together within this timeout — and because the keyboard is never
-locked during the test, a failed attempt strands nobody. It does depend on the
-host delivering F13, so it needs a timeout and a manual override.
-
-Note that Studio observes host **keystrokes**, never key positions: there is no
-key-event RPC, so a gesture involving a layer key can't be captured by watching
-the user press it. Positions have to be picked on the layout, then verified as
-above.
+Also worth knowing: Studio observes host **keystrokes**, never key positions.
+There is no key-event RPC, and a layer key emits nothing to the host, so a gesture
+can't be captured by watching the user press it — positions are picked on the
+layout and confirmed afterwards.

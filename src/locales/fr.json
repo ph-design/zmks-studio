@@ -388,7 +388,6 @@
     "addLayer": "Ajouter une couche",
     "model": "Modèle",
     "clickKeyHint": "Cliquez une touche pour éditer son binding",
-    "quickControls": "Contrôles rapides",
     "zoomIn": "Zoom avant",
     "zoomOut": "Zoom arrière",
     "zoomFit": "Ajuster",
@@ -543,6 +542,34 @@
     "protectedHint": "Le firmware réserve cet emplacement pour le déverrouillage : son comportement ne peut pas être changé.",
     "noneTitle": "Aucun raccourci de déverrouillage trouvé",
     "noneDesc": "Ce firmware n'expose aucune liaison studio unlock. Une fois le clavier verrouillé, Studio ne pourra plus le modifier — reflashez-le avant de le verrouiller.",
-    "changeComingSoon": "Changer le raccourci n'est pas encore disponible : le nouveau geste doit être vérifié avant d'abandonner l'ancien, ce qui demande un parcours guidé dédié."
+    "change": "Changer le raccourci",
+    "changeHint": "Vous devrez exécuter le nouveau geste avant qu'il remplace l'actuel, et le clavier reste déverrouillé pendant toute l'opération.",
+    "noSpareSlot": "Changer le raccourci demande un emplacement de combo libre pour confirmer le nouveau geste. Libérez-en un depuis la page Combos."
+  },
+  "unlockChange": {
+    "title": "Changer le raccourci de déverrouillage",
+    "pickHint": "Cliquez les touches à utiliser — au moins deux, pressées ensemble.",
+    "noLayout": "Aucune disposition physique remontée, impossible de choisir des touches.",
+    "nothingPicked": "Rien de sélectionné",
+    "next": "Tester ce raccourci",
+    "warnConflict": "Un autre combo utilise déjà exactement ces touches. Choisissez-en d'autres.",
+    "warnTyping": "Ce sont toutes des touches ordinaires : l'accord pourrait se déclencher pendant la frappe. Studio exigera une brève pause — inclure une touche de calque ou un modificateur est plus sûr.",
+    "pressNow": "Exécutez le raccourci maintenant",
+    "pressHint": "Votre raccourci actuel reste intact jusqu'à confirmation, et le clavier reste déverrouillé — rien n'est en jeu si cela ne marche pas.",
+    "confirmed": "Raccourci déclenché",
+    "confirmedHint": "Le clavier a produit la frappe de test, donc ce geste fonctionne. L'appliquer comme raccourci de déverrouillage ?",
+    "apply": "Appliquer",
+    "applying": "Application…",
+    "timeoutSafe": "Aucune frappe de test reçue — certains systèmes ne transmettent pas cette touche. Vous pouvez appliquer quand même : ce clavier garde un autre moyen de déverrouillage.",
+    "timeoutRisky": "Aucune frappe de test reçue — certains systèmes ne transmettent pas cette touche. Appliquer quand même signifie que si le geste ne fonctionne pas, le clavier ne pourra plus être modifié sans reflashage.",
+    "applyAnyway": "Appliquer sans confirmation",
+    "done": "Raccourci de déverrouillage mis à jour",
+    "doneHint": "Enregistrez sur le clavier pour le conserver après une coupure.",
+    "close": "Terminé",
+    "priorIdleApplied": "Une brève pause est désormais requise, l'accord ne peut donc plus se déclencher pendant la frappe.",
+    "warnUnverified": "Appliqué sans confirmation — testez-le avant de laisser le clavier se verrouiller.",
+    "errArm": "Impossible de préparer le test. Rien n'a été modifié.",
+    "errCommit": "L'écriture du nouveau raccourci a échoué. L'ancien fonctionne toujours.",
+    "errNoKeyPress": "Ce firmware n'a pas de comportement Key Press, le geste ne peut pas être testé."
   }
 }

@@ -105,6 +105,86 @@ export function collectUnlockPaths(
   };
 }
 
+/*
+ * Verifying a candidate gesture: bind it to an otherwise unused keystroke in a
+ * spare slot and watch for that keystroke arriving at the host. Studio observes
+ * host keystrokes (that's how the key tester works) but never key *positions*,
+ * and a layer key emits nothing at all — so the gesture can't be captured by
+ * watching the user press it, only confirmed after the fact.
+ *
+ * The point of going through a spare slot is that the keyboard is never locked
+ * during the test, so a gesture the user turns out not to be able to perform
+ * strands nobody.
+ */
+export const PROBE_KEY = {
+  /** `KeyboardEvent.code` we listen for. */
+  code: "F13",
+  /** HID keyboard page id for F13. */
+  hidId: 0x68,
+  label: "F13",
+};
+
+/** An unused, fully editable slot the probe binding can borrow. */
+export function findSpareComboSlot(
+  combos: ComboConfig[],
+  unlockBehaviorId: number | undefined
+): ComboConfig | undefined {
+  return combos.find(
+    (c) =>
+      c.editableBehavior &&
+      c.editableKeyPositions &&
+      c.keyPositions.length === 0 &&
+      c.behavior?.behaviorId !== unlockBehaviorId
+  );
+}
+
+/** Combos already using exactly these keys, which would fight the new gesture. */
+export function conflictingCombos(
+  combos: ComboConfig[],
+  positions: number[],
+  exceptIndex: number
+): ComboConfig[] {
+  const key = [...positions].sort((a, b) => a - b).join(",");
+  return combos.filter(
+    (c) =>
+      c.index !== exceptIndex &&
+      c.keyPositions.length > 0 &&
+      [...c.keyPositions].sort((a, b) => a - b).join(",") === key
+  );
+}
+
+/**
+ * Whether a gesture is safe to leave without a prior-idle requirement.
+ *
+ * A chord of ordinary letters can fire in the middle of normal typing, which
+ * would unlock the keyboard behind the user's back. One layer or modifier key in
+ * the chord makes that impossible, since those don't appear in typed text.
+ */
+export function gestureResistsTyping(
+  positions: number[],
+  keymap: Keymap | undefined,
+  behaviors: BehaviorMap
+): boolean {
+  const SAFE = new Set([
+    "Momentary Layer", "Toggle Layer", "To Layer", "Sticky Layer", "Layer-Tap",
+  ]);
+  return positions.some((p) => {
+    const binding = keymap?.layers[0]?.bindings[p];
+    if (!binding) return false;
+    const name = behaviors[binding.behaviorId]?.displayName;
+    if (name && SAFE.has(name)) return true;
+    // Modifiers live at 0xE0-0xE7 on the HID keyboard page.
+    if (name === "Key Press" || name === "Mod-Tap") {
+      const id = binding.param1 & 0xffff;
+      return id >= 0xe0 && id <= 0xe7;
+    }
+    return false;
+  });
+}
+
+/** Prior-idle applied when a gesture could otherwise fire mid-typing. */
+export const TYPING_GUARD_IDLE_MS = 200;
+
 /**
  * Short label for the key at a position, for rendering a gesture as chips.
  *

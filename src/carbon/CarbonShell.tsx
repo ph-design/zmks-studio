@@ -338,11 +338,8 @@ export function CarbonShell(props: CarbonShellProps) {
               </div>
             ) : activeNav === "device" ? (
               <DeviceView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
-                unlockPaths={unlockPaths} onResetSettings={props.onResetSettings}
-                setting={setting} setSetting={setSetting} lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
-                defaultNav={defaultNav} setDefaultNav={setDefaultNav}
-                navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
-                roundedCorners={roundedCorners} setRoundedCorners={setRoundedCorners} />
+                unlockPaths={unlockPaths} combos={combos.combos} applyCombo={combos.applyConfig}
+                onResetSettings={props.onResetSettings} />
             ) : activeNav === "preferences" ? (
               <PreferencesView th={th} t={t} setting={setting} setSetting={setSetting}
                 accent={accent} setAccent={setAccent} systemAccentHex={systemAccentHex}
