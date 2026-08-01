@@ -568,7 +568,7 @@
     "timeoutRisky": "Appliquer sans confirmation signifie que si le geste ne fonctionne pas, le clavier ne pourra plus être modifié sans reflashage.",
     "applyAnyway": "Appliquer sans confirmation",
     "done": "Raccourci de déverrouillage mis à jour",
-    "doneHint": "C'est déjà actif. Si un bouton « Enregistrer sur le clavier » est affiché, utilisez-le ; sinon, redémarrez le clavier une fois pour vérifier que le raccourci a survécu.",
+    "doneHint": "C'est déjà actif. Utilisez « Enregistrer sur le clavier » en haut pour le conserver — un combo non enregistré peut être perdu à l'extinction.",
     "close": "Terminé",
     "priorIdleApplied": "Une brève pause est désormais requise, l'accord ne peut donc plus se déclencher pendant la frappe.",
     "warnUnverified": "Appliqué sans confirmation — testez-le avant de laisser le clavier se verrouiller.",

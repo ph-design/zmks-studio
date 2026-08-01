@@ -143,3 +143,27 @@ Also worth knowing: Studio observes host **keystrokes**, never key positions.
 There is no key-event RPC, and a layer key emits nothing to the host, so a gesture
 can't be captured by watching the user press it — positions are picked on the
 layout and confirmed afterwards.
+
+## 4. Field notes
+
+Established on real hardware, none of it reproducible in the demo firmware —
+worth keeping, because each cost a debugging round and all four look identical
+from the UI ("the test does nothing").
+
+- **A firing combo swallows its keys.** ZMK consumes the keypresses a combo
+  claims and runs the behavior instead. So during the test, keys arriving when
+  pressed *separately* but nothing arriving when pressed *together* means the
+  chord is working — the missing piece is only the substitute keystroke. It reads
+  as the exact opposite.
+- **`&studio_unlock` emits nothing**, so any combo bound to it looks like a dead
+  combo. A user's hand-made unlock combo silently winning the chord under test
+  was the first false lead; the live unlock combo doing the same was the second.
+  Overlapping key sets are the thing to suspect.
+- **`layer_mask == 0` means "all layers"**, and an unused slot may carry a
+  restricted mask. A probe inheriting the borrowed slot's mask can therefore
+  never fire on the layer the user is on.
+- **F13 never reached the browser on Windows.** The probe ladder starts on
+  ordinary letters for that reason; the F-row above F12 is a fallback.
+- **Combos persist through `keymap.saveChanges`.** Firmware marks the session
+  unsaved on a combo write, so the header's Save button appears on its own and
+  Studio doesn't need to track combo dirtiness itself.
