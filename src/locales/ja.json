@@ -8,7 +8,8 @@
     "cancel": "キャンセル",
     "close": "閉じる",
     "add": "追加",
-    "remove": "削除"
+    "remove": "削除",
+    "change": "変更"
   },
   "welcome": {
     "title": "ZMKs Studio へようこそ",
@@ -99,7 +100,11 @@
       "holdTap": "タップホールド",
       "holdTapDesc": "実行時の hold-tap タイミング設定",
       "lighting": "ライティング",
-      "lightingDesc": "RGB アンダーグロー & バックライト"
+      "lightingDesc": "RGB アンダーグロー & バックライト",
+      "sideKey": "フレームキー",
+      "sideKeyDesc": "筐体側面のレイヤー対応キー",
+      "motion": "モーション",
+      "motionDesc": "IMU のタップ動作と移動ロック"
     }
   },
   "layer": {
@@ -213,7 +218,9 @@
       "changeKey": "変更",
       "apply": "適用",
       "clear": "クリア"
-    }
+    },
+    "noLed": "このキーに LED はありません",
+    "noLedShort": "LED なし"
   },
   "behavior": {
     "category": {
@@ -356,7 +363,8 @@
       "behaviors": "動作",
       "lighting": "ライティング",
       "combos": "コンボ",
-      "settings": "設定"
+      "settings": "設定",
+      "motion": "モーション"
     },
     "config": "設定",
     "searchPlaceholder": "キーコードを検索…",
@@ -466,6 +474,57 @@
       "trigger": "トリガー",
       "timing": "タイミングと動作",
       "layers": "レイヤー"
+    }
+  },
+  "motion": {
+    "emptyTitle": "モーション機能は利用できません",
+    "emptyHint": "モーションセンサーが検出されないか、ファームウェアで motion サブシステムが無効です",
+    "live": "リアルタイム強度",
+    "state": {
+      "locked": "キーはロック中",
+      "unlocked": "キーは有効",
+      "lockedHint": "継続的な動きを検出 — 平らな場所に置くと自動で解除されます",
+      "unlockedHint": "静止・姿勢は正常"
+    },
+    "orientation": {
+      "unknown": "不明",
+      "flatUp": "水平・上向き",
+      "flatDown": "裏返し",
+      "tilted": "傾き/移動中"
+    },
+    "tap": {
+      "title": "タップ動作",
+      "desc": "筐体を叩いて動作を実行します。センサーのクリック割り込みで検出します",
+      "bindingTitle": "タップで実行する動作",
+      "action": "動作",
+      "kind": "タップ方式",
+      "single": "シングル",
+      "double": "ダブル",
+      "threshold": "しきい値",
+      "timeLimit": "タップの最大長",
+      "latency": "実行後の待機",
+      "window": "2 回目の受付時間",
+      "calibrateHint": "筐体を叩いてピーク値を確認し、しきい値をその少し下に設定してください。低すぎるとタイピングの振動で誤作動します。"
+    },
+    "lock": {
+      "title": "モーションロック",
+      "desc": "バッグの中で移動している間はキーを自動ロックし、平らな場所に置くと解除します",
+      "lockGroup": "ロック条件",
+      "unlockGroup": "解除条件",
+      "scopeGroup": "ロック範囲",
+      "motionThreshold": "ロックしきい値",
+      "motionDuration": "動きの継続時間",
+      "motionDurationHint": "一度の揺れで誤ロックしないように",
+      "stillThreshold": "静止しきい値",
+      "stillDuration": "静止時間",
+      "requireFlat": "水平を必須にする",
+      "requireFlatHint": "静止だけでなく上向きも必要",
+      "flatTolerance": "傾きの許容",
+      "scope": "ロック中は",
+      "scopeKeys": "キーのみ",
+      "scopeKeysLeds": "キー+ライト",
+      "scopeSoftOff": "ソフトオフ",
+      "calibrateHint": "キーボードを持って数歩歩き、強度が収まる範囲を確認します。ロックしきい値はその下限、静止しきい値は机上のノイズ上限にします。"
     }
   }
 }

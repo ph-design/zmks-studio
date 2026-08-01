@@ -19,6 +19,9 @@ export type KeyPosition = PropsWithChildren<{
   rx?: number;
   ry?: number;
   pressed?: boolean;
+  accent?: boolean;
+  cornerLabel?: string;
+  dimmed?: boolean;
 }>;
 
 export type LayoutZoom = number | "auto";

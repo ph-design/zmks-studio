@@ -14,6 +14,7 @@ import {
   LayoutZoom,
   PhysicalLayout as PhysicalLayoutComp,
 } from "../keyboard/PhysicalLayout";
+import { ledlessPositions, useKeyMeta } from "../keyboard/keyMeta";
 import { colorToHex } from "./HsbColorPicker";
 
 export interface LayerLedMapProps {
@@ -52,6 +53,14 @@ export default function LayerLedMap({
     null
   );
 
+  // Positions with no LED behind them (a frame button, say) stay in the canvas
+  // so the keyboard keeps its shape, but they can't be picked or coloured.
+  const keyMeta = useKeyMeta(layout);
+  const unlit = useMemo(
+    () => ledlessPositions(layout.keys.length, keyMeta, ledData?.keyCount),
+    [layout.keys.length, keyMeta, ledData?.keyCount]
+  );
+
   const getKeyColor = useCallback(
     (keyPosition: number): number => {
       if (!ledData || !keymap.layers[selectedLayerIndex]) return 0;
@@ -68,6 +77,7 @@ export default function LayerLedMap({
 
   const handlePositionClicked = useCallback(
     (pos: number, event: React.MouseEvent) => {
+      if (unlit.has(pos)) return;
       if (event.ctrlKey || event.metaKey) {
         const next = new Set(selectedPositions);
         if (next.has(pos)) next.delete(pos);
@@ -77,7 +87,7 @@ export default function LayerLedMap({
         onSelectionChanged(new Set([pos]));
       }
     },
-    [selectedPositions, onSelectionChanged]
+    [selectedPositions, onSelectionChanged, unlit]
   );
 
   const handleMouseDown = useCallback(
@@ -125,6 +135,7 @@ export default function LayerLedMap({
         : new Set<number>();
 
       buttons.forEach((btn, idx) => {
+        if (unlit.has(idx)) return;
         const rect = btn.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
@@ -150,14 +161,15 @@ export default function LayerLedMap({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isDragging, dragStart, selectedPositions, onSelectionChanged]);
+  }, [isDragging, dragStart, selectedPositions, onSelectionChanged, unlit]);
 
   const positions = useMemo(() => {
     return layout.keys.map((k, i) => {
-      const color = activeSource === "layerLed" ? getKeyColor(i) : 0;
+      const isUnlit = unlit.has(i);
+      const color = !isUnlit && activeSource === "layerLed" ? getKeyColor(i) : 0;
       const bgColor = color !== 0 ? colorToHex(color) : undefined;
       const header: string | undefined = undefined;
-      const isIndicator = indicatorPositions?.has(i);
+      const isIndicator = !isUnlit && indicatorPositions?.has(i);
       const IndicatorIcon = activeSource === "connection" ? Wifi : Lock;
       const indicatorTitle = activeSource === "connection"
         ? t("lighting.connection.title")
@@ -190,14 +202,20 @@ export default function LayerLedMap({
                 <IndicatorIcon className="h-4 w-4" aria-hidden />
               </span>
             )}
-            {!bgColor && !isIndicator && (
+            {isUnlit ? (
+              <span className="text-[0.5rem] uppercase tracking-wide opacity-30" title={t("lighting.noLed", "No LED")}>
+                {t("lighting.noLedShort", "no led")}
+              </span>
+            ) : (!bgColor && !isIndicator && (
               <span className="text-xs opacity-30">—</span>
-            )}
+            ))}
           </>
         ),
+        // Unlit keys stay visible for shape, but read as inert.
+        dimmed: isUnlit,
       };
     });
-  }, [layout, getKeyColor, activeSource, indicatorPositions, t]);
+  }, [layout, getKeyColor, activeSource, indicatorPositions, unlit, t]);
 
   if (!ledData) {
     return (

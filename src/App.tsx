@@ -32,6 +32,7 @@ import { valueAfter } from "./misc/async";
 import { AboutModal } from "./AboutModal";
 import { LicenseNoticeModal } from "./misc/LicenseNoticeModal";
 import { CarbonShell } from "./carbon/CarbonShell";
+import { saveMotionState } from "./motion/useMotion";
 import { useCarbonTheme } from "./carbon/theme";
 import { useLocalStorageState } from "./misc/useLocalStorageState";
 
@@ -222,6 +223,7 @@ function App() {
 
   const [lockState, setLockState] = useState<LockState | undefined>(undefined);
   const [hasUnsavedLightingChanges, setHasUnsavedLightingChanges] = useState(false);
+  const [hasUnsavedMotionChanges, setHasUnsavedMotionChanges] = useState(false);
   const [connectionType, setConnectionType] = useState<string | undefined>();
 
   useEffect(() => {
@@ -304,6 +306,10 @@ function App() {
     setHasUnsavedLightingChanges(true);
   }, []);
 
+  const markMotionChanged = useCallback(() => {
+    setHasUnsavedMotionChanges(true);
+  }, []);
+
   const save = useCallback(async (): Promise<boolean> => {
     if (!conn.conn) {
       return false;
@@ -333,11 +339,20 @@ function App() {
       }
     }
 
+    if (hasUnsavedMotionChanges) {
+      const motionSaved = await saveMotionState(conn.conn);
+      if (!motionSaved) {
+        saved = false;
+        console.error(t("errors.failedToSave"), "motion");
+      }
+    }
+
     if (saved) {
       setHasUnsavedLightingChanges(false);
+      setHasUnsavedMotionChanges(false);
     }
     return saved;
-  }, [conn, hasUnsavedLightingChanges, t]);
+  }, [conn, hasUnsavedLightingChanges, hasUnsavedMotionChanges, t]);
 
   const discard = useCallback(() => {
     async function doDiscard() {
@@ -511,10 +526,11 @@ function App() {
                 canRedo={canRedo}
                 onUndo={undo}
                 onRedo={redo}
-                extraSaveEnabled={hasUnsavedLightingChanges}
+                extraSaveEnabled={hasUnsavedLightingChanges || hasUnsavedMotionChanges}
                 onReady={setKeyboardReady}
                 onProgress={setLoadProgress}
                 onLightingChanged={markLightingChanged}
+                onMotionChanged={markMotionChanged}
                 onShowAbout={() => setShowAbout(true)}
                 onShowLicense={() => setShowLicenseNotice(true)}
                 roundedCorners={roundedCorners}

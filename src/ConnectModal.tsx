@@ -812,6 +812,8 @@ function DemoModeCard({
     { key: "combos", label: t("demo.feature.combos", "Combos"), desc: t("demo.feature.combosDesc", "Reserved combo slots, editable at runtime") },
     { key: "holdTap", label: t("demo.feature.holdTap", "Tap-Hold"), desc: t("demo.feature.holdTapDesc", "Runtime hold-tap timing configs") },
     { key: "lighting", label: t("demo.feature.lighting", "Lighting"), desc: t("demo.feature.lightingDesc", "RGB underglow & backlight") },
+    { key: "sideKey", label: t("demo.feature.sideKey", "Frame button"), desc: t("demo.feature.sideKeyDesc", "An extra per-layer key on the case edge") },
+    { key: "motion", label: t("demo.feature.motion", "Motion"), desc: t("demo.feature.motionDesc", "IMU case-tap action & walk-detect lock") },
   ];
 
   const launch = async () => {

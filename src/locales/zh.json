@@ -8,7 +8,8 @@
     "cancel": "取消",
     "close": "关闭",
     "add": "添加",
-    "remove": "移除"
+    "remove": "移除",
+    "change": "更改"
   },
   "welcome": {
     "title": "欢迎使用 ZMKs Studio",
@@ -99,7 +100,11 @@
       "holdTap": "Tap-Hold",
       "holdTapDesc": "运行时 hold-tap 时序配置",
       "lighting": "灯光",
-      "lightingDesc": "RGB 底灯 & 背光"
+      "lightingDesc": "RGB 底灯 & 背光",
+      "sideKey": "边框按键",
+      "sideKeyDesc": "机身边框上的一个额外分层按键",
+      "motion": "体感",
+      "motionDesc": "IMU 拍一拍动作与运动锁定"
     }
   },
   "layer": {
@@ -213,7 +218,9 @@
       "changeKey": "修改",
       "apply": "应用",
       "clear": "清除"
-    }
+    },
+    "noLed": "该按键没有 LED",
+    "noLedShort": "无灯"
   },
   "behavior": {
     "category": {
@@ -356,7 +363,8 @@
       "behaviors": "按键行为",
       "lighting": "灯光",
       "combos": "组合键",
-      "settings": "设置"
+      "settings": "设置",
+      "motion": "体感"
     },
     "config": "配置",
     "searchPlaceholder": "搜索按键码…",
@@ -466,6 +474,57 @@
       "trigger": "触发",
       "timing": "时序与行为",
       "layers": "图层"
+    }
+  },
+  "motion": {
+    "emptyTitle": "体感功能不可用",
+    "emptyHint": "该设备未检测到运动传感器，或固件未启用 motion 子系统",
+    "live": "实时强度",
+    "state": {
+      "locked": "按键已锁定",
+      "unlocked": "按键可用",
+      "lockedHint": "检测到持续运动 — 放到平整桌面后自动解锁",
+      "unlockedHint": "静止且姿态正常"
+    },
+    "orientation": {
+      "unknown": "未知",
+      "flatUp": "水平朝上",
+      "flatDown": "倒置",
+      "tilted": "倾斜/移动中"
+    },
+    "tap": {
+      "title": "拍一拍",
+      "desc": "敲击机身外壳触发一个动作，由传感器的敲击中断识别",
+      "bindingTitle": "拍一拍触发的动作",
+      "action": "触发动作",
+      "kind": "敲击方式",
+      "single": "单击",
+      "double": "双击",
+      "threshold": "触发阈值",
+      "timeLimit": "敲击时长上限",
+      "latency": "触发后静默",
+      "window": "第二次敲击窗口",
+      "calibrateHint": "敲一敲机身外壳，观察峰值落在哪里，再把触发阈值定在峰值稍下方 —— 太低会被打字震动误触发。"
+    },
+    "lock": {
+      "title": "运动锁定",
+      "desc": "装在包里移动时自动锁住按键，放到平整桌面后自动解锁",
+      "lockGroup": "何时锁定",
+      "unlockGroup": "何时解锁",
+      "scopeGroup": "锁定范围",
+      "motionThreshold": "锁定阈值",
+      "motionDuration": "持续运动时长",
+      "motionDurationHint": "避免单次颠簸误锁",
+      "stillThreshold": "静止阈值",
+      "stillDuration": "静止时长",
+      "requireFlat": "要求放平",
+      "requireFlatHint": "仅静止不够，还需水平朝上",
+      "flatTolerance": "倾角容差",
+      "scope": "锁定时",
+      "scopeKeys": "仅按键",
+      "scopeKeysLeds": "按键+灯光",
+      "scopeSoftOff": "软关机",
+      "calibrateHint": "拿起键盘走两步，看强度稳定在什么区间；锁定阈值取该区间下沿，静止阈值取放在桌面时的噪声上沿。"
     }
   }
 }

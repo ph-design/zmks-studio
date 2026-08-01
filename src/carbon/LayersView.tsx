@@ -11,7 +11,8 @@ import { useLocalStorageState } from "../misc/useLocalStorageState";
 import { Keymap as KeymapComp } from "../keyboard/Keymap";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
 import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
-import { Loading, ZoomControl, rowIcon, Badge } from "./CarbonChrome";
+import { Loading, rowIcon, Badge } from "./CarbonChrome";
+import { KeyboardCanvas } from "../keyboard/KeyboardCanvas";
 
 interface LayersViewProps {
   model: ReturnType<typeof useKeyboardModel>;
@@ -159,19 +160,21 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
           </div>
         )}
 
-        <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 12, overflow: "auto", minHeight: 0 }}>
-          <KeymapComp
-            keymap={km}
-            layout={model.layouts[model.selectedPhysicalLayoutIndex]}
-            behaviors={model.behaviors}
-            scale={model.keymapScale}
-            selectedLayerIndex={model.selectedLayerIndex}
-            selectedKeyPosition={model.selectedKeyPosition}
-            pressedUsages={currentLocked ? undefined : pressedUsages}
-            onKeyPositionClicked={currentLocked ? () => {} : model.setSelectedKeyPosition}
-          />
-          <ZoomControl th={th} t={t} scale={model.keymapScale} setScale={model.setKeymapScale} />
-        </div>
+        <KeyboardCanvas th={th} t={t} scale={model.keymapScale} setScale={model.setKeymapScale}>
+          {(fitContainerRef) => (
+            <KeymapComp
+              keymap={km}
+              layout={model.layouts![model.selectedPhysicalLayoutIndex]}
+              behaviors={model.behaviors}
+              scale={model.keymapScale}
+              selectedLayerIndex={model.selectedLayerIndex}
+              selectedKeyPosition={model.selectedKeyPosition}
+              pressedUsages={currentLocked ? undefined : pressedUsages}
+              onKeyPositionClicked={currentLocked ? () => {} : model.setSelectedKeyPosition}
+              fitContainerRef={fitContainerRef}
+            />
+          )}
+        </KeyboardCanvas>
 
         <div
           className="keymap-drawer"

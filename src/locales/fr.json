@@ -8,7 +8,8 @@
     "cancel": "Annuler",
     "close": "Fermer",
     "add": "Ajouter",
-    "remove": "Supprimer"
+    "remove": "Supprimer",
+    "change": "Modifier"
   },
   "welcome": {
     "title": "Bienvenue dans ZMKs Studio",
@@ -99,7 +100,11 @@
       "holdTap": "Tap-Hold",
       "holdTapDesc": "Configuration du timing hold-tap à l'exécution",
       "lighting": "Éclairage",
-      "lightingDesc": "RGB underglow et rétroéclairage"
+      "lightingDesc": "RGB underglow et rétroéclairage",
+      "sideKey": "Touche de châssis",
+      "sideKeyDesc": "Une touche supplémentaire par calque sur le bord",
+      "motion": "Mouvement",
+      "motionDesc": "Action de tape IMU et verrouillage en déplacement"
     }
   },
   "layer": {
@@ -213,7 +218,9 @@
       "changeKey": "Modifier",
       "apply": "Appliquer",
       "clear": "Effacer"
-    }
+    },
+    "noLed": "Pas de LED sous cette touche",
+    "noLedShort": "sans led"
   },
   "behavior": {
     "category": {
@@ -356,7 +363,8 @@
       "behaviors": "Comportements",
       "lighting": "Éclairage",
       "combos": "Combos",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "motion": "Mouvement"
     },
     "config": "CONFIGURATION",
     "searchPlaceholder": "Rechercher des codes de touche…",
@@ -466,6 +474,57 @@
       "trigger": "Déclencheur",
       "timing": "Timing et comportement",
       "layers": "Couches"
+    }
+  },
+  "motion": {
+    "emptyTitle": "Fonctions de mouvement indisponibles",
+    "emptyHint": "Aucun capteur de mouvement détecté, ou le sous-système motion est désactivé dans le firmware.",
+    "live": "Intensité en direct",
+    "state": {
+      "locked": "Touches verrouillées",
+      "unlocked": "Touches actives",
+      "lockedHint": "Mouvement prolongé détecté — se déverrouille une fois posé à plat",
+      "unlockedHint": "Immobile, orientation normale"
+    },
+    "orientation": {
+      "unknown": "Inconnue",
+      "flatUp": "À plat, vers le haut",
+      "flatDown": "Retourné",
+      "tilted": "Incliné / en mouvement"
+    },
+    "tap": {
+      "title": "Tape sur le boîtier",
+      "desc": "Tapez le boîtier pour déclencher une action, détectée par l'interruption de clic du capteur",
+      "bindingTitle": "Action déclenchée par une tape",
+      "action": "Action",
+      "kind": "Type de tape",
+      "single": "Simple",
+      "double": "Double",
+      "threshold": "Seuil de déclenchement",
+      "timeLimit": "Durée maximale",
+      "latency": "Temps mort après déclenchement",
+      "window": "Fenêtre pour la 2e tape",
+      "calibrateHint": "Tapez le boîtier et observez le pic, puis placez le seuil juste en dessous — trop bas, les vibrations de frappe le déclencheront."
+    },
+    "lock": {
+      "title": "Verrouillage en mouvement",
+      "desc": "Verrouille les touches pendant les déplacements en sac, et déverrouille une fois posé à plat",
+      "lockGroup": "QUAND VERROUILLER",
+      "unlockGroup": "QUAND DÉVERROUILLER",
+      "scopeGroup": "PORTÉE DU VERROU",
+      "motionThreshold": "Seuil de verrouillage",
+      "motionDuration": "Mouvement prolongé",
+      "motionDurationHint": "Évite un verrouillage sur une simple secousse",
+      "stillThreshold": "Seuil d'immobilité",
+      "stillDuration": "Durée d'immobilité",
+      "requireFlat": "Exiger à plat",
+      "requireFlatHint": "L'immobilité ne suffit pas, il faut aussi être vers le haut",
+      "flatTolerance": "Tolérance d'inclinaison",
+      "scope": "Une fois verrouillé",
+      "scopeKeys": "Touches seules",
+      "scopeKeysLeds": "Touches + éclairage",
+      "scopeSoftOff": "Extinction douce",
+      "calibrateHint": "Prenez le clavier et marchez quelques pas pour voir la plage atteinte ; prenez le seuil de verrouillage au bas de cette plage et le seuil d'immobilité au niveau du bruit sur un bureau."
     }
   }
 }

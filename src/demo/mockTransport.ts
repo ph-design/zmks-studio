@@ -3,6 +3,8 @@ import { Request, Response, RequestResponse } from "@zmkfirmware/zmk-studio-ts-c
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import type { ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
 import type { Layer } from "@zmkfirmware/zmk-studio-ts-client/keymap";
+import { setDemoMotionEnabled } from "./motionBackend";
+import { setDemoKeyMeta } from "./demoKeyMeta";
 
 const FRAMING_SOF = 0xab;
 const FRAMING_ESC = 0xac;
@@ -138,6 +140,18 @@ const LAYOUT_KEYS = (() => {
 
 const KEY_COUNT = LAYOUT_KEYS.length;
 
+/*
+ * A frame-mounted programmable button (ES60). It is an ordinary per-layer key
+ * position — the only thing that makes it special is the `kind`/`label`
+ * metadata published via `setDemoKeyMeta`.
+ *
+ * Parked in the top-right corner: the F-row stops at 18.25u while the number
+ * row runs to 22.5u, so this slot is empty and costs the layout no extra
+ * bounding box (auto-fit zoom derives its scale from `max(x + width)`).
+ */
+const SIDE_KEY_ATTRS = { width: 100, height: 100, x: 2150, y: 0, r: 0, rx: 0, ry: 0 };
+const SIDE_KEY_POSITION = KEY_COUNT;
+
 // Index of a key position by scanning ROW_DEFS for a usage (first match).
 function idxOf(usage: number): number {
   let i = 0;
@@ -265,19 +279,23 @@ export interface DemoFeatures {
   combos: boolean;      // combos subsystem + reserved slots
   holdTap: boolean;     // hold-tap runtime configs in the Behaviors panel
   lighting: boolean;    // RGB underglow / backlight subsystem
+  sideKey: boolean;     // a frame-mounted programmable key position (ES60)
+  motion: boolean;      // IMU: case-tap action + walk-detect lock (PH60SCV2EVO)
 }
 
 export const DEFAULT_DEMO_FEATURES: DemoFeatures = {
   combos: true,
   holdTap: true,
   lighting: true,
+  sideKey: true,
+  motion: true,
 };
 
 // In-memory demo firmware: answers the RPCs ZMK Studio issues during connect
 // and while browsing the panels. State (keymap/combos) lives only for the
 // session — nothing is persisted.
 class DemoFirmware {
-  layers = buildLayers();
+  layers: Layer[];
   combos = buildCombos();
   availableLayers = 5;
   unsaved = false;
@@ -285,6 +303,28 @@ class DemoFirmware {
 
   constructor(features: DemoFeatures) {
     this.features = features;
+    this.layers = this.freshLayers();
+  }
+
+  /*
+   * The frame button is just one more position appended to every layer's
+   * bindings — nothing about it needs a separate code path, which is the whole
+   * argument for keeping it in the keymap instead of its own subsystem.
+   */
+  private freshLayers(): Layer[] {
+    const layers = buildLayers();
+    if (!this.features.sideKey) return layers;
+    return layers.map((layer, i) => ({
+      ...layer,
+      bindings: [
+        ...layer.bindings,
+        i === 0 ? { behaviorId: B.bt, param1: 0, param2: 0 } : TRANS,
+      ],
+    }));
+  }
+
+  private layoutKeys() {
+    return this.features.sideKey ? [...LAYOUT_KEYS, SIDE_KEY_ATTRS] : LAYOUT_KEYS;
   }
 
   handle(req: Request): Response | null {
@@ -304,7 +344,7 @@ class DemoFirmware {
         });
       }
       if (c.resetSettings) {
-        this.layers = buildLayers();
+        this.layers = this.freshLayers();
         this.combos = buildCombos();
         this.unsaved = false;
         return respond({ core: { resetSettings: true } });
@@ -317,7 +357,7 @@ class DemoFirmware {
         return respond({ keymap: { getKeymap: { layers: this.layers, availableLayers: this.availableLayers, maxLayerNameLength: 16 } } });
       }
       if (k.getPhysicalLayouts) {
-        return respond({ keymap: { getPhysicalLayouts: { activeLayoutIndex: 0, layouts: [{ name: "Demo 60%", keys: LAYOUT_KEYS }] } } });
+        return respond({ keymap: { getPhysicalLayouts: { activeLayoutIndex: 0, layouts: [{ name: "Demo 60%", keys: this.layoutKeys() }] } } });
       }
       if (k.checkUnsavedChanges) {
         return respond({ keymap: { checkUnsavedChanges: this.unsaved } });
@@ -442,6 +482,7 @@ class DemoFirmware {
           const b = hue < 120 ? 0 : hue < 240 ? Math.round(((hue - 120) / 120) * 255) : 255;
           bindings.push({ keyPosition: i, color: (r << 16) | (g << 8) | b });
         }
+        // Matrix keys only — the frame button has no LED behind it.
         return respond({ lighting: { getLayerLedColors: { layers: [{ layerId: 0, bindings }], keyCount: KEY_COUNT, layerCount: this.layers.length, enabled: true } } });
       }
       if (l.getCapsLockIndicator) {
@@ -472,6 +513,18 @@ class DemoFirmware {
 export function connect(features: DemoFeatures = DEFAULT_DEMO_FEATURES): Promise<RpcTransport> {
   const fw = new DemoFirmware(features);
   const abortController = new AbortController();
+
+  /*
+   * Two features are served beside the transport rather than through it: the
+   * generated protobuf codec drops fields it doesn't know, so neither the
+   * `motion` subsystem nor the `kind`/`label` key attributes can survive a
+   * round trip until the ts-client fork is regenerated. Both move inside once
+   * it is.
+   */
+  setDemoMotionEnabled(features.motion);
+  setDemoKeyMeta(
+    features.sideKey ? { [SIDE_KEY_POSITION]: { kind: "side", label: "Side" } } : {}
+  );
 
   let readableController!: ReadableStreamDefaultController<Uint8Array>;
   const readable = new ReadableStream<Uint8Array>({

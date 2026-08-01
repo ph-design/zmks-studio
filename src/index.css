@@ -363,8 +363,16 @@ html.rounded-mode footer {
 }
 
 html.rounded-mode .circular-spinner,
-html.rounded-mode .circular-spinner *,
-html.rounded-mode [role="switch"],
-html.rounded-mode [role="switch"] * {
+html.rounded-mode .circular-spinner * {
+  border-radius: 50% !important;
+}
+
+/* The Carbon toggle is already a pill with a round knob, so rounded-mode must
+   leave it alone — the blanket `* { border-radius: 4px }` above wins over its
+   inline styles, and a flat 50% would squash the track into an ellipse. */
+html.rounded-mode [role="switch"] {
+  border-radius: 9999px !important;
+}
+html.rounded-mode [role="switch"] > * {
   border-radius: 50% !important;
 }

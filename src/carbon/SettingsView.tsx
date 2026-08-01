@@ -1,9 +1,8 @@
 import { Info, FileText, RotateCcw, Check, Monitor } from "lucide-react";
 
 import { ACCENT_PRESETS, type CarbonTheme } from "./theme";
-import { SettingsBlock, secBtn, normalizeLang } from "./CarbonChrome";
-
-type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "combos" | "settings";
+import { SettingsBlock, Toggle, secBtn, normalizeLang } from "./CarbonChrome";
+import type { NavId } from "./navIds";
 
 interface SettingsViewProps {
   th: CarbonTheme;
@@ -73,16 +72,7 @@ export function SettingsView({ th, t, setting, setSetting, accent, setAccent, sy
         )}
       </SettingsBlock>
       <SettingsBlock th={th} label={t("carbon.roundedCorners", "圆角！(beta)")}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <button onClick={() => setRoundedCorners(true)}
-            style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", background: roundedCorners ? th.interactive : th.fieldBg, color: roundedCorners ? "#fff" : th.textSecondary, border: `1px solid ${roundedCorners ? th.interactive : th.borderStrong}`, fontFamily: "var(--font-sans)" }}>
-            {t("carbon.roundedOnBtn", "开")}
-          </button>
-          <button onClick={() => setRoundedCorners(false)}
-            style={{ padding: "6px 14px", fontSize: 13, cursor: "pointer", background: !roundedCorners ? th.interactive : th.fieldBg, color: !roundedCorners ? "#fff" : th.textSecondary, border: `1px solid ${!roundedCorners ? th.interactive : th.borderStrong}`, fontFamily: "var(--font-sans)" }}>
-            {t("carbon.roundedOffBtn", "关")}
-          </button>
-        </div>
+        <Toggle th={th} checked={roundedCorners} onChange={setRoundedCorners} />
         <span style={{ fontSize: 12, color: th.textHelper, display: "block", marginTop: 8 }}>
           {roundedCorners ? t("carbon.roundedOn", "已开启 — 所有界面元素使用圆角") : t("carbon.roundedOff", "已关闭")}
         </span>

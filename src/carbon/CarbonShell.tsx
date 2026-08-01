@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronRight, Keyboard as KeyboardIcon, Layers, Zap, Link2,
   Settings, Sun, Moon, Save, Undo2, Redo2, LogOut,
-  Check, X, Lock, Gauge, Lightbulb,
+  Check, X, Lock, Gauge, Lightbulb, Waves,
 } from "lucide-react";
 
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
@@ -21,12 +21,13 @@ import { ComboPanel } from "../combos/ComboPanel";
 
 import { LayersView } from "./LayersView";
 import { LightingView } from "./LightingView";
+import { MotionView } from "./MotionView";
 import { QuickSettingsView } from "./QuickSettingsView";
 import { SettingsView } from "./SettingsView";
 import { TapHoldView } from "./TapHoldView";
 import { iconBtn } from "./CarbonChrome";
-
-type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "combos" | "settings";
+import { resolveNav, type NavId } from "./navIds";
+import { useMotion } from "../motion/useMotion";
 
 export interface CarbonShellProps {
   carbon: ReturnType<typeof useCarbonTheme>;
@@ -45,6 +46,7 @@ export interface CarbonShellProps {
   onReady?: (ready: boolean) => void;
   onProgress?: (value: number) => void;
   onLightingChanged?: () => void;
+  onMotionChanged?: () => void;
   onShowAbout: () => void;
   onShowLicense: () => void;
   roundedCorners: boolean;
@@ -54,11 +56,20 @@ export interface CarbonShellProps {
 export function CarbonShell(props: CarbonShellProps) {
   const { t, i18n } = useTranslation();
   const { isDark, setting, setSetting, theme: th, toggle, accent, setAccent, systemAccentHex } = props.carbon;
+  const [modelReady, setModelReady] = useState(false);
   const model = useKeyboardModel({
-    onReady: props.onReady,
+    onReady: setModelReady,
     onProgress: props.onProgress,
     onLightingChanged: props.onLightingChanged,
   });
+  const motion = useMotion({ onMotionChanged: props.onMotionChanged });
+
+  // Hold the loading screen until the motion probe resolves too, otherwise a
+  // capability-gated nav entry can pop in after the shell is already usable.
+  const { onReady } = props;
+  useEffect(() => {
+    onReady?.(modelReady && motion.loaded);
+  }, [modelReady, motion.loaded, onReady]);
 
   const lockState = useContext(LockStateContext);
   const isUnlocked = lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
@@ -68,7 +79,7 @@ export function CarbonShell(props: CarbonShellProps) {
     "layers"
   );
   const { roundedCorners, setRoundedCorners } = props;
-  const [activeNav, setActiveNav] = useState<NavId>(defaultNav);
+  const [navSelection, setNavSelection] = useState<NavId>(defaultNav);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [toast, setToast] = useState<{ type: "success" | "error"; title: string } | null>(null);
@@ -97,7 +108,7 @@ export function CarbonShell(props: CarbonShellProps) {
   };
 
   const goToNav = (id: NavId) => {
-    setActiveNav(id);
+    setNavSelection(id);
     model.setSelectedKeyPosition(undefined);
   };
 
@@ -150,14 +161,29 @@ export function CarbonShell(props: CarbonShellProps) {
   const keyCount = model.layouts?.[model.selectedPhysicalLayoutIndex]?.keys.length ?? 0;
   const layerCount = model.keymap?.layers.length ?? 0;
 
-  const NAV: { id: NavId; label: string; icon: React.ReactNode }[] = [
-    { id: "keyboard", label: t("carbon.nav.quick", "Quick settings"), icon: <Gauge size={16} /> },
-    { id: "layers", label: t("carbon.nav.map", "Map"), icon: <Layers size={16} /> },
-    { id: "lighting", label: t("carbon.nav.lighting", "Lighting"), icon: <Lightbulb size={16} /> },
-    { id: "behaviors", label: t("carbon.nav.tapHold", "Tap-Hold"), icon: <Zap size={16} /> },
-    { id: "combos", label: t("carbon.nav.combos", "Combos"), icon: <Link2 size={16} /> },
-    { id: "settings", label: t("carbon.nav.settings", "Settings"), icon: <Settings size={16} /> },
-  ];
+  const hasLighting =
+    model.hasRgb || model.hasBacklight || model.hasCapsLock ||
+    model.hasConnection || model.hasLayerLed;
+
+  /*
+   * The sidebar lists only what the connected device can serve — a keyboard
+   * without an IMU never shows a Motion section, the same way a keyboard
+   * without LEDs no longer shows Lighting. Availability comes from the RPC
+   * probes, never from the device name, so firmware stays the single authority.
+   */
+  const NAV = [
+    { id: "keyboard" as NavId, label: t("carbon.nav.quick", "Quick settings"), icon: <Gauge size={16} />, available: true },
+    { id: "layers" as NavId, label: t("carbon.nav.map", "Map"), icon: <Layers size={16} />, available: true },
+    { id: "lighting" as NavId, label: t("carbon.nav.lighting", "Lighting"), icon: <Lightbulb size={16} />, available: hasLighting },
+    { id: "behaviors" as NavId, label: t("carbon.nav.tapHold", "Tap-Hold"), icon: <Zap size={16} />, available: holdTapIds.length > 0 },
+    { id: "combos" as NavId, label: t("carbon.nav.combos", "Combos"), icon: <Link2 size={16} />, available: combos.loaded },
+    { id: "motion" as NavId, label: t("carbon.nav.motion", "Motion"), icon: <Waves size={16} />, available: motion.hasMotion },
+    { id: "settings" as NavId, label: t("carbon.nav.settings", "Settings"), icon: <Settings size={16} />, available: true },
+  ].filter((n) => n.available);
+
+  // A stored default view can name a section this device lacks (switching from
+  // an IMU keyboard to one without), so resolve rather than trust it.
+  const activeNav = resolveNav(navSelection, NAV.map((n) => n.id));
   const currentNav = NAV.find((n) => n.id === activeNav)!;
 
   // Breadcrumb: App > Section > (Layer). Non-leaf crumbs are clickable.
@@ -283,6 +309,9 @@ export function CarbonShell(props: CarbonShellProps) {
               <LayersView model={model} th={th} t={t} deviceName={deviceName} />
             ) : activeNav === "lighting" ? (
               <LightingView model={model} th={th} t={t} />
+            ) : activeNav === "motion" ? (
+              <MotionView motion={motion} behaviors={model.behaviors} behaviorList={model.behaviorList}
+                layers={model.keymap?.layers ?? []} th={th} t={t} />
             ) : activeNav === "behaviors" ? (
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
                 <TapHoldView behaviors={model.behaviorList} th={th} getConfig={holdTap.getConfig} applyConfig={holdTap.applyConfig} />

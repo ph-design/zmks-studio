@@ -8,7 +8,8 @@
     "cancel": "Cancelar",
     "close": "Cerrar",
     "add": "Añadir",
-    "remove": "Quitar"
+    "remove": "Quitar",
+    "change": "Cambiar"
   },
   "welcome": {
     "title": "Bienvenido a ZMKs Studio",
@@ -99,7 +100,11 @@
       "holdTap": "Tap-Hold",
       "holdTapDesc": "Configuración de temporización hold-tap en ejecución",
       "lighting": "Iluminación",
-      "lightingDesc": "RGB underglow y retroiluminación"
+      "lightingDesc": "RGB underglow y retroiluminación",
+      "sideKey": "Tecla del chasis",
+      "sideKeyDesc": "Una tecla extra por capa en el borde",
+      "motion": "Movimiento",
+      "motionDesc": "Acción de toque IMU y bloqueo en movimiento"
     }
   },
   "layer": {
@@ -213,7 +218,9 @@
       "changeKey": "Cambiar",
       "apply": "Aplicar",
       "clear": "Borrar"
-    }
+    },
+    "noLed": "Esta tecla no tiene LED",
+    "noLedShort": "sin led"
   },
   "behavior": {
     "category": {
@@ -356,7 +363,8 @@
       "behaviors": "Comportamientos",
       "lighting": "Iluminación",
       "combos": "Combos",
-      "settings": "Ajustes"
+      "settings": "Ajustes",
+      "motion": "Movimiento"
     },
     "config": "CONFIGURACIÓN",
     "searchPlaceholder": "Buscar códigos de tecla…",
@@ -466,6 +474,57 @@
       "trigger": "Disparador",
       "timing": "Tiempo y comportamiento",
       "layers": "Capas"
+    }
+  },
+  "motion": {
+    "emptyTitle": "Funciones de movimiento no disponibles",
+    "emptyHint": "No se detectó sensor de movimiento, o el firmware tiene el subsistema motion desactivado.",
+    "live": "Intensidad en vivo",
+    "state": {
+      "locked": "Teclas bloqueadas",
+      "unlocked": "Teclas activas",
+      "lockedHint": "Movimiento sostenido detectado — se desbloquea al dejarlo en una superficie plana",
+      "unlockedHint": "Quieto, orientación normal"
+    },
+    "orientation": {
+      "unknown": "Desconocida",
+      "flatUp": "Plano, hacia arriba",
+      "flatDown": "Boca abajo",
+      "tilted": "Inclinado / en movimiento"
+    },
+    "tap": {
+      "title": "Toque en la carcasa",
+      "desc": "Golpea la carcasa para lanzar una acción, detectada por la interrupción de clic del sensor",
+      "bindingTitle": "Acción lanzada por el toque",
+      "action": "Acción",
+      "kind": "Tipo de toque",
+      "single": "Simple",
+      "double": "Doble",
+      "threshold": "Umbral de disparo",
+      "timeLimit": "Duración máxima",
+      "latency": "Tiempo muerto tras disparar",
+      "window": "Ventana del 2.º toque",
+      "calibrateHint": "Golpea la carcasa y observa el pico, luego fija el umbral justo por debajo — demasiado bajo y la vibración al escribir lo disparará."
+    },
+    "lock": {
+      "title": "Bloqueo por movimiento",
+      "desc": "Bloquea las teclas mientras se mueve en la mochila y las libera al dejarlo plano",
+      "lockGroup": "CUÁNDO BLOQUEAR",
+      "unlockGroup": "CUÁNDO DESBLOQUEAR",
+      "scopeGroup": "ALCANCE DEL BLOQUEO",
+      "motionThreshold": "Umbral de bloqueo",
+      "motionDuration": "Movimiento sostenido",
+      "motionDurationHint": "Evita bloquear por una sacudida puntual",
+      "stillThreshold": "Umbral de quietud",
+      "stillDuration": "Tiempo quieto",
+      "requireFlat": "Exigir plano",
+      "requireFlatHint": "No basta con estar quieto, también hacia arriba",
+      "flatTolerance": "Tolerancia de inclinación",
+      "scope": "Al bloquear",
+      "scopeKeys": "Solo teclas",
+      "scopeKeysLeds": "Teclas + luz",
+      "scopeSoftOff": "Apagado suave",
+      "calibrateHint": "Coge el teclado y camina unos pasos para ver en qué rango se estabiliza; toma el umbral de bloqueo del extremo inferior y el de quietud del ruido sobre la mesa."
     }
   }
 }
