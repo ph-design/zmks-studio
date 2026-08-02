@@ -101,6 +101,14 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
             );
           })}
         </div>
+        {/*
+          Lock state lives in the rail, not above the meter. It's a status readout
+          that applies to both sections, the rail has room going spare, and every
+          pixel it isn't spending in the content column is one the settings list
+          gets — that list is a single column now and needs the height far more
+          than a two-line status card does.
+        */}
+        <LockStateCard th={th} t={t} live={motion.live} />
         <div style={{ padding: "10px 14px", borderTop: `1px solid ${th.border}`, fontSize: 11, color: th.textHelper, fontFamily: "var(--font-mono)" }}>
           {capabilities.sensor}
         </div>
@@ -108,9 +116,10 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
 
       {/* Live canvas + config drawer */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
-        {/* The meter is a fixed-height readout; the freed vertical space goes to
-            the settings drawer so it rarely has to scroll. */}
-        <div style={{ flexShrink: 0, display: "flex", justifyContent: "center", padding: "12px 24px 14px" }}>
+        {/* The readout is the reason this panel exists — thresholds are raw sensor
+            counts, so it's the only thing that makes a number mean anything. It
+            gets the full width and stays pinned while the settings scroll. */}
+        <div style={{ flexShrink: 0, padding: "14px 24px 14px" }}>
           <LiveMeter
             th={th}
             t={t}
@@ -163,6 +172,47 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
             />
           ) : null}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Live state ────────────────────────────────────────────────────────────────
+
+/** Lock state + orientation, in the rail so it's visible from either section. */
+function LockStateCard({ th, t, live }: {
+  th: CarbonTheme;
+  t: (k: string, d: string) => string;
+  live: MotionModel["live"];
+}) {
+  const orientationLabel: Record<Orientation, string> = {
+    [Orientation.UNKNOWN]: t("motion.orientation.unknown", "Unknown"),
+    [Orientation.FLAT_UP]: t("motion.orientation.flatUp", "Flat, face up"),
+    [Orientation.FLAT_DOWN]: t("motion.orientation.flatDown", "Upside down"),
+    [Orientation.TILTED]: t("motion.orientation.tilted", "Tilted / moving"),
+  };
+  const tone = live.locked ? th.warning : th.success;
+
+  return (
+    <div style={{ flexShrink: 0, padding: "12px 14px", borderTop: `1px solid ${th.border}`, borderLeft: `3px solid ${tone}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ color: tone, display: "flex", flexShrink: 0 }}>
+          {live.locked ? <Lock size={16} /> : <Unlock size={16} />}
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>
+          {live.locked
+            ? t("motion.state.locked", "Keys locked")
+            : t("motion.state.unlocked", "Keys active")}
+        </span>
+      </div>
+      <div style={{ fontSize: 12, color: th.textHelper, lineHeight: 1.45, marginTop: 4 }}>
+        {live.locked
+          ? t("motion.state.lockedHint", "Sustained movement detected — unlocks once set down on a flat surface")
+          : t("motion.state.unlockedHint", "Still, orientation normal")}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: th.textSecondary, marginTop: 8 }}>
+        <Smartphone size={14} style={{ color: th.iconSecondary, flexShrink: 0 }} />
+        {orientationLabel[live.orientation]}
       </div>
     </div>
   );
@@ -241,76 +291,50 @@ function LiveMeter({ th, t, motion, section }: {
           ]
         : [];
 
-  const orientationLabel: Record<Orientation, string> = {
-    [Orientation.UNKNOWN]: t("motion.orientation.unknown", "Unknown"),
-    [Orientation.FLAT_UP]: t("motion.orientation.flatUp", "Flat, face up"),
-    [Orientation.FLAT_DOWN]: t("motion.orientation.flatDown", "Upside down"),
-    [Orientation.TILTED]: t("motion.orientation.tilted", "Tilted / moving"),
-  };
-
-  // State card and meter sit side by side so the readout costs one block of
-  // height instead of two, leaving the settings drawer room not to scroll.
+  /* Full width — thresholds are raw counts, so this bar is the only thing that
+     makes one mean anything, and it was previously boxed into half a panel. */
   return (
-    <div style={{ width: "100%", maxWidth: 920, display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 14 }}>
-      {/* Lock state — the thing users actually want to confirm */}
-      <div style={{ flex: "1 1 300px", minWidth: 260, display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: th.layer1, border: `1px solid ${th.border}`, borderLeft: `3px solid ${live.locked ? th.warning : th.success}` }}>
-        <span style={{ color: live.locked ? th.warning : th.success, display: "flex" }}>
-          {live.locked ? <Lock size={22} /> : <Unlock size={22} />}
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>
-            {live.locked
-              ? t("motion.state.locked", "Keys locked")
-              : t("motion.state.unlocked", "Keys active")}
-          </div>
-          <div style={{ fontSize: 12, color: th.textHelper, marginTop: 2 }}>
-            {live.locked
-              ? t("motion.state.lockedHint", "Sustained movement detected — unlocks once set down on a flat surface")
-              : t("motion.state.unlockedHint", "Still, orientation normal")}
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: th.textSecondary, flexShrink: 0 }}>
-          <Smartphone size={14} style={{ color: th.iconSecondary }} />
-          {orientationLabel[live.orientation]}
-        </div>
-      </div>
-
-      {/* Live magnitude with threshold markers, and how to read them */}
-      <div style={{ flex: "1 1 320px", minWidth: 260 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 5 }}>
-          <span style={{ fontSize: 12, color: th.textSecondary }}>
+    <div style={{ width: "100%" }}>
+      <div>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: th.textPrimary }}>
             {t("motion.live", "Live magnitude")}
           </span>
-          <span style={{ fontSize: 12, color: th.textPrimary, fontFamily: "var(--font-mono)" }}>
-            {live.magnitude} / {max}
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: th.textHelper }}>
+            <span style={{ fontSize: 22, color: th.textPrimary }}>{live.magnitude}</span> / {max}
           </span>
         </div>
-        <div style={{ position: "relative", height: 20, background: th.fieldBg, border: `1px solid ${th.border}` }}>
+        <div style={{ position: "relative", height: 32, background: th.fieldBg, border: `1px solid ${th.border}` }}>
           {/* Trail from the live value up to the peak, so the marker reads as
               having been pushed there rather than floating free. */}
           <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: pct(peak), background: th.interactive, opacity: 0.22, transition: "width 100ms linear" }} />
           <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: pct(live.magnitude), background: th.interactive, opacity: 0.75, transition: "width 100ms linear" }} />
-          <div style={{ position: "absolute", left: pct(peak), top: -2, bottom: -2, width: 2, marginLeft: -2, background: th.textPrimary, transition: "left 100ms linear" }} />
+          <div style={{ position: "absolute", left: pct(peak), top: -3, bottom: -3, width: 2, marginLeft: -2, background: th.textPrimary, transition: "left 100ms linear" }} />
           {markers.map((m) => (
-            <div key={m.label} style={{ position: "absolute", left: pct(m.value), top: -3, bottom: -3, width: 2, background: m.color }} />
+            <div key={m.label} style={{ position: "absolute", left: pct(m.value), top: -4, bottom: -4, width: 2, background: m.color }} />
           ))}
         </div>
-        <div style={{ display: "flex", gap: 16, marginTop: 5, flexWrap: "wrap" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: th.textHelper }}>
-            <span style={{ width: 10, height: 2, background: th.textPrimary }} />
-            {t("motion.peak", "Peak")} · <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{peak}</span>
-          </span>
-          {markers.map((m) => (
-            <span key={m.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: th.textHelper }}>
-              <span style={{ width: 10, height: 2, background: m.color }} />
-              {m.label} · <span style={{ fontFamily: "var(--font-mono)" }}>{m.value}</span>
+        {/* Legend and how-to-read side by side: at this width there's room, and
+            the height it saves goes to the settings list below, which needs it
+            more than this does. */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 24, marginTop: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: th.textHelper }}>
+              <span style={{ width: 12, height: 2, background: th.textPrimary }} />
+              {t("motion.peak", "Peak")} · <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{peak}</span>
             </span>
-          ))}
-        </div>
-        <div style={{ fontSize: 11, color: th.textHelper, lineHeight: 1.5, marginTop: 6 }}>
-          {section === "tap"
-            ? t("motion.tap.calibrateHint", "Tap the case and read the peak marker it leaves behind, then set the threshold just below it — too low and typing vibration will trigger it.")
-            : t("motion.lock.calibrateHint", "Pick the keyboard up and walk a few steps to see the range it settles into; take the lock threshold from the bottom of that range and the still threshold from the noise floor on a desk.")}
+            {markers.map((m) => (
+              <span key={m.label} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: th.textHelper }}>
+                <span style={{ width: 12, height: 2, background: m.color }} />
+                {m.label} · <span style={{ fontFamily: "var(--font-mono)" }}>{m.value}</span>
+              </span>
+            ))}
+          </div>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: th.textHelper, lineHeight: 1.5 }}>
+            {section === "tap"
+              ? t("motion.tap.calibrateHint", "Tap the case and read the peak marker it leaves behind, then set the threshold just below it — too low and typing vibration will trigger it.")
+              : t("motion.lock.calibrateHint", "Pick the keyboard up and walk a few steps to see the range it settles into; take the lock threshold from the bottom of that range and the still threshold from the noise floor on a desk.")}
+          </div>
         </div>
       </div>
     </div>
@@ -320,75 +344,64 @@ function LiveMeter({ th, t, motion, section }: {
 // ─── Settings forms ────────────────────────────────────────────────────────────
 
 /*
- * Carbon form layout, not a settings-row list.
+ * Settings list, same shape as the Device page's SettingsBlock: one column,
+ * label → optional helper → control, a rule between entries.
  *
- * The previous shape — a fixed label column with the control to its right —
- * looked slapdash for a structural reason: each control brought its own height
- * (a 22px toggle, a ~35px segmented control, a native slider, a padded button),
- * so no two rows lined up and there was no shared baseline to read down. Carbon
- * stacks label above control and fixes the control height instead, which is what
- * gives a form its vertical rhythm.
+ * The two things that made this look slapdash before were controls each bringing
+ * their own height (a 22px toggle beside a 35px segmented control beside a native
+ * slider), and labels sitting in a fixed column so nothing shared a baseline. Both
+ * are fixed by stacking and by pinning the control box to FIELD_H.
  *
- * So: label (12px, $text-secondary) → 4px → control box of exactly FIELD_H →
- * optional helper text. Every field is therefore the same height, and they sit in
- * a grid so fields in one row share a baseline and the width actually gets used
- * instead of one tall column that scrolls.
+ * `value` goes on the label line rather than beside the control, which is where
+ * Carbon's slider puts its number input too — it keeps a slider entry one line
+ * shorter and means every value in the list is right-aligned to the same edge.
  */
 const FIELD_H = 40; // Carbon field height, size md
+const LIST_MAX_W = 680; // a slider stops being readable much past this
 
-function FormGrid({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(288px, 1fr))",
-      columnGap: 32, // $spacing-07
-      rowGap: 12,    // $spacing-04 — condensed, so the lock panel's three
-                     // sections still fit a 720px-tall window
-      alignItems: "start",
-    }}>
-      {children}
-    </div>
-  );
+function SettingsList({ children }: { children: React.ReactNode }) {
+  return <div style={{ maxWidth: LIST_MAX_W }}>{children}</div>;
 }
 
-/**
- * `tag` is for the sensor register a setting maps to. It rides on the label line
- * rather than becoming helper text so the field keeps its uniform height —
- * helper text is reserved for things that actually need a sentence.
- */
-function Field({ th, label, tag, hint, children }: {
+function Field({ th, label, tag, value, hint, height = FIELD_H, children }: {
   th: CarbonTheme;
   label: string;
+  /** Sensor register the setting maps to. */
   tag?: string;
+  /** Current value, right-aligned on the label line. */
+  value?: string;
   hint?: string;
+  height?: number;
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-        <span style={{ fontSize: 12, color: th.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {label}
-        </span>
+    <div style={{ padding: "12px 0", borderBottom: `1px solid ${th.border}` }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: th.textPrimary }}>{label}</span>
         {tag && (
-          <span style={{ marginLeft: "auto", fontSize: 11, fontFamily: "var(--font-mono)", color: th.textHelper, flexShrink: 0 }}>
-            {tag}
+          <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: th.textHelper }}>{tag}</span>
+        )}
+        {value && (
+          <span style={{ marginLeft: "auto", fontSize: 14, fontFamily: "var(--font-mono)", color: th.textPrimary, flexShrink: 0 }}>
+            {value}
           </span>
         )}
       </div>
-      <div style={{ height: FIELD_H, display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+      {hint && (
+        <div style={{ fontSize: 12, color: th.textHelper, lineHeight: 1.5, marginTop: 3 }}>{hint}</div>
+      )}
+      <div style={{ height, display: "flex", alignItems: "center", gap: 12, minWidth: 0, marginTop: 4 }}>
         {children}
       </div>
-      {hint && (
-        <div style={{ fontSize: 12, color: th.textHelper, marginTop: 4, lineHeight: 1.4 }}>{hint}</div>
-      )}
     </div>
   );
 }
 
-/** Carbon form section heading: 14px semibold, full-width rule, spans the grid. */
+/** Carbon form section heading: 14px semibold. The entries' own rules carry the
+ *  structure, so this doesn't add one of its own. */
 function GroupHeading({ th, children }: { th: CarbonTheme; children: React.ReactNode }) {
   return (
-    <div style={{ gridColumn: "1 / -1", marginTop: 4, paddingBottom: 6, borderBottom: `1px solid ${th.border}` }}>
+    <div style={{ paddingTop: 20, paddingBottom: 2 }}>
       <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{children}</span>
     </div>
   );
@@ -418,9 +431,9 @@ function EnableBar({ th, title, desc, enabled, onChange }: {
 }
 
 /**
- * Track + value readout, filling the field box. The readout is a fixed width so
- * every slider's track ends at the same x — a value column that moves with the
- * number is exactly the kind of drift that makes a form look untended.
+ * Full-width track with Carbon's min/max end labels. The current value isn't
+ * repeated here — it's on the entry's label line, where every value in the list
+ * lines up to one right edge.
  */
 function Slider({ th, value, min, max, step, onChange, unit }: {
   th: CarbonTheme;
@@ -431,14 +444,14 @@ function Slider({ th, value, min, max, step, onChange, unit }: {
   onChange: (v: number) => void;
   unit?: string;
 }) {
+  const end: React.CSSProperties = { fontSize: 12, fontFamily: "var(--font-mono)", color: th.textHelper, flexShrink: 0 };
   return (
     <>
+      <span style={end}>{min}{unit ?? ""}</span>
       <input type="range" min={min} max={max} step={step ?? 1} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="carbon-slider" style={{ flex: 1, minWidth: 0 }} />
-      <span style={{ width: 64, textAlign: "right", fontSize: 14, color: th.textPrimary, fontFamily: "var(--font-mono)", flexShrink: 0 }}>
-        {value}{unit ?? ""}
-      </span>
+      <span style={end}>{max}{unit ?? ""}</span>
     </>
   );
 }
@@ -485,8 +498,8 @@ function TapSettings({ th, t, config, thresholdMax, supportsDoubleTap, bindingLa
         onChange={(v) => set({ enabled: v })} />
 
       <div className="custom-scrollbar"
-        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "16px 20px 20px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
-        <FormGrid>
+        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 24px 24px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
+        <SettingsList>
           <Field th={th} label={t("motion.tap.action", "Action")}>
             <ValueField th={th} value={bindingLabel}
               actionLabel={t("common.change", "Change")} onAction={onEditBinding} />
@@ -505,21 +518,25 @@ function TapSettings({ th, t, config, thresholdMax, supportsDoubleTap, bindingLa
             </Field>
           )}
 
-          <Field th={th} label={t("motion.tap.threshold", "Trigger threshold")} tag="CLICK_THS">
+          <Field th={th} label={t("motion.tap.threshold", "Trigger threshold")} tag="CLICK_THS"
+            value={String(config.threshold)} height={24}>
             <Slider th={th} value={config.threshold} min={1} max={thresholdMax} onChange={(v) => set({ threshold: v })} />
           </Field>
-          <Field th={th} label={t("motion.tap.timeLimit", "Max tap length")} tag="TIME_LIMIT">
-            <Slider th={th} value={config.timeLimitMs} min={10} max={200} step={5} unit=" ms" onChange={(v) => set({ timeLimitMs: v })} />
+          <Field th={th} label={t("motion.tap.timeLimit", "Max tap length")} tag="TIME_LIMIT"
+            value={`${config.timeLimitMs} ms`} height={24}>
+            <Slider th={th} value={config.timeLimitMs} min={10} max={200} step={5} onChange={(v) => set({ timeLimitMs: v })} />
           </Field>
-          <Field th={th} label={t("motion.tap.latency", "Dead time after trigger")} tag="TIME_LATENCY">
-            <Slider th={th} value={config.latencyMs} min={10} max={400} step={10} unit=" ms" onChange={(v) => set({ latencyMs: v })} />
+          <Field th={th} label={t("motion.tap.latency", "Dead time after trigger")} tag="TIME_LATENCY"
+            value={`${config.latencyMs} ms`} height={24}>
+            <Slider th={th} value={config.latencyMs} min={10} max={400} step={10} onChange={(v) => set({ latencyMs: v })} />
           </Field>
           {config.kind === TapKind.DOUBLE && (
-            <Field th={th} label={t("motion.tap.window", "Second-tap window")} tag="TIME_WINDOW">
-              <Slider th={th} value={config.windowMs} min={50} max={800} step={10} unit=" ms" onChange={(v) => set({ windowMs: v })} />
+            <Field th={th} label={t("motion.tap.window", "Second-tap window")} tag="TIME_WINDOW"
+              value={`${config.windowMs} ms`} height={24}>
+              <Slider th={th} value={config.windowMs} min={50} max={800} step={10} onChange={(v) => set({ windowMs: v })} />
             </Field>
           )}
-        </FormGrid>
+        </SettingsList>
       </div>
     </div>
   );
@@ -544,31 +561,36 @@ function LockSettings({ th, t, config, thresholdMax, onChange }: {
         onChange={(v) => set({ enabled: v })} />
 
       <div className="custom-scrollbar"
-        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 20px 20px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
-        <FormGrid>
+        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 24px 24px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
+        <SettingsList>
           <GroupHeading th={th}>{t("motion.lock.lockGroup", "When to lock")}</GroupHeading>
-          <Field th={th} label={t("motion.lock.motionThreshold", "Lock threshold")} tag="ACT_THS">
+          <Field th={th} label={t("motion.lock.motionThreshold", "Lock threshold")} tag="ACT_THS"
+            value={String(config.motionThreshold)} height={24}>
             <Slider th={th} value={config.motionThreshold} min={1} max={thresholdMax} onChange={(v) => set({ motionThreshold: v })} />
           </Field>
           <Field th={th} label={t("motion.lock.motionDuration", "Sustained movement")} tag="ACT_DUR"
+            value={`${config.motionDurationMs} ms`} height={24}
             hint={t("motion.lock.motionDurationHint", "Stops a single jolt from locking")}>
-            <Slider th={th} value={config.motionDurationMs} min={200} max={10000} step={100} unit=" ms" onChange={(v) => set({ motionDurationMs: v })} />
+            <Slider th={th} value={config.motionDurationMs} min={200} max={10000} step={100} onChange={(v) => set({ motionDurationMs: v })} />
           </Field>
 
           <GroupHeading th={th}>{t("motion.lock.unlockGroup", "When to unlock")}</GroupHeading>
-          <Field th={th} label={t("motion.lock.stillThreshold", "Still threshold")}>
+          <Field th={th} label={t("motion.lock.stillThreshold", "Still threshold")}
+            value={String(config.stillThreshold)} height={24}>
             <Slider th={th} value={config.stillThreshold} min={1} max={thresholdMax} onChange={(v) => set({ stillThreshold: v })} />
           </Field>
-          <Field th={th} label={t("motion.lock.stillDuration", "Time held still")}>
-            <Slider th={th} value={config.stillDurationMs} min={200} max={10000} step={100} unit=" ms" onChange={(v) => set({ stillDurationMs: v })} />
+          <Field th={th} label={t("motion.lock.stillDuration", "Time held still")}
+            value={`${config.stillDurationMs} ms`} height={24}>
+            <Slider th={th} value={config.stillDurationMs} min={200} max={10000} step={100} onChange={(v) => set({ stillDurationMs: v })} />
           </Field>
           <Field th={th} label={t("motion.lock.requireFlat", "Require flat")}
             hint={t("motion.lock.requireFlatHint", "Still isn't enough — must also be face up")}>
             <Toggle th={th} checked={config.requireFlat} onChange={(v) => set({ requireFlat: v })} />
           </Field>
           {config.requireFlat && (
-            <Field th={th} label={t("motion.lock.flatTolerance", "Tilt tolerance")}>
-              <Slider th={th} value={config.flatToleranceDeg} min={2} max={45} unit="°" onChange={(v) => set({ flatToleranceDeg: v })} />
+            <Field th={th} label={t("motion.lock.flatTolerance", "Tilt tolerance")}
+              value={`${config.flatToleranceDeg}°`} height={24}>
+              <Slider th={th} value={config.flatToleranceDeg} min={2} max={45} onChange={(v) => set({ flatToleranceDeg: v })} />
             </Field>
           )}
 
@@ -584,7 +606,7 @@ function LockSettings({ th, t, config, thresholdMax, onChange }: {
               ]}
               onChange={(v) => set({ scope: Number(v) as LockScope })} />
           </Field>
-        </FormGrid>
+        </SettingsList>
       </div>
     </div>
   );

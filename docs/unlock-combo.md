@@ -192,3 +192,12 @@ from the UI ("the test does nothing").
   `get_combo` readback afterwards, both only prove the slot is right *now*. There
   is no request that reaches storage, so the flow says "written", advises a power
   cycle while the old unlock method still works, and does not claim more.
+
+- **Combos do not survive a power cycle at all yet.** The `zmk.combos` subsystem
+  has no save request of any kind, and `keymap.saveChanges` persists only the
+  keymap subtree, so a written combo lives in the runtime array and never reaches
+  NVS. Studio has no call left to make. What firmware needs to add — a settings
+  handler, stable behavior ids rather than build-local ones, deletion on clear —
+  is written up in [combo-persistence.md](combo-persistence.md). Until that lands,
+  an unlock combo is a session-only convenience and the keymap binding is the only
+  gesture that really persists.
