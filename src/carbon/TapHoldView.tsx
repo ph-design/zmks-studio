@@ -119,7 +119,7 @@ export const TapHoldView = ({ behaviors, th, getConfig, applyConfig }: TapHoldVi
                   fontFamily: "var(--font-sans)",
                 }}
               >
-                <Badge active={isActive} th={th} square>
+                <Badge active={isActive} th={th}>
                   {isBuiltin ? t("holdTap.scope.builtinShort", "内置") : t("holdTap.scope.user", "自定义")}
                 </Badge>
                 <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 1 }}>

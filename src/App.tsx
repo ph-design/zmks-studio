@@ -34,7 +34,6 @@ import { LicenseNoticeModal } from "./misc/LicenseNoticeModal";
 import { CarbonShell } from "./carbon/CarbonShell";
 import { saveMotionState } from "./motion/useMotion";
 import { useCarbonTheme } from "./carbon/theme";
-import { useLocalStorageState } from "./misc/useLocalStorageState";
 
 declare global {
   interface Window {
@@ -210,16 +209,6 @@ function App() {
   const [keyboardReady, setKeyboardReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const connectionAbortRef = useRef(connectionAbort);
-
-  // Rounded corners mode — applied at App level to cover the connect modal too
-  const [roundedCorners, setRoundedCorners] = useLocalStorageState<boolean>(
-    "zmk-studio-rounded-corners",
-    false,
-    { serialize: (v) => String(v), deserialize: (v) => v === "true" }
-  );
-  useEffect(() => {
-    document.documentElement.classList.toggle("rounded-mode", roundedCorners);
-  }, [roundedCorners]);
 
   const [lockState, setLockState] = useState<LockState | undefined>(undefined);
   const [hasUnsavedLightingChanges, setHasUnsavedLightingChanges] = useState(false);
@@ -533,8 +522,6 @@ function App() {
                 onMotionChanged={markMotionChanged}
                 onShowAbout={() => setShowAbout(true)}
                 onShowLicense={() => setShowLicenseNotice(true)}
-                roundedCorners={roundedCorners}
-                setRoundedCorners={setRoundedCorners}
               />
             ) : (
               // Carbon-toned backdrop behind the connect modal

@@ -310,20 +310,6 @@ body {
   background: transparent;
 }
 
-
-html.rounded-mode * {
-  border-radius: 4px !important;
-}
-
-/* Opt-out for elements that must stay sharp (see Badge in CarbonChrome). */
-html.rounded-mode .carbon-badge-square {
-  border-radius: 0 !important;
-}
-
-html.rounded-mode button:not([role="switch"]) {
-  border-radius: 6px !important;
-}
-
 /* Binding picker — always open, so no collapsed state and no height animation. */
 .keymap-drawer {
   height: 200px;
@@ -339,40 +325,4 @@ html.rounded-mode button:not([role="switch"]) {
 }
 @media (min-height: 1080px) {
   .keymap-drawer { height: 400px; }
-}
-
-html.rounded-mode input:not([type="range"]),
-html.rounded-mode textarea,
-html.rounded-mode select {
-  border-radius: 6px !important;
-}
-
-html.rounded-mode [data-key],
-html.rounded-mode [class*="keycap"] {
-  border-radius: 5px !important;
-}
-
-html.rounded-mode dialog,
-html.rounded-mode .modal-surface {
-  border-radius: 14px !important;
-}
-
-html.rounded-mode header,
-html.rounded-mode footer {
-  border-radius: 0 !important;
-}
-
-html.rounded-mode .circular-spinner,
-html.rounded-mode .circular-spinner * {
-  border-radius: 50% !important;
-}
-
-/* The Carbon toggle is already a pill with a round knob, so rounded-mode must
-   leave it alone — the blanket `* { border-radius: 4px }` above wins over its
-   inline styles, and a flat 50% would squash the track into an ellipse. */
-html.rounded-mode [role="switch"] {
-  border-radius: 9999px !important;
-}
-html.rounded-mode [role="switch"] > * {
-  border-radius: 50% !important;
 }

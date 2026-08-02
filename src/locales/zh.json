@@ -405,9 +405,6 @@
     "theme": "主题",
     "accentColor": "主题色",
     "accentColorDesc": "Carbon 交互色 — 用于选中状态、链接和主按钮。",
-    "accentSystem": "跟随浏览器",
-    "accentSystemOn": "正在跟随浏览器的主题色。",
-    "accentSystemUnsupported": "此浏览器未提供主题色 — 已回退到 Carbon 蓝。",
     "accent": {
       "blue": "蓝色",
       "cyan": "青蓝",
@@ -482,7 +479,8 @@
       "layers": "图层"
     },
     "allReservedTitle": "没有可编辑的组合键",
-    "allReservedHint": "这把键盘的组合键槽位全部被固件保留。解锁组合在「设备」页管理。"
+    "allReservedHint": "这把键盘的组合键槽位全部被固件保留。解锁组合在「设备」页管理。",
+    "clearFailed": "清空槽位失败，请重试。"
   },
   "motion": {
     "emptyTitle": "体感功能不可用",
@@ -512,7 +510,7 @@
       "timeLimit": "敲击时长上限",
       "latency": "触发后静默",
       "window": "第二次敲击窗口",
-      "calibrateHint": "敲一敲机身外壳，观察峰值落在哪里，再把触发阈值定在峰值稍下方 —— 太低会被打字震动误触发。"
+      "calibrateHint": "敲一敲机身外壳，读出留在进度条上的峰值刻度，再把触发阈值定在峰值稍下方 —— 太低会被打字震动误触发。"
     },
     "lock": {
       "title": "运动锁定",
@@ -533,7 +531,8 @@
       "scopeKeysLeds": "按键+灯光",
       "scopeSoftOff": "软关机",
       "calibrateHint": "拿起键盘走两步，看强度稳定在什么区间；锁定阈值取该区间下沿，静止阈值取放在桌面时的噪声上沿。"
-    }
+    },
+    "peak": "峰值"
   },
   "unlockPanel": {
     "title": "解锁组合",

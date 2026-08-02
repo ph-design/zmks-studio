@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Hand, Waves, ShieldCheck, Lock, Unlock, Smartphone } from "lucide-react";
 
 import type { BehaviorBinding, Layer } from "@zmkfirmware/zmk-studio-ts-client/keymap";
@@ -170,6 +170,52 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
 
 // ─── Live meter ────────────────────────────────────────────────────────────────
 
+const TICK_MS = 100; // matches the firmware's live-state push rate
+const PEAK_HOLD_MS = 900;
+/** Full-scale fall time once the hold expires. */
+const PEAK_FALL_MS = 4000;
+
+/*
+ * Peak hold.
+ *
+ * The number that matters when calibrating a tap threshold is the transient, and
+ * a bar that tracks the signal live has already dropped back before you can read
+ * it. So the peak is pushed up the instant the signal exceeds it, held long
+ * enough to read, then bled away — and never below the live value, so it reads as
+ * the bar carrying the marker rather than two independent things.
+ */
+function usePeakHold(value: number, max: number, resetKey: unknown): number {
+  const latest = useRef(value);
+  latest.current = value;
+  const peak = useRef(value);
+  const heldFor = useRef(0);
+  const [, render] = useState(0);
+
+  useEffect(() => {
+    peak.current = latest.current;
+    heldFor.current = 0;
+  }, [resetKey]);
+
+  useEffect(() => {
+    const step = Math.max(1, (max * TICK_MS) / PEAK_FALL_MS);
+    const id = setInterval(() => {
+      if (latest.current >= peak.current) {
+        peak.current = latest.current;
+        heldFor.current = 0;
+      } else {
+        heldFor.current += TICK_MS;
+        if (heldFor.current >= PEAK_HOLD_MS) {
+          peak.current = Math.max(latest.current, peak.current - step);
+        }
+      }
+      render((n) => n + 1);
+    }, TICK_MS);
+    return () => clearInterval(id);
+  }, [max]);
+
+  return Math.round(peak.current);
+}
+
 function LiveMeter({ th, t, motion, section }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
@@ -179,6 +225,7 @@ function LiveMeter({ th, t, motion, section }: {
   const { live, capabilities, tapConfig, lockConfig } = motion;
   const max = capabilities?.thresholdMax ?? 127;
   const pct = (v: number) => `${Math.min(100, Math.max(0, (v / max) * 100))}%`;
+  const peak = usePeakHold(live.magnitude, max, section);
 
   // Markers make the raw counts legible: you can see how far the current signal
   // sits from the threshold that would actually fire.
@@ -230,7 +277,7 @@ function LiveMeter({ th, t, motion, section }: {
 
       {/* Live magnitude with threshold markers, and how to read them */}
       <div style={{ flex: "1 1 320px", minWidth: 260 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 5 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 5 }}>
           <span style={{ fontSize: 12, color: th.textSecondary }}>
             {t("motion.live", "Live magnitude")}
           </span>
@@ -239,12 +286,20 @@ function LiveMeter({ th, t, motion, section }: {
           </span>
         </div>
         <div style={{ position: "relative", height: 20, background: th.fieldBg, border: `1px solid ${th.border}` }}>
+          {/* Trail from the live value up to the peak, so the marker reads as
+              having been pushed there rather than floating free. */}
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: pct(peak), background: th.interactive, opacity: 0.22, transition: "width 100ms linear" }} />
           <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: pct(live.magnitude), background: th.interactive, opacity: 0.75, transition: "width 100ms linear" }} />
+          <div style={{ position: "absolute", left: pct(peak), top: -2, bottom: -2, width: 2, marginLeft: -2, background: th.textPrimary, transition: "left 100ms linear" }} />
           {markers.map((m) => (
             <div key={m.label} style={{ position: "absolute", left: pct(m.value), top: -3, bottom: -3, width: 2, background: m.color }} />
           ))}
         </div>
         <div style={{ display: "flex", gap: 16, marginTop: 5, flexWrap: "wrap" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: th.textHelper }}>
+            <span style={{ width: 10, height: 2, background: th.textPrimary }} />
+            {t("motion.peak", "Peak")} · <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{peak}</span>
+          </span>
           {markers.map((m) => (
             <span key={m.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: th.textHelper }}>
               <span style={{ width: 10, height: 2, background: m.color }} />
@@ -254,7 +309,7 @@ function LiveMeter({ th, t, motion, section }: {
         </div>
         <div style={{ fontSize: 11, color: th.textHelper, lineHeight: 1.5, marginTop: 6 }}>
           {section === "tap"
-            ? t("motion.tap.calibrateHint", "Tap the case and watch where the peak lands, then set the threshold just below it — too low and typing vibration will trigger it.")
+            ? t("motion.tap.calibrateHint", "Tap the case and read the peak marker it leaves behind, then set the threshold just below it — too low and typing vibration will trigger it.")
             : t("motion.lock.calibrateHint", "Pick the keyboard up and walk a few steps to see the range it settles into; take the lock threshold from the bottom of that range and the still threshold from the noise floor on a desk.")}
         </div>
       </div>
@@ -429,7 +484,7 @@ function LockSettings({ th, t, config, thresholdMax, onChange }: {
           <Slider th={th} value={config.stillDurationMs} min={200} max={10000} step={100} unit=" ms" onChange={(v) => set({ stillDurationMs: v })} />
         </Row>
         <Row th={th} label={t("motion.lock.requireFlat", "Require flat")} hint={t("motion.lock.requireFlatHint", "Still isn't enough — must also be face up")}>
-          <Toggle th={th} checked={config.requireFlat} onChange={(v) => set({ requireFlat: v })} />
+          <Toggle th={th} size="sm" checked={config.requireFlat} onChange={(v) => set({ requireFlat: v })} />
         </Row>
         {config.requireFlat && (
           <Row th={th} label={t("motion.lock.flatTolerance", "Tilt tolerance")}>

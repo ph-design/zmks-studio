@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useLocalStorageState } from "../misc/useLocalStorageState";
 
 /*
@@ -95,7 +95,7 @@ export const LIGHT: typeof DARK = {
 export type CarbonTheme = typeof DARK;
 export type ThemeSetting = "dark" | "light" | "system";
 
-/** Preset id ("blue", "purple", …) or "system" to follow the browser accent. */
+/** Preset id — "blue", "purple", … (see ACCENT_PRESETS). */
 export type AccentSetting = string;
 
 const STORAGE_KEY = "zmk-studio-theme";
@@ -186,27 +186,6 @@ function hexToHslTriplet(hex: string): string {
   return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
-function relativeLuminance(hex: string): number {
-  const [r, g, b] = parseHex(hex).map((v) => {
-    const c = v / 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-/*
- * White text on the accent is hard-coded throughout the shell, so an accent
- * that's too light (possible for a browser-provided one) gets darkened until
- * that stays readable. The Carbon presets already pass untouched.
- */
-function ensureContrast(hex: string): string {
-  let out = hex;
-  for (let i = 0; i < 12 && relativeLuminance(out) > 0.35; i++) {
-    out = darken(out, 0.12);
-  }
-  return out;
-}
-
 /** Re-derive every accent-tinted token in a base palette from one hex. */
 function withAccent(base: CarbonTheme, accent: string, dark: boolean): CarbonTheme {
   const soft = lighten(accent, 0.44); // ≈ Carbon "40" step
@@ -221,30 +200,18 @@ function withAccent(base: CarbonTheme, accent: string, dark: boolean): CarbonThe
   };
 }
 
-// ─── Browser accent color (CSS `AccentColor`, Firefox / Safari) ───────────────
-
-function rgbStringToHex(value: string): string | null {
-  const nums = value.match(/[\d.]+/g);
-  if (!nums || nums.length < 3) return null;
-  return toHex([Number(nums[0]), Number(nums[1]), Number(nums[2])]);
-}
-
-/**
- * Reads the browser/OS accent color via the `AccentColor` system keyword.
- * Returns null where it isn't exposed (Chromium), so callers can fall back.
+/*
+ * There is deliberately no "follow the browser accent" option.
+ *
+ * The only web API for it is the CSS `AccentColor` system keyword, which
+ * Chromium does not implement — `CSS.supports("color", "AccentColor")` is false
+ * as of Chrome 148. Since Studio needs Web Serial / WebHID, every browser that
+ * can talk to a keyboard at all is Chromium, so the option could never do
+ * anything for a real user. `Highlight` is the near miss worth knowing about: it
+ * parses, but Chromium answers with a hard-coded #0078D7 rather than the OS
+ * accent (measured against a Windows accent of #0078D4), so it would have
+ * produced a fixed blue dressed up as a preference.
  */
-function readSystemAccent(): string | null {
-  if (!window.CSS?.supports?.("color", "AccentColor")) return null;
-
-  const probe = document.createElement("span");
-  probe.style.cssText =
-    "color:AccentColor;position:absolute;visibility:hidden;pointer-events:none";
-  document.body.appendChild(probe);
-  const computed = getComputedStyle(probe).color;
-  probe.remove();
-
-  return rgbStringToHex(computed);
-}
 
 function systemPrefersDark(): boolean {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -286,18 +253,16 @@ export function useCarbonTheme() {
     }
   }, [setting]);
 
-  // The browser accent can differ per color scheme, so re-probe when it flips.
-  const [systemAccent, setSystemAccent] = useState<string | null>(null);
+  // Retire the old "system" accent for anyone who has it stored, so the
+  // preference pane doesn't show an empty selection.
   useEffect(() => {
-    setSystemAccent(readSystemAccent());
-  }, [dark]);
+    if (!ACCENT_PRESETS.some((p) => p.id === accent)) setAccent(DEFAULT_ACCENT);
+  }, [accent, setAccent]);
 
-  const accentHex = useMemo(() => {
-    const preset = ACCENT_PRESETS.find((p) => p.id === accent);
-    if (preset) return preset.hex;
-    if (accent === "system" && systemAccent) return ensureContrast(systemAccent);
-    return DEFAULT_ACCENT_HEX;
-  }, [accent, systemAccent]);
+  const accentHex = useMemo(
+    () => ACCENT_PRESETS.find((p) => p.id === accent)?.hex ?? DEFAULT_ACCENT_HEX,
+    [accent]
+  );
 
   const theme = useMemo(
     () => withAccent(dark ? DARK : LIGHT, accentHex, dark),
@@ -321,7 +286,5 @@ export function useCarbonTheme() {
     accent,
     setAccent,
     accentHex,
-    /** The raw browser accent, or null when it isn't exposed (e.g. Chromium). */
-    systemAccentHex: systemAccent,
   };
 }

@@ -405,9 +405,6 @@
     "theme": "Theme",
     "accentColor": "Accent color",
     "accentColorDesc": "Carbon interactive colors — used for selections, links and primary buttons.",
-    "accentSystem": "Follow browser",
-    "accentSystemOn": "Following the browser's accent color.",
-    "accentSystemUnsupported": "This browser doesn't expose its accent color — falling back to Carbon Blue.",
     "accent": {
       "blue": "Blue",
       "cyan": "Cyan",
@@ -482,7 +479,8 @@
       "layers": "Layers"
     },
     "allReservedTitle": "No editable combos",
-    "allReservedHint": "Every combo slot on this keyboard is reserved by firmware. The unlock shortcut is managed from the Device page."
+    "allReservedHint": "Every combo slot on this keyboard is reserved by firmware. The unlock shortcut is managed from the Device page.",
+    "clearFailed": "Couldn't clear the slot. Please try again."
   },
   "motion": {
     "emptyTitle": "Motion features unavailable",
@@ -512,7 +510,7 @@
       "timeLimit": "Max tap length",
       "latency": "Dead time after trigger",
       "window": "Second-tap window",
-      "calibrateHint": "Tap the case and watch where the peak lands, then set the threshold just below it — too low and typing vibration will trigger it."
+      "calibrateHint": "Tap the case and read the peak marker it leaves behind, then set the threshold just below it — too low and typing vibration will trigger it."
     },
     "lock": {
       "title": "Motion lock",
@@ -533,7 +531,8 @@
       "scopeKeysLeds": "Keys + lighting",
       "scopeSoftOff": "Soft off",
       "calibrateHint": "Pick the keyboard up and walk a few steps to see the range it settles into; take the lock threshold from the bottom of that range and the still threshold from the noise floor on a desk."
-    }
+    },
+    "peak": "Peak"
   },
   "unlockPanel": {
     "title": "Unlock shortcut",

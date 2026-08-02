@@ -405,9 +405,6 @@
     "theme": "Thème",
     "accentColor": "Couleur d'accentuation",
     "accentColorDesc": "Couleurs interactives Carbon — utilisées pour les sélections, les liens et les boutons principaux.",
-    "accentSystem": "Suivre le navigateur",
-    "accentSystemOn": "Suit la couleur d'accentuation du navigateur.",
-    "accentSystemUnsupported": "Ce navigateur n'expose pas sa couleur d'accentuation — retour au bleu Carbon.",
     "accent": {
       "blue": "Bleu",
       "cyan": "Cyan",
@@ -482,7 +479,8 @@
       "layers": "Couches"
     },
     "allReservedTitle": "Aucun combo modifiable",
-    "allReservedHint": "Tous les emplacements de combo de ce clavier sont réservés par le firmware. Le raccourci de déverrouillage se gère depuis la page Appareil."
+    "allReservedHint": "Tous les emplacements de combo de ce clavier sont réservés par le firmware. Le raccourci de déverrouillage se gère depuis la page Appareil.",
+    "clearFailed": "Impossible de vider l'emplacement. Veuillez réessayer."
   },
   "motion": {
     "emptyTitle": "Fonctions de mouvement indisponibles",
@@ -512,7 +510,7 @@
       "timeLimit": "Durée maximale",
       "latency": "Temps mort après déclenchement",
       "window": "Fenêtre pour la 2e tape",
-      "calibrateHint": "Tapez le boîtier et observez le pic, puis placez le seuil juste en dessous — trop bas, les vibrations de frappe le déclencheront."
+      "calibrateHint": "Tapez le boîtier et lisez le repère de pic laissé sur la barre, puis placez le seuil juste en dessous — trop bas, les vibrations de frappe le déclencheront."
     },
     "lock": {
       "title": "Verrouillage en mouvement",
@@ -533,7 +531,8 @@
       "scopeKeysLeds": "Touches + éclairage",
       "scopeSoftOff": "Extinction douce",
       "calibrateHint": "Prenez le clavier et marchez quelques pas pour voir la plage atteinte ; prenez le seuil de verrouillage au bas de cette plage et le seuil d'immobilité au niveau du bruit sur un bureau."
-    }
+    },
+    "peak": "Pic"
   },
   "unlockPanel": {
     "title": "Raccourci de déverrouillage",

@@ -51,13 +51,11 @@ export interface CarbonShellProps {
   onMotionChanged?: () => void;
   onShowAbout: () => void;
   onShowLicense: () => void;
-  roundedCorners: boolean;
-  setRoundedCorners: (v: boolean) => void;
 }
 
 export function CarbonShell(props: CarbonShellProps) {
   const { t, i18n } = useTranslation();
-  const { isDark, setting, setSetting, theme: th, toggle, accent, setAccent, systemAccentHex } = props.carbon;
+  const { isDark, setting, setSetting, theme: th, toggle, accent, setAccent } = props.carbon;
   const [modelReady, setModelReady] = useState(false);
   const model = useKeyboardModel({
     onReady: setModelReady,
@@ -81,7 +79,6 @@ export function CarbonShell(props: CarbonShellProps) {
     "layers",
     { deserialize: deserializeNav }
   );
-  const { roundedCorners, setRoundedCorners } = props;
   const [navSelection, setNavSelection] = useState<NavId>(defaultNav);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -343,12 +340,11 @@ export function CarbonShell(props: CarbonShellProps) {
                 onResetSettings={props.onResetSettings} />
             ) : activeNav === "preferences" ? (
               <PreferencesView th={th} t={t} setting={setting} setSetting={setSetting}
-                accent={accent} setAccent={setAccent} systemAccentHex={systemAccentHex}
+                accent={accent} setAccent={setAccent}
                 lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
-                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense}
-                roundedCorners={roundedCorners} setRoundedCorners={setRoundedCorners} />
+                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} />
             ) : activeNav === "combos" ? (
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
                 <ComboPanel

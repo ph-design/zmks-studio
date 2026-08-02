@@ -405,9 +405,6 @@
     "theme": "Tema",
     "accentColor": "Color de acento",
     "accentColorDesc": "Colores interactivos de Carbon — se usan en selecciones, enlaces y botones principales.",
-    "accentSystem": "Seguir al navegador",
-    "accentSystemOn": "Siguiendo el color de acento del navegador.",
-    "accentSystemUnsupported": "Este navegador no expone su color de acento — se usará el azul de Carbon.",
     "accent": {
       "blue": "Azul",
       "cyan": "Cian",
@@ -482,7 +479,8 @@
       "layers": "Capas"
     },
     "allReservedTitle": "No hay combos editables",
-    "allReservedHint": "El firmware reserva todas las ranuras de combo de este teclado. El atajo de desbloqueo se gestiona en la página Dispositivo."
+    "allReservedHint": "El firmware reserva todas las ranuras de combo de este teclado. El atajo de desbloqueo se gestiona en la página Dispositivo.",
+    "clearFailed": "No se pudo vaciar la ranura. Inténtalo de nuevo."
   },
   "motion": {
     "emptyTitle": "Funciones de movimiento no disponibles",
@@ -512,7 +510,7 @@
       "timeLimit": "Duración máxima",
       "latency": "Tiempo muerto tras disparar",
       "window": "Ventana del 2.º toque",
-      "calibrateHint": "Golpea la carcasa y observa el pico, luego fija el umbral justo por debajo — demasiado bajo y la vibración al escribir lo disparará."
+      "calibrateHint": "Golpea la carcasa y lee la marca de pico que deja en la barra, luego fija el umbral justo por debajo — demasiado bajo y la vibración al escribir lo disparará."
     },
     "lock": {
       "title": "Bloqueo por movimiento",
@@ -533,7 +531,8 @@
       "scopeKeysLeds": "Teclas + luz",
       "scopeSoftOff": "Apagado suave",
       "calibrateHint": "Coge el teclado y camina unos pasos para ver en qué rango se estabiliza; toma el umbral de bloqueo del extremo inferior y el de quietud del ruido sobre la mesa."
-    }
+    },
+    "peak": "Pico"
   },
   "unlockPanel": {
     "title": "Atajo de desbloqueo",
