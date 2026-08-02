@@ -515,9 +515,9 @@
     "lock": {
       "title": "Bloqueo por movimiento",
       "desc": "Bloquea las teclas mientras se mueve en la mochila y las libera al dejarlo plano",
-      "lockGroup": "CUÁNDO BLOQUEAR",
-      "unlockGroup": "CUÁNDO DESBLOQUEAR",
-      "scopeGroup": "ALCANCE DEL BLOQUEO",
+      "lockGroup": "Cuándo bloquear",
+      "unlockGroup": "Cuándo desbloquear",
+      "scopeGroup": "Alcance del bloqueo",
       "motionThreshold": "Umbral de bloqueo",
       "motionDuration": "Movimiento sostenido",
       "motionDurationHint": "Evita bloquear por una sacudida puntual",
@@ -567,7 +567,7 @@
     "timeoutRisky": "Aplicar sin confirmar implica que, si el gesto no funciona, el teclado no podrá editarse sin volver a flashearlo.",
     "applyAnyway": "Aplicar sin confirmar",
     "done": "Atajo de desbloqueo actualizado",
-    "doneHint": "Ya está activo. Usa «Guardar en el teclado» en la cabecera para conservarlo: un combo sin guardar puede perderse al apagar.",
+    "doneHint": "Ya está activo, pero solo en memoria — escríbelo en el teclado o se perderá al siguiente apagón.",
     "close": "Hecho",
     "priorIdleApplied": "Ahora hace falta una pausa breve, así que el acorde no puede dispararse al escribir.",
     "warnUnverified": "Aplicado sin confirmar — pruébalo antes de dejar que el teclado se bloquee.",
@@ -590,6 +590,12 @@
     "warnOverlap": "Estas teclas también las usa otro combo",
     "warnOverlapHint": "Los combos que se solapan compiten y puede ganar el otro, lo que haría que la prueba de abajo pareciera fallar sin motivo.",
     "warnSameAsCurrent": "Ese es el atajo que ya está en uso, así que no hay nada que confirmar. Elige otras teclas, o cancela para dejarlo como está.",
-    "warnShadowedByUnlock": "Estas teclas se solapan con tu atajo de desbloqueo actual, que sigue activo durante la prueba. Ganaría el acorde y desbloquearía en vez de producir la tecla de prueba, así que la prueba no puede confirmar nada. Elige teclas que no comparta."
+    "warnShadowedByUnlock": "Estas teclas se solapan con tu atajo de desbloqueo actual, que sigue activo durante la prueba. Ganaría el acorde y desbloquearía en vez de producir la tecla de prueba, así que la prueba no puede confirmar nada. Elige teclas que no comparta.",
+    "saveNow": "Guardar en el teclado",
+    "savingNow": "Escribiendo…",
+    "saveRetry": "Reintentar guardado",
+    "savedOk": "Escrito en el teclado — el firmware informa del atajo en la ranura.",
+    "savedVerifyHint": "Studio solo ve la ranura activa, no el almacenamiento. Desconecta el teclado y vuelve a conectarlo una vez para confirmarlo, mientras tu método de desbloqueo anterior siga funcionando.",
+    "savedFailed": "El guardado no se aplicó — después el firmware no informa del atajo en la ranura. No dejes que este teclado se bloquee hasta comprobarlo con tu método de desbloqueo actual."
   }
 }

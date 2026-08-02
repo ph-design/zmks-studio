@@ -213,6 +213,14 @@ function App() {
   const [lockState, setLockState] = useState<LockState | undefined>(undefined);
   const [hasUnsavedLightingChanges, setHasUnsavedLightingChanges] = useState(false);
   const [hasUnsavedMotionChanges, setHasUnsavedMotionChanges] = useState(false);
+  /*
+   * Combo writes are a `combos` call, but the header's unsaved indicator reads
+   * `keymap.checkUnsavedChanges`. Rather than assume firmware flags one
+   * subsystem's write on another's counter, track it here — `keymap.saveChanges`
+   * (always issued by `save`) is what persists combos, so this only has to make
+   * the Save button appear. It not appearing is how an unlock combo was lost.
+   */
+  const [hasUnsavedComboChanges, setHasUnsavedComboChanges] = useState(false);
   const [connectionType, setConnectionType] = useState<string | undefined>();
 
   useEffect(() => {
@@ -299,6 +307,10 @@ function App() {
     setHasUnsavedMotionChanges(true);
   }, []);
 
+  const markCombosChanged = useCallback(() => {
+    setHasUnsavedComboChanges(true);
+  }, []);
+
   const save = useCallback(async (): Promise<boolean> => {
     if (!conn.conn) {
       return false;
@@ -339,6 +351,7 @@ function App() {
     if (saved) {
       setHasUnsavedLightingChanges(false);
       setHasUnsavedMotionChanges(false);
+      setHasUnsavedComboChanges(false);
     }
     return saved;
   }, [conn, hasUnsavedLightingChanges, hasUnsavedMotionChanges, t]);
@@ -515,11 +528,12 @@ function App() {
                 canRedo={canRedo}
                 onUndo={undo}
                 onRedo={redo}
-                extraSaveEnabled={hasUnsavedLightingChanges || hasUnsavedMotionChanges}
+                extraSaveEnabled={hasUnsavedLightingChanges || hasUnsavedMotionChanges || hasUnsavedComboChanges}
                 onReady={setKeyboardReady}
                 onProgress={setLoadProgress}
                 onLightingChanged={markLightingChanged}
                 onMotionChanged={markMotionChanged}
+                onCombosChanged={markCombosChanged}
                 onShowAbout={() => setShowAbout(true)}
                 onShowLicense={() => setShowLicenseNotice(true)}
               />

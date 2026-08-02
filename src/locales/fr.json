@@ -515,9 +515,9 @@
     "lock": {
       "title": "Verrouillage en mouvement",
       "desc": "Verrouille les touches pendant les déplacements en sac, et déverrouille une fois posé à plat",
-      "lockGroup": "QUAND VERROUILLER",
-      "unlockGroup": "QUAND DÉVERROUILLER",
-      "scopeGroup": "PORTÉE DU VERROU",
+      "lockGroup": "Quand verrouiller",
+      "unlockGroup": "Quand déverrouiller",
+      "scopeGroup": "Portée du verrouillage",
       "motionThreshold": "Seuil de verrouillage",
       "motionDuration": "Mouvement prolongé",
       "motionDurationHint": "Évite un verrouillage sur une simple secousse",
@@ -567,7 +567,7 @@
     "timeoutRisky": "Appliquer sans confirmation signifie que si le geste ne fonctionne pas, le clavier ne pourra plus être modifié sans reflashage.",
     "applyAnyway": "Appliquer sans confirmation",
     "done": "Raccourci de déverrouillage mis à jour",
-    "doneHint": "C'est déjà actif. Utilisez « Enregistrer sur le clavier » en haut pour le conserver — un combo non enregistré peut être perdu à l'extinction.",
+    "doneHint": "C'est actif maintenant, mais uniquement en mémoire — écrivez-le sur le clavier, sinon il disparaîtra à la prochaine coupure.",
     "close": "Terminé",
     "priorIdleApplied": "Une brève pause est désormais requise, l'accord ne peut donc plus se déclencher pendant la frappe.",
     "warnUnverified": "Appliqué sans confirmation — testez-le avant de laisser le clavier se verrouiller.",
@@ -590,6 +590,12 @@
     "warnOverlap": "Ces touches sont aussi utilisées par un autre combo",
     "warnOverlapHint": "Les combos qui se chevauchent se disputent la priorité et l'autre peut gagner — le test ci-dessous semblerait alors échouer sans raison.",
     "warnSameAsCurrent": "C'est le raccourci déjà utilisé : il n'y a rien à confirmer. Choisissez d'autres touches, ou annulez pour le conserver tel quel.",
-    "warnShadowedByUnlock": "Ces touches recouvrent votre raccourci de déverrouillage actuel, qui reste actif pendant le test. Il gagnerait l'accord et déverrouillerait au lieu de produire la touche de test : le test ne peut donc rien confirmer. Choisissez des touches qu'il ne partage pas."
+    "warnShadowedByUnlock": "Ces touches recouvrent votre raccourci de déverrouillage actuel, qui reste actif pendant le test. Il gagnerait l'accord et déverrouillerait au lieu de produire la touche de test : le test ne peut donc rien confirmer. Choisissez des touches qu'il ne partage pas.",
+    "saveNow": "Enregistrer sur le clavier",
+    "savingNow": "Écriture…",
+    "saveRetry": "Réessayer l'enregistrement",
+    "savedOk": "Écrit sur le clavier — le firmware signale le raccourci sur l'emplacement.",
+    "savedVerifyHint": "Studio ne voit que l'emplacement actif, pas le stockage. Débranchez le clavier et rebranchez-le une fois pour confirmer, tant que votre ancienne méthode de déverrouillage fonctionne encore.",
+    "savedFailed": "L'enregistrement n'a pas pris — le firmware ne signale plus le raccourci sur l'emplacement. Ne laissez pas ce clavier se verrouiller avant de l'avoir vérifié avec votre méthode de déverrouillage existante."
   }
 }

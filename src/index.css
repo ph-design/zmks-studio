@@ -121,6 +121,42 @@ body {
   outline: none;
 }
 
+/* Carbon slider: 4px track, 14px round handle, filled portion in the accent.
+   The native control's default track is much taller, which is what made the
+   settings rows sit at different heights from everything around them. */
+.carbon-slider {
+  appearance: none;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+.carbon-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  background: hsl(var(--base-300));
+}
+.carbon-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+}
+.carbon-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary));
+}
+.carbon-slider::-moz-range-track {
+  height: 4px;
+  background: hsl(var(--base-300));
+}
+.carbon-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+}
+
 /* ── Animations preserved from main (used by ConnectModal & panels) ────────── */
 @keyframes fade-in {
   from {

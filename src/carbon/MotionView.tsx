@@ -5,7 +5,7 @@ import type { BehaviorBinding, Layer } from "@zmkfirmware/zmk-studio-ts-client/k
 import type { GetBehaviorDetailsResponse } from "@zmkfirmware/zmk-studio-ts-client/behaviors";
 
 import type { CarbonTheme } from "./theme";
-import { Loading, NotSupportedHint, SegmentedControl, Toggle } from "./CarbonChrome";
+import { ContentSwitcher, Loading, NotSupportedHint, Toggle } from "./CarbonChrome";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
 import { summarizeBinding } from "../combos/comboUtils";
 import {
@@ -319,19 +319,77 @@ function LiveMeter({ th, t, motion, section }: {
 
 // ─── Settings forms ────────────────────────────────────────────────────────────
 
-function Row({ th, label, hint, children }: {
+/*
+ * Carbon form layout, not a settings-row list.
+ *
+ * The previous shape — a fixed label column with the control to its right —
+ * looked slapdash for a structural reason: each control brought its own height
+ * (a 22px toggle, a ~35px segmented control, a native slider, a padded button),
+ * so no two rows lined up and there was no shared baseline to read down. Carbon
+ * stacks label above control and fixes the control height instead, which is what
+ * gives a form its vertical rhythm.
+ *
+ * So: label (12px, $text-secondary) → 4px → control box of exactly FIELD_H →
+ * optional helper text. Every field is therefore the same height, and they sit in
+ * a grid so fields in one row share a baseline and the width actually gets used
+ * instead of one tall column that scrolls.
+ */
+const FIELD_H = 40; // Carbon field height, size md
+
+function FormGrid({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(288px, 1fr))",
+      columnGap: 32, // $spacing-07
+      rowGap: 12,    // $spacing-04 — condensed, so the lock panel's three
+                     // sections still fit a 720px-tall window
+      alignItems: "start",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * `tag` is for the sensor register a setting maps to. It rides on the label line
+ * rather than becoming helper text so the field keeps its uniform height —
+ * helper text is reserved for things that actually need a sentence.
+ */
+function Field({ th, label, tag, hint, children }: {
   th: CarbonTheme;
   label: string;
+  tag?: string;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "7px 0", borderBottom: `1px solid ${th.border}` }}>
-      <div style={{ width: 168, flexShrink: 0 }}>
-        <div style={{ fontSize: 13, color: th.textPrimary }}>{label}</div>
-        {hint && <div style={{ fontSize: 11, color: th.textHelper, marginTop: 2 }}>{hint}</div>}
+    <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 12, color: th.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {label}
+        </span>
+        {tag && (
+          <span style={{ marginLeft: "auto", fontSize: 11, fontFamily: "var(--font-mono)", color: th.textHelper, flexShrink: 0 }}>
+            {tag}
+          </span>
+        )}
       </div>
-      <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>{children}</div>
+      <div style={{ height: FIELD_H, display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        {children}
+      </div>
+      {hint && (
+        <div style={{ fontSize: 12, color: th.textHelper, marginTop: 4, lineHeight: 1.4 }}>{hint}</div>
+      )}
+    </div>
+  );
+}
+
+/** Carbon form section heading: 14px semibold, full-width rule, spans the grid. */
+function GroupHeading({ th, children }: { th: CarbonTheme; children: React.ReactNode }) {
+  return (
+    <div style={{ gridColumn: "1 / -1", marginTop: 4, paddingBottom: 6, borderBottom: `1px solid ${th.border}` }}>
+      <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{children}</span>
     </div>
   );
 }
@@ -349,9 +407,9 @@ function EnableBar({ th, title, desc, enabled, onChange }: {
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, height: 44, padding: "0 16px", borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, height: 48, padding: "0 20px", borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
       <Toggle th={th} checked={enabled} onChange={onChange} />
-      <span style={{ fontSize: 13, fontWeight: 500, color: th.textPrimary, flexShrink: 0 }}>{title}</span>
+      <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary, flexShrink: 0 }}>{title}</span>
       <span style={{ fontSize: 12, color: th.textHelper, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {desc}
       </span>
@@ -359,6 +417,11 @@ function EnableBar({ th, title, desc, enabled, onChange }: {
   );
 }
 
+/**
+ * Track + value readout, filling the field box. The readout is a fixed width so
+ * every slider's track ends at the same x — a value column that moves with the
+ * number is exactly the kind of drift that makes a form look untended.
+ */
 function Slider({ th, value, min, max, step, onChange, unit }: {
   th: CarbonTheme;
   value: number;
@@ -372,11 +435,31 @@ function Slider({ th, value, min, max, step, onChange, unit }: {
     <>
       <input type="range" min={min} max={max} step={step ?? 1} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="flex-1 accent-primary" />
-      <span style={{ width: 62, textAlign: "right", fontSize: 12, color: th.textSecondary, fontFamily: "var(--font-mono)", flexShrink: 0 }}>
+        className="carbon-slider" style={{ flex: 1, minWidth: 0 }} />
+      <span style={{ width: 64, textAlign: "right", fontSize: 14, color: th.textPrimary, fontFamily: "var(--font-mono)", flexShrink: 0 }}>
         {value}{unit ?? ""}
       </span>
     </>
+  );
+}
+
+/** Field-shaped read-only value with a trailing action, sized like every other control. */
+function ValueField({ th, value, actionLabel, onAction }: {
+  th: CarbonTheme;
+  value: string;
+  actionLabel: string;
+  onAction: () => void;
+}) {
+  return (
+    <div style={{ flex: 1, minWidth: 0, height: FIELD_H, display: "flex", alignItems: "center", gap: 8, paddingLeft: 12, background: th.fieldBg, borderBottom: `1px solid ${th.borderStrong}` }}>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: th.textPrimary, fontFamily: "var(--font-mono)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {value}
+      </span>
+      <button onClick={onAction}
+        style={{ flexShrink: 0, alignSelf: "stretch", padding: "0 14px", fontSize: 14, background: "transparent", color: th.linkPrimary, border: "none", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+        {actionLabel}
+      </button>
+    </div>
   );
 }
 
@@ -402,43 +485,41 @@ function TapSettings({ th, t, config, thresholdMax, supportsDoubleTap, bindingLa
         onChange={(v) => set({ enabled: v })} />
 
       <div className="custom-scrollbar"
-        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "2px 16px 12px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
-        <Row th={th} label={t("motion.tap.action", "Action")}>
-          <span style={{ fontSize: 13, color: th.textPrimary, fontFamily: "var(--font-mono)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
-            {bindingLabel}
-          </span>
-          <button onClick={onEditBinding}
-            style={{ padding: "5px 12px", fontSize: 12, background: th.layer2, color: th.textPrimary, border: "none", cursor: "pointer", fontFamily: "var(--font-sans)", flexShrink: 0 }}>
-            {t("common.change", "Change")}
-          </button>
-        </Row>
+        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "16px 20px 20px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
+        <FormGrid>
+          <Field th={th} label={t("motion.tap.action", "Action")}>
+            <ValueField th={th} value={bindingLabel}
+              actionLabel={t("common.change", "Change")} onAction={onEditBinding} />
+          </Field>
 
-        {supportsDoubleTap && (
-          <Row th={th} label={t("motion.tap.kind", "Tap style")}>
-            <SegmentedControl th={th}
-              value={String(config.kind)}
-              opts={[
-                { id: String(TapKind.SINGLE), label: t("motion.tap.single", "Single") },
-                { id: String(TapKind.DOUBLE), label: t("motion.tap.double", "Double") },
-              ]}
-              onChange={(v) => set({ kind: Number(v) as TapKind })} />
-          </Row>
-        )}
+          {supportsDoubleTap && (
+            <Field th={th} label={t("motion.tap.kind", "Tap style")}>
+              <ContentSwitcher th={th}
+                label={t("motion.tap.kind", "Tap style")}
+                value={String(config.kind)}
+                opts={[
+                  { id: String(TapKind.SINGLE), label: t("motion.tap.single", "Single") },
+                  { id: String(TapKind.DOUBLE), label: t("motion.tap.double", "Double") },
+                ]}
+                onChange={(v) => set({ kind: Number(v) as TapKind })} />
+            </Field>
+          )}
 
-        <Row th={th} label={t("motion.tap.threshold", "Trigger threshold")} hint="CLICK_THS">
-          <Slider th={th} value={config.threshold} min={1} max={thresholdMax} onChange={(v) => set({ threshold: v })} />
-        </Row>
-        <Row th={th} label={t("motion.tap.timeLimit", "Max tap length")} hint="TIME_LIMIT">
-          <Slider th={th} value={config.timeLimitMs} min={10} max={200} step={5} unit=" ms" onChange={(v) => set({ timeLimitMs: v })} />
-        </Row>
-        <Row th={th} label={t("motion.tap.latency", "Dead time after trigger")} hint="TIME_LATENCY">
-          <Slider th={th} value={config.latencyMs} min={10} max={400} step={10} unit=" ms" onChange={(v) => set({ latencyMs: v })} />
-        </Row>
-        {config.kind === TapKind.DOUBLE && (
-          <Row th={th} label={t("motion.tap.window", "Second-tap window")} hint="TIME_WINDOW">
-            <Slider th={th} value={config.windowMs} min={50} max={800} step={10} unit=" ms" onChange={(v) => set({ windowMs: v })} />
-          </Row>
-        )}
+          <Field th={th} label={t("motion.tap.threshold", "Trigger threshold")} tag="CLICK_THS">
+            <Slider th={th} value={config.threshold} min={1} max={thresholdMax} onChange={(v) => set({ threshold: v })} />
+          </Field>
+          <Field th={th} label={t("motion.tap.timeLimit", "Max tap length")} tag="TIME_LIMIT">
+            <Slider th={th} value={config.timeLimitMs} min={10} max={200} step={5} unit=" ms" onChange={(v) => set({ timeLimitMs: v })} />
+          </Field>
+          <Field th={th} label={t("motion.tap.latency", "Dead time after trigger")} tag="TIME_LATENCY">
+            <Slider th={th} value={config.latencyMs} min={10} max={400} step={10} unit=" ms" onChange={(v) => set({ latencyMs: v })} />
+          </Field>
+          {config.kind === TapKind.DOUBLE && (
+            <Field th={th} label={t("motion.tap.window", "Second-tap window")} tag="TIME_WINDOW">
+              <Slider th={th} value={config.windowMs} min={50} max={800} step={10} unit=" ms" onChange={(v) => set({ windowMs: v })} />
+            </Field>
+          )}
+        </FormGrid>
       </div>
     </div>
   );
@@ -463,48 +544,47 @@ function LockSettings({ th, t, config, thresholdMax, onChange }: {
         onChange={(v) => set({ enabled: v })} />
 
       <div className="custom-scrollbar"
-        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "2px 16px 12px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: th.textHelper, padding: "9px 0 2px" }}>
-          {t("motion.lock.lockGroup", "WHEN TO LOCK")}
-        </div>
-        <Row th={th} label={t("motion.lock.motionThreshold", "Lock threshold")} hint="ACT_THS">
-          <Slider th={th} value={config.motionThreshold} min={1} max={thresholdMax} onChange={(v) => set({ motionThreshold: v })} />
-        </Row>
-        <Row th={th} label={t("motion.lock.motionDuration", "Sustained movement")} hint={t("motion.lock.motionDurationHint", "Stops a single jolt from locking")}>
-          <Slider th={th} value={config.motionDurationMs} min={200} max={10000} step={100} unit=" ms" onChange={(v) => set({ motionDurationMs: v })} />
-        </Row>
+        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 20px 20px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
+        <FormGrid>
+          <GroupHeading th={th}>{t("motion.lock.lockGroup", "When to lock")}</GroupHeading>
+          <Field th={th} label={t("motion.lock.motionThreshold", "Lock threshold")} tag="ACT_THS">
+            <Slider th={th} value={config.motionThreshold} min={1} max={thresholdMax} onChange={(v) => set({ motionThreshold: v })} />
+          </Field>
+          <Field th={th} label={t("motion.lock.motionDuration", "Sustained movement")} tag="ACT_DUR"
+            hint={t("motion.lock.motionDurationHint", "Stops a single jolt from locking")}>
+            <Slider th={th} value={config.motionDurationMs} min={200} max={10000} step={100} unit=" ms" onChange={(v) => set({ motionDurationMs: v })} />
+          </Field>
 
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: th.textHelper, padding: "9px 0 2px" }}>
-          {t("motion.lock.unlockGroup", "WHEN TO UNLOCK")}
-        </div>
-        <Row th={th} label={t("motion.lock.stillThreshold", "Still threshold")}>
-          <Slider th={th} value={config.stillThreshold} min={1} max={thresholdMax} onChange={(v) => set({ stillThreshold: v })} />
-        </Row>
-        <Row th={th} label={t("motion.lock.stillDuration", "Time held still")}>
-          <Slider th={th} value={config.stillDurationMs} min={200} max={10000} step={100} unit=" ms" onChange={(v) => set({ stillDurationMs: v })} />
-        </Row>
-        <Row th={th} label={t("motion.lock.requireFlat", "Require flat")} hint={t("motion.lock.requireFlatHint", "Still isn't enough — must also be face up")}>
-          <Toggle th={th} size="sm" checked={config.requireFlat} onChange={(v) => set({ requireFlat: v })} />
-        </Row>
-        {config.requireFlat && (
-          <Row th={th} label={t("motion.lock.flatTolerance", "Tilt tolerance")}>
-            <Slider th={th} value={config.flatToleranceDeg} min={2} max={45} unit="°" onChange={(v) => set({ flatToleranceDeg: v })} />
-          </Row>
-        )}
+          <GroupHeading th={th}>{t("motion.lock.unlockGroup", "When to unlock")}</GroupHeading>
+          <Field th={th} label={t("motion.lock.stillThreshold", "Still threshold")}>
+            <Slider th={th} value={config.stillThreshold} min={1} max={thresholdMax} onChange={(v) => set({ stillThreshold: v })} />
+          </Field>
+          <Field th={th} label={t("motion.lock.stillDuration", "Time held still")}>
+            <Slider th={th} value={config.stillDurationMs} min={200} max={10000} step={100} unit=" ms" onChange={(v) => set({ stillDurationMs: v })} />
+          </Field>
+          <Field th={th} label={t("motion.lock.requireFlat", "Require flat")}
+            hint={t("motion.lock.requireFlatHint", "Still isn't enough — must also be face up")}>
+            <Toggle th={th} checked={config.requireFlat} onChange={(v) => set({ requireFlat: v })} />
+          </Field>
+          {config.requireFlat && (
+            <Field th={th} label={t("motion.lock.flatTolerance", "Tilt tolerance")}>
+              <Slider th={th} value={config.flatToleranceDeg} min={2} max={45} unit="°" onChange={(v) => set({ flatToleranceDeg: v })} />
+            </Field>
+          )}
 
-        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: th.textHelper, padding: "9px 0 2px" }}>
-          {t("motion.lock.scopeGroup", "LOCK SCOPE")}
-        </div>
-        <Row th={th} label={t("motion.lock.scope", "While locked")}>
-          <SegmentedControl th={th}
-            value={String(config.scope)}
-            opts={[
-              { id: String(LockScope.KEYS), label: t("motion.lock.scopeKeys", "Keys only") },
-              { id: String(LockScope.KEYS_AND_LEDS), label: t("motion.lock.scopeKeysLeds", "Keys + lighting") },
-              { id: String(LockScope.SOFT_OFF), label: t("motion.lock.scopeSoftOff", "Soft off") },
-            ]}
-            onChange={(v) => set({ scope: Number(v) as LockScope })} />
-        </Row>
+          <GroupHeading th={th}>{t("motion.lock.scopeGroup", "Lock scope")}</GroupHeading>
+          <Field th={th} label={t("motion.lock.scope", "While locked")}>
+            <ContentSwitcher th={th}
+              label={t("motion.lock.scope", "While locked")}
+              value={String(config.scope)}
+              opts={[
+                { id: String(LockScope.KEYS), label: t("motion.lock.scopeKeys", "Keys only") },
+                { id: String(LockScope.KEYS_AND_LEDS), label: t("motion.lock.scopeKeysLeds", "Keys + lighting") },
+                { id: String(LockScope.SOFT_OFF), label: t("motion.lock.scopeSoftOff", "Soft off") },
+              ]}
+              onChange={(v) => set({ scope: Number(v) as LockScope })} />
+          </Field>
+        </FormGrid>
       </div>
     </div>
   );

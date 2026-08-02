@@ -171,18 +171,24 @@ export function probeUsage(hidId: number): number {
   return (7 << 16) + hidId;
 }
 
-/** An unused, fully editable slot the probe binding can borrow. */
+/**
+ * An unused, fully editable slot the probe binding can borrow.
+ *
+ * A slot still carrying `&studio_unlock` but holding no key positions is used
+ * last and never refused. Refusing it outright was a lockout: such a slot counts
+ * as neither an unlock path (`collectUnlockPaths` needs positions) nor a spare,
+ * so once an unlock combo lost its positions — which is exactly what a failed
+ * save leaves behind — the Device page offered no way back, and the "free a slot
+ * on the Combos page" hint pointed at a slot that was already free.
+ */
 export function findSpareComboSlot(
   combos: ComboConfig[],
   unlockBehaviorId: number | undefined
 ): ComboConfig | undefined {
-  return combos.find(
-    (c) =>
-      c.editableBehavior &&
-      c.editableKeyPositions &&
-      c.keyPositions.length === 0 &&
-      c.behavior?.behaviorId !== unlockBehaviorId
+  const free = combos.filter(
+    (c) => c.editableBehavior && c.editableKeyPositions && c.keyPositions.length === 0
   );
+  return free.find((c) => c.behavior?.behaviorId !== unlockBehaviorId) ?? free[0];
 }
 
 /** Combos already using exactly these keys — an outright clash. */

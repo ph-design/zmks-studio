@@ -49,6 +49,7 @@ export interface CarbonShellProps {
   onProgress?: (value: number) => void;
   onLightingChanged?: () => void;
   onMotionChanged?: () => void;
+  onCombosChanged?: () => void;
   onShowAbout: () => void;
   onShowLicense: () => void;
 }
@@ -92,16 +93,20 @@ export function CarbonShell(props: CarbonShellProps) {
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const [saving, setSaving] = useState(false);
-  const handleSave = async () => {
-    if (saving) return;
+  // Returns whether it succeeded, because callers other than the header button
+  // (the unlock flow) need to act on it rather than just show a toast.
+  const handleSave = async (): Promise<boolean> => {
+    if (saving) return false;
     setSaving(true);
     try {
       const ok = await props.onSave();
       showToast(ok === false ? "error" : "success",
         ok === false ? t("carbon.saveFailed", "Save failed — please retry")
           : t("carbon.saveSuccess", "Saved to keyboard"));
+      return ok !== false;
     } catch {
       showToast("error", t("carbon.saveFailed", "Save failed — please retry"));
+      return false;
     } finally {
       setSaving(false);
     }
@@ -152,7 +157,7 @@ export function CarbonShell(props: CarbonShellProps) {
     [model.behaviorList]
   );
   const holdTap = useHoldTapConfigs(holdTapIds);
-  const combos = useCombos();
+  const combos = useCombos(props.onCombosChanged);
 
   /*
    * Every way this keyboard can be unlocked. The reserved unlock combo is kept
@@ -337,6 +342,7 @@ export function CarbonShell(props: CarbonShellProps) {
               <DeviceView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
                 unlockPaths={unlockPaths} combos={combos.combos}
                 applyCombo={combos.applyConfig} readCombo={combos.readCombo}
+                onSaveToKeyboard={handleSave}
                 onResetSettings={props.onResetSettings} />
             ) : activeNav === "preferences" ? (
               <PreferencesView th={th} t={t} setting={setting} setSetting={setSetting}

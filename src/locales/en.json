@@ -515,9 +515,9 @@
     "lock": {
       "title": "Motion lock",
       "desc": "Locks the keys automatically while it's moving in a bag, and unlocks once set down flat",
-      "lockGroup": "WHEN TO LOCK",
-      "unlockGroup": "WHEN TO UNLOCK",
-      "scopeGroup": "LOCK SCOPE",
+      "lockGroup": "When to lock",
+      "unlockGroup": "When to unlock",
+      "scopeGroup": "Lock scope",
       "motionThreshold": "Lock threshold",
       "motionDuration": "Sustained movement",
       "motionDurationHint": "Stops a single jolt from locking",
@@ -567,7 +567,7 @@
     "timeoutRisky": "Applying without confirmation means that if the gesture doesn't work, the keyboard can't be edited again without reflashing.",
     "applyAnyway": "Apply without confirmation",
     "done": "Unlock shortcut updated",
-    "doneHint": "It's active right now. Use “Save to keyboard” in the header to keep it — an unsaved combo can be lost on a power cycle.",
+    "doneHint": "It's live right now, but only in memory — write it to the keyboard or it's gone at the next power cycle.",
     "close": "Done",
     "priorIdleApplied": "A brief pause is now required before the chord counts, so it can't fire while typing.",
     "warnUnverified": "Applied without confirmation — test it before you let the keyboard lock.",
@@ -590,6 +590,12 @@
     "warnOverlap": "These keys are also used by another combo",
     "warnOverlapHint": "Overlapping combos compete, and the other one may win — which makes the test below look like it failed for no reason.",
     "warnSameAsCurrent": "That's the shortcut already in use, so there's nothing to confirm. Pick different keys — or cancel to keep it as it is.",
-    "warnShadowedByUnlock": "These keys overlap your current unlock shortcut, which stays live during the test. It would win the chord and unlock instead of producing the test keystroke, so the test can't confirm anything. Pick keys it doesn't share."
+    "warnShadowedByUnlock": "These keys overlap your current unlock shortcut, which stays live during the test. It would win the chord and unlock instead of producing the test keystroke, so the test can't confirm anything. Pick keys it doesn't share.",
+    "saveNow": "Save to keyboard",
+    "savingNow": "Writing…",
+    "saveRetry": "Try saving again",
+    "savedOk": "Written to the keyboard — firmware reports the shortcut on the slot.",
+    "savedVerifyHint": "Studio can't see storage, only the live slot. Worth unplugging the keyboard and reconnecting once to confirm it stuck — while your old unlock method still works.",
+    "savedFailed": "The save didn't take — firmware doesn't report the shortcut on the slot afterwards. Don't let this keyboard lock until you've used your existing unlock method to check it."
   }
 }

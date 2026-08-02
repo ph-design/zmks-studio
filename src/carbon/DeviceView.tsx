@@ -26,11 +26,14 @@ interface DeviceViewProps {
   combos: ComboConfig[];
   applyCombo: (cfg: ComboConfig) => Promise<boolean>;
   readCombo: (index: number) => Promise<ComboConfig | null>;
+  /** Same save the header runs; the unlock flow offers it inline. */
+  onSaveToKeyboard?: () => Promise<boolean> | void;
   onResetSettings: () => void;
 }
 
 export function DeviceView({
-  model, th, t, deviceName, serial, unlockPaths, combos, applyCombo, readCombo, onResetSettings,
+  model, th, t, deviceName, serial, unlockPaths, combos, applyCombo, readCombo,
+  onSaveToKeyboard, onResetSettings,
 }: DeviceViewProps) {
   /*
    * The two slots are snapshotted on entry rather than re-derived: writing the
@@ -83,6 +86,7 @@ export function DeviceView({
         otherPathCount={unlockPaths.total}
         applyCombo={applyCombo}
         readCombo={readCombo}
+        onSaveToKeyboard={onSaveToKeyboard}
         onClose={() => setUnlockEdit(null)}
       />
     );

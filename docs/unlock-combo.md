@@ -98,6 +98,16 @@ without any firmware change and without ever locking the keyboard:
    reported it, since a differing behavior would rightly be rejected on a
    reserved slot.
 6. The borrowed slot is released if the user cancels or navigates away mid-test.
+7. The final screen saves to the keyboard itself and reads the slot back, rather
+   than telling the user to find the header's Save button — see the field note on
+   the unsaved flag for why that indirection lost a working gesture.
+
+One more thing the flow has to survive: an unlock combo that lost its key
+positions but kept `&studio_unlock` on the slot. That slot is not an unlock path
+(no positions) and, if Studio refuses to borrow anything holding the unlock
+behavior, not a spare either — so the Device page shows no way back at exactly the
+moment one is needed. `findSpareComboSlot` therefore uses such a slot last but
+never refuses it.
 
 `require_prior_idle_ms` is raised to 200ms when the chord contains no layer or
 modifier key, so an all-letters gesture can't fire mid-typing. Firmware may
@@ -164,6 +174,21 @@ from the UI ("the test does nothing").
   never fire on the layer the user is on.
 - **F13 never reached the browser on Windows.** The probe ladder starts on
   ordinary letters for that reason; the F-row above F12 is a fallback.
-- **Combos persist through `keymap.saveChanges`.** Firmware marks the session
-  unsaved on a combo write, so the header's Save button appears on its own and
-  Studio doesn't need to track combo dirtiness itself.
+- **A combo write does not reliably raise the unsaved flag.** An earlier note
+  here claimed the opposite, on the strength of one session where the Save button
+  appeared. It was wrong: the header's indicator reads
+  `keymap.checkUnsavedChanges`, a combo write is a `combos` call, and a later test
+  lost a saved unlock combo at the next power cycle — live in RAM, never written.
+  Studio now marks itself dirty on every combo write (`useCombos(onChanged)` →
+  `extraSaveEnabled`) so the Save button cannot fail to appear, and the unlock
+  flow offers the save inline rather than pointing at the header.
+
+  > **Needed: an unsaved-state signal for `combos`.** Either have a combo write
+  > raise `keymap.unsavedChangesStatusChanged`, or add
+  > `combos.checkUnsavedChanges` + a notification of its own. Studio's own
+  > tracking is a client-side guess that a second client's writes would defeat.
+
+- **Studio cannot verify persistence.** `keymap.saveChanges` returning ok, and a
+  `get_combo` readback afterwards, both only prove the slot is right *now*. There
+  is no request that reaches storage, so the flow says "written", advises a power
+  cycle while the old unlock method still works, and does not claim more.

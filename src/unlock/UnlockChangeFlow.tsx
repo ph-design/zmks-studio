@@ -58,6 +58,12 @@ interface UnlockChangeFlowProps {
   applyCombo: (cfg: ComboConfig) => Promise<boolean>;
   /** Reads a slot back from firmware, to confirm the write actually landed. */
   readCombo: (index: number) => Promise<ComboConfig | null>;
+  /**
+   * The header's save. Offered inside the flow because leaving persistence to a
+   * button on another screen is how the first working unlock combo was lost — it
+   * was live in RAM, never written, and gone at the next power cycle.
+   */
+  onSaveToKeyboard?: () => Promise<boolean> | void;
   onClose: () => void;
 }
 
@@ -71,7 +77,8 @@ interface UnlockChangeFlowProps {
  */
 export function UnlockChangeFlow({
   th, t, mode, unlockCombo, spareCombo, unlockBehaviorId, allCombos, keymap,
-  behaviors, layout, scale, setScale, otherPathCount, applyCombo, readCombo, onClose,
+  behaviors, layout, scale, setScale, otherPathCount, applyCombo, readCombo,
+  onSaveToKeyboard, onClose,
 }: UnlockChangeFlowProps) {
   const [step, setStep] = useState<Step>("pick");
   const [selected, setSelected] = useState<Set<number>>(
@@ -332,6 +339,34 @@ export function UnlockChangeFlow({
     onClose();
   };
 
+  /*
+   * Persist, then read the slot back.
+   *
+   * The readback is the point: `keymap.saveChanges` returning ok says the request
+   * was accepted, not that the combo is in the slot afterwards. What it still
+   * cannot prove is that the slot survives a power cycle — nothing Studio can ask
+   * for reaches storage — so the copy says "written", not "permanent", and the
+   * user is told to pull the cable and come back.
+   */
+  const committedIndex = unlockCombo?.index ?? spareCombo.index;
+  const [savedSlot, setSavedSlot] = useState<ComboConfig | null | undefined>(undefined);
+  const [saving, setSaving] = useState(false);
+  const saveNow = async () => {
+    if (!onSaveToKeyboard) return;
+    setSaving(true);
+    setSavedSlot(undefined);
+    try {
+      const ok = await onSaveToKeyboard();
+      const stored = await readCombo(committedIndex);
+      setSavedSlot(ok === false ? null : stored);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const savedOk =
+    !!savedSlot &&
+    [...savedSlot.keyPositions].sort((a, b) => a - b).join(",") === positions.join(",");
+
   const header = (
     <div style={{ display: "flex", alignItems: "center", gap: 10, height: 48, padding: "0 20px", background: th.layer1, borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
       <KeyRound size={15} style={{ color: th.interactive, flexShrink: 0 }} />
@@ -542,14 +577,53 @@ export function UnlockChangeFlow({
           {priorIdleApplied && notice("ok",
             t("unlockChange.priorIdleApplied", "A brief pause is now required before the chord counts, so it can't fire while typing."))}
           {error && notice("warn", error)}
-          <p style={{ maxWidth: 420, fontSize: 12, color: th.textHelper, lineHeight: 1.6 }}>
-            {/* Confirmed on hardware: firmware marks the session unsaved on a
-                combo write, and `keymap.saveChanges` persists it across a power
-                cycle. Nothing in Studio needs to mark it dirty itself. */}
-            {t("unlockChange.doneHint", "It's active right now. Use “Save to keyboard” in the header to keep it — an unsaved combo can be lost on a power cycle.")}
-          </p>
+
+          {/*
+            Saving is offered here rather than only via the header. A combo write
+            lives in RAM until `keymap.saveChanges`, and the first version of this
+            flow left that to a button on another screen — the user reached "done",
+            never saved, and lost the gesture at the next power cycle.
+          */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center", maxWidth: 460 }}>
+            {savedSlot === undefined ? (
+              <>
+                <p style={{ margin: 0, fontSize: 12, color: th.textHelper, lineHeight: 1.6 }}>
+                  {t("unlockChange.doneHint", "It's live right now, but only in memory — write it to the keyboard or it's gone at the next power cycle.")}
+                </p>
+                <button onClick={saveNow} disabled={saving || !onSaveToKeyboard}
+                  style={{ padding: "8px 18px", fontSize: 13, fontWeight: 500, border: "none", background: th.interactive, color: "#fff", cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1, fontFamily: "var(--font-sans)" }}>
+                  {saving
+                    ? t("unlockChange.savingNow", "Writing…")
+                    : t("unlockChange.saveNow", "Save to keyboard")}
+                </button>
+              </>
+            ) : savedOk ? (
+              <>
+                {notice("ok", t("unlockChange.savedOk", "Written to the keyboard — firmware reports the shortcut on the slot."))}
+                <p style={{ margin: 0, fontSize: 12, color: th.textHelper, lineHeight: 1.6 }}>
+                  {t("unlockChange.savedVerifyHint", "Studio can't see storage, only the live slot. Worth unplugging the keyboard and reconnecting once to confirm it stuck — while your old unlock method still works.")}
+                </p>
+              </>
+            ) : (
+              <>
+                {notice("error", t("unlockChange.savedFailed", "The save didn't take — firmware doesn't report the shortcut on the slot afterwards. Don't let this keyboard lock until you've used your existing unlock method to check it."))}
+                <button onClick={saveNow} disabled={saving}
+                  style={{ padding: "8px 16px", fontSize: 13, background: th.layer2, color: th.textPrimary, border: "none", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+                  {t("unlockChange.saveRetry", "Try saving again")}
+                </button>
+              </>
+            )}
+            {savedSlot !== undefined && (
+              <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: th.textHelper }}>
+                {t("unlockChange.slotReadback", "Slot")} #{committedIndex}
+                {" · keys ["}{savedSlot?.keyPositions.join(",") ?? "?"}{"]"}
+                {" · behavior "}{savedSlot?.behavior?.behaviorId ?? "none"}
+              </span>
+            )}
+          </div>
+
           <button onClick={onClose}
-            style={{ padding: "8px 18px", fontSize: 13, fontWeight: 500, border: "none", background: th.interactive, color: "#fff", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
+            style={{ padding: "8px 18px", fontSize: 13, background: "transparent", color: th.textSecondary, border: `1px solid ${th.borderStrong}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
             {t("unlockChange.close", "Done")}
           </button>
         </div>
