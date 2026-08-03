@@ -121,6 +121,42 @@ body {
   outline: none;
 }
 
+/* Carbon slider: 4px track, 14px round handle, filled portion in the accent.
+   The native control's default track is much taller, which is what made the
+   settings rows sit at different heights from everything around them. */
+.carbon-slider {
+  appearance: none;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+.carbon-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  background: hsl(var(--base-300));
+}
+.carbon-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+}
+.carbon-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary));
+}
+.carbon-slider::-moz-range-track {
+  height: 4px;
+  background: hsl(var(--base-300));
+}
+.carbon-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+}
+
 /* ── Animations preserved from main (used by ConnectModal & panels) ────────── */
 @keyframes fade-in {
   from {
@@ -310,61 +346,31 @@ body {
   background: transparent;
 }
 
-
-html.rounded-mode * {
-  border-radius: 4px !important;
+/* Drag handle on the drawer's top edge. Invisible until pointed at — it lives on
+   a border that already reads as a divider, so it only needs to announce itself
+   when the pointer is there. */
+.drawer-resize-handle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--primary));
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.drawer-resize-handle:hover::after {
+  opacity: 0.5;
+}
+html.panel-resizing .drawer-resize-handle::after {
+  opacity: 1;
 }
 
-/* Opt-out for elements that must stay sharp (see Badge in CarbonChrome). */
-html.rounded-mode .carbon-badge-square {
-  border-radius: 0 !important;
+/* While dragging, kill the canvas's scale easing (each frame would otherwise
+   restart a 240ms curve and the keyboard trails the pointer) and stop the drag
+   from selecting text it passes over. */
+html.panel-resizing {
+  cursor: ns-resize;
+  user-select: none;
 }
-
-html.rounded-mode button:not([role="switch"]) {
-  border-radius: 6px !important;
-}
-
-/* Binding picker — always open, so no collapsed state and no height animation. */
-.keymap-drawer {
-  height: 200px;
-}
-@media (min-height: 650px) {
-  .keymap-drawer { height: 240px; }
-}
-@media (min-height: 750px) {
-  .keymap-drawer { height: 280px; }
-}
-@media (min-height: 900px) {
-  .keymap-drawer { height: 340px; }
-}
-@media (min-height: 1080px) {
-  .keymap-drawer { height: 400px; }
-}
-
-html.rounded-mode input:not([type="range"]),
-html.rounded-mode textarea,
-html.rounded-mode select {
-  border-radius: 6px !important;
-}
-
-html.rounded-mode [data-key],
-html.rounded-mode [class*="keycap"] {
-  border-radius: 5px !important;
-}
-
-html.rounded-mode dialog,
-html.rounded-mode .modal-surface {
-  border-radius: 14px !important;
-}
-
-html.rounded-mode header,
-html.rounded-mode footer {
-  border-radius: 0 !important;
-}
-
-html.rounded-mode .circular-spinner,
-html.rounded-mode .circular-spinner *,
-html.rounded-mode [role="switch"],
-html.rounded-mode [role="switch"] * {
-  border-radius: 50% !important;
+html.panel-resizing .keyboard-scale {
+  transition: none !important;
 }

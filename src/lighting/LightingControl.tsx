@@ -19,6 +19,8 @@ import type {
 } from "@zmkfirmware/zmk-studio-ts-client/lighting";
 import type { Keymap } from "@zmkfirmware/zmk-studio-ts-client/keymap";
 import type { IndicatorPositionDraft } from "../carbon/useKeyboardModel";
+import type { CarbonTheme } from "../carbon/theme";
+import { Toggle } from "../carbon/CarbonChrome";
 
 import HsbColorPicker, {
   type HsbColor,
@@ -31,6 +33,7 @@ export type LightSource = "rgb" | "backlight" | "capslock" | "connection" | "lay
 const ANY_LAYER_ID = 0xff;
 
 export interface LightingControlProps {
+  th: CarbonTheme;
   selectedSource: LightSource;
   hasLayerLed?: boolean;
   selectedLedPositions?: Set<number>;
@@ -74,6 +77,7 @@ const connectionIndicatorFieldOrder: (keyof SetConnectionIndicatorRequest)[] = [
 ];
 
 export default function LightingControl({
+  th,
   selectedSource,
   hasLayerLed,
   selectedLedPositions,
@@ -397,7 +401,7 @@ export default function LightingControl({
   let blocks: React.ReactNode = null;
 
   if (isRgbSelected && rgbState) {
-    topBar = <OnOff value={rgbState.on} onChange={(v) => setRgbProp({ on: v })} disabled={!isUnlocked} />;
+    topBar = <OnOff th={th} value={rgbState.on} onChange={(v) => setRgbProp({ on: v })} disabled={!isUnlocked} />;
     blocks = (
       <>
         <Block title={t("lighting.block.effect", "Effect")}>
@@ -428,7 +432,7 @@ export default function LightingControl({
       </>
     );
   } else if (isBlSelected && backlightState) {
-    topBar = <OnOff value={backlightState.on} onChange={(v) => setBlProp({ on: v })} disabled={!isUnlocked} />;
+    topBar = <OnOff th={th} value={backlightState.on} onChange={(v) => setBlProp({ on: v })} disabled={!isUnlocked} />;
     blocks = (
       <Block title={t("lighting.brt", "Brightness")}>
         <div className={`flex items-center gap-3 ${!backlightState.on ? "opacity-40 pointer-events-none" : ""}`}>
@@ -442,7 +446,7 @@ export default function LightingControl({
   } else if (isCapsSelected && capsLockState) {
     topBar = (
       <>
-        <OnOff value={capsLockState.enabled} onChange={(v) => setCapsLockProp({ enabled: v })} disabled={!isUnlocked} />
+        <OnOff th={th} value={capsLockState.enabled} onChange={(v) => setCapsLockProp({ enabled: v })} disabled={!isUnlocked} />
         <div className="ml-auto">{positionInfo(capsLockState, !!capsStoredAllLayers)}</div>
       </>
     );
@@ -467,7 +471,7 @@ export default function LightingControl({
   } else if (isConnSelected && connectionState) {
     topBar = (
       <>
-        <OnOff value={connectionState.enabled} onChange={(v) => setConnectionProp({ enabled: v })} disabled={!isUnlocked} />
+        <OnOff th={th} value={connectionState.enabled} onChange={(v) => setConnectionProp({ enabled: v })} disabled={!isUnlocked} />
         <div className="ml-auto">{positionInfo(connectionState, !!connStoredAllLayers)}</div>
       </>
     );
@@ -490,7 +494,7 @@ export default function LightingControl({
       </>
     );
   } else if (isLayerLedSelected) {
-    topBar = <OnOff value={!!layerLedEnabled} onChange={(v) => onLayerLedEnabledChanged?.(v)} disabled={!isUnlocked} />;
+    topBar = <OnOff th={th} value={!!layerLedEnabled} onChange={(v) => onLayerLedEnabledChanged?.(v)} disabled={!isUnlocked} />;
     blocks = (
       <Block title={t("lighting.block.color", "Color")}>
         <div className={`flex flex-col gap-2 ${!layerLedEnabled ? "opacity-40 pointer-events-none" : ""}`}>
@@ -537,38 +541,27 @@ const Block = ({ title, children }: { title: string; children: React.ReactNode }
   </section>
 );
 
-// Carbon bordered segmented On/Off control.
+// Carbon toggle: pill switch plus its state label. Shares the `Toggle` widget
+// with the rest of the app so every on/off control reads the same.
 const OnOff = ({
+  th,
   value,
   onChange,
   disabled,
 }: {
+  th: CarbonTheme;
   value: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
 }) => {
   const { t } = useTranslation();
   return (
-  <div className="inline-flex border border-base-300">
-    <button
-      onClick={() => onChange(true)}
-      disabled={disabled}
-      className={`px-4 py-1.5 text-sm cursor-pointer transition-colors ${
-        value ? "bg-primary text-primary-content" : "bg-base-100 text-base-content hover:bg-base-300"
-      }`}
-    >
-      {t("lighting.on", "On")}
-    </button>
-    <button
-      onClick={() => onChange(false)}
-      disabled={disabled}
-      className={`px-4 py-1.5 text-sm cursor-pointer transition-colors border-l border-base-300 ${
-        !value ? "bg-primary text-primary-content" : "bg-base-100 text-base-content hover:bg-base-300"
-      }`}
-    >
-      {t("lighting.off", "Off")}
-    </button>
-  </div>
+    <div className="flex items-center gap-2.5">
+      <Toggle th={th} checked={value} onChange={onChange} disabled={disabled} />
+      <span className="text-sm" style={{ color: th.textSecondary }}>
+        {value ? t("lighting.on", "On") : t("lighting.off", "Off")}
+      </span>
+    </div>
   );
 };
 

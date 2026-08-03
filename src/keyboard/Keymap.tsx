@@ -11,6 +11,7 @@ import {
   PhysicalLayout as PhysicalLayoutComp,
 } from "./PhysicalLayout";
 import { HidUsageLabel } from "./HidUsageLabel";
+import { useKeyMeta } from "./keyMeta";
 import {
   hid_usage_page_and_id_from_usage,
   hid_usage_get_label,
@@ -49,6 +50,10 @@ export const Keymap = ({
   fitContainerRef,
   onKeyPositionClicked,
 }: KeymapProps) => {
+  // Non-matrix positions (ES60's frame button) render outlined + labelled so
+  // they don't read as a stray matrix key sitting off on its own.
+  const keyMeta = useKeyMeta(layout);
+
   if (!keymap.layers[selectedLayerIndex]) {
     return <></>;
   }
@@ -72,12 +77,16 @@ export const Keymap = ({
         y: k.y / 100.0,
         width: k.width / 100,
         height: k.height / 100.0,
-        children: <div key={`${selectedLayerIndex}-${i}`} className="animate-fade-in"><span></span></div>,
+        accent: keyMeta[i] !== undefined,
+        cornerLabel: keyMeta[i]?.label,
+        children: <div><span></span></div>,
       };
     }
 
     return {
       id: `key-${i}`,
+      accent: keyMeta[i] !== undefined,
+      cornerLabel: keyMeta[i]?.label,
       header:
         behaviors[keymap.layers[selectedLayerIndex].bindings[i].behaviorId]
           ?.displayName || "Unknown",
@@ -89,8 +98,10 @@ export const Keymap = ({
       rx: (k.rx || 0) / 100.0,
       ry: (k.ry || 0) / 100.0,
       pressed: isPressed(keymap.layers[selectedLayerIndex].bindings[i]),
+      // No key on the layer index and no fade: switching layer should just show
+      // the new legends, not replay a load-in on all 100+ keycaps at once.
       children: (
-        <div key={`${selectedLayerIndex}-${i}`} className="animate-fade-in">
+        <div>
           {(() => {
             const binding = keymap.layers[selectedLayerIndex].bindings[i];
             const behaviorName = behaviors[binding.behaviorId]?.displayName;

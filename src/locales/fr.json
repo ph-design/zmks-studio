@@ -8,7 +8,8 @@
     "cancel": "Annuler",
     "close": "Fermer",
     "add": "Ajouter",
-    "remove": "Supprimer"
+    "remove": "Supprimer",
+    "change": "Modifier"
   },
   "welcome": {
     "title": "Bienvenue dans ZMKs Studio",
@@ -99,7 +100,13 @@
       "holdTap": "Tap-Hold",
       "holdTapDesc": "Configuration du timing hold-tap à l'exécution",
       "lighting": "Éclairage",
-      "lightingDesc": "RGB underglow et rétroéclairage"
+      "lightingDesc": "RGB underglow et rétroéclairage",
+      "sideKey": "Touche de châssis",
+      "sideKeyDesc": "Une touche supplémentaire par calque sur le bord",
+      "motion": "Mouvement",
+      "motionDesc": "Action de tape IMU et verrouillage en déplacement",
+      "unlockCombo": "Combo de déverrouillage réservé",
+      "unlockComboDesc": "Emplacement protégé par le firmware (pas encore livré)"
     }
   },
   "layer": {
@@ -213,7 +220,9 @@
       "changeKey": "Modifier",
       "apply": "Appliquer",
       "clear": "Effacer"
-    }
+    },
+    "noLed": "Pas de LED sous cette touche",
+    "noLedShort": "sans led"
   },
   "behavior": {
     "category": {
@@ -323,7 +332,10 @@
     "body1": "Pour des raisons de sécurité, votre clavier doit être déverrouillé avant d'utiliser ZMK Studio.",
     "body2Prefix": "Si le déverrouillage Studio n'a pas été ajouté à votre keymap ou à un combo, consultez la",
     "docs": "documentation du comportement Studio Unlock",
-    "body2Suffix": "pour plus d'informations."
+    "body2Suffix": "pour plus d'informations.",
+    "press": "Appuyez sur",
+    "toUnlock": "pour déverrouiller",
+    "customHint": "Vous l'avez changé ? Utilisez votre propre raccourci."
   },
   "license": {
     "intro": "ZMK Studio est publié sous la licence open source Apache 2.0. Une copie du fichier NOTICE du dépôt ZMK Studio est incluse ici :"
@@ -350,13 +362,14 @@
   "carbon": {
     "nav": {
       "keyboard": "Clavier",
-      "quick": "Réglages rapides",
       "layers": "Couches",
       "map": "Carte",
       "behaviors": "Comportements",
       "lighting": "Éclairage",
       "combos": "Combos",
-      "settings": "Paramètres"
+      "motion": "Mouvement",
+      "device": "Appareil",
+      "preferences": "Préférences"
     },
     "config": "CONFIGURATION",
     "searchPlaceholder": "Rechercher des codes de touche…",
@@ -371,14 +384,12 @@
     "unsavedMark": "Modifications non enregistrées *",
     "allSaved": "Toutes les modifications enregistrées",
     "lockedTitle": "Clavier verrouillé",
-    "lockedDesc": "Appuyez sur la combinaison studio-unlock de votre clavier pour éditer.",
     "layer": "Couche",
     "rename": "Renommer",
     "delete": "Supprimer",
     "addLayer": "Ajouter une couche",
     "model": "Modèle",
     "clickKeyHint": "Cliquez une touche pour éditer son binding",
-    "quickControls": "Contrôles rapides",
     "zoomIn": "Zoom avant",
     "zoomOut": "Zoom arrière",
     "zoomFit": "Ajuster",
@@ -394,9 +405,6 @@
     "theme": "Thème",
     "accentColor": "Couleur d'accentuation",
     "accentColorDesc": "Couleurs interactives Carbon — utilisées pour les sélections, les liens et les boutons principaux.",
-    "accentSystem": "Suivre le navigateur",
-    "accentSystemOn": "Suit la couleur d'accentuation du navigateur.",
-    "accentSystemUnsupported": "Ce navigateur n'expose pas sa couleur d'accentuation — retour au bleu Carbon.",
     "accent": {
       "blue": "Bleu",
       "cyan": "Cyan",
@@ -429,7 +437,15 @@
     "defaultView": "Vue par défaut",
     "defaultViewDesc": "Section ouverte lors de la connexion d'un clavier.",
     "keysUnit": "touches",
-    "layersUnit": "couches"
+    "layersUnit": "couches",
+    "lockedPress": "Appuyez sur",
+    "lockedToUnlock": "pour déverrouiller",
+    "lockedCustomHint": "Si vous avez changé le raccourci, utilisez le vôtre. Studio ne peut pas déverrouiller le clavier à votre place — c'est voulu.",
+    "resetConfirm": "Cliquez à nouveau pour tout effacer",
+    "resetConfirmHint": "Votre keymap, vos combos et votre éclairage reviennent à l'état d'usine du firmware. Irréversible depuis Studio.",
+    "resetWorking": "Restauration…",
+    "resetWorkingHint": "Cela peut prendre quelques secondes — ne débranchez pas le clavier.",
+    "resetDone": "Réglages restaurés"
   },
   "combos": {
     "loading": "Chargement…",
@@ -466,6 +482,125 @@
       "trigger": "Déclencheur",
       "timing": "Timing et comportement",
       "layers": "Couches"
-    }
+    },
+    "allReservedTitle": "Aucun combo modifiable",
+    "allReservedHint": "Tous les emplacements de combo de ce clavier sont réservés par le firmware. Le raccourci de déverrouillage se gère depuis la page Appareil.",
+    "clearFailed": "Impossible de vider l'emplacement. Veuillez réessayer."
+  },
+  "motion": {
+    "emptyTitle": "Fonctions de mouvement indisponibles",
+    "emptyHint": "Aucun capteur de mouvement détecté, ou le sous-système motion est désactivé dans le firmware.",
+    "live": "Intensité en direct",
+    "state": {
+      "locked": "Touches verrouillées",
+      "unlocked": "Touches actives",
+      "lockedHint": "Mouvement prolongé détecté — se déverrouille une fois posé à plat",
+      "unlockedHint": "Immobile, orientation normale"
+    },
+    "orientation": {
+      "unknown": "Inconnue",
+      "flatUp": "À plat, vers le haut",
+      "flatDown": "Retourné",
+      "tilted": "Incliné / en mouvement"
+    },
+    "tap": {
+      "title": "Tape sur le boîtier",
+      "desc": "Tapez le boîtier pour déclencher une action, détectée par l'interruption de clic du capteur",
+      "bindingTitle": "Action déclenchée par une tape",
+      "action": "Action",
+      "kind": "Type de tape",
+      "single": "Simple",
+      "double": "Double",
+      "threshold": "Seuil de déclenchement",
+      "timeLimit": "Durée maximale",
+      "latency": "Temps mort après déclenchement",
+      "window": "Fenêtre pour la 2e tape",
+      "calibrateHint": "Tapez le boîtier et lisez le repère de pic laissé sur la barre, puis placez le seuil juste en dessous — trop bas, les vibrations de frappe le déclencheront."
+    },
+    "lock": {
+      "title": "Verrouillage en mouvement",
+      "desc": "Verrouille les touches pendant les déplacements en sac, et déverrouille une fois posé à plat",
+      "lockGroup": "Quand verrouiller",
+      "unlockGroup": "Quand déverrouiller",
+      "scopeGroup": "Portée du verrouillage",
+      "motionThreshold": "Seuil de verrouillage",
+      "motionDuration": "Mouvement prolongé",
+      "motionDurationHint": "Évite un verrouillage sur une simple secousse",
+      "stillThreshold": "Seuil d'immobilité",
+      "stillDuration": "Durée d'immobilité",
+      "requireFlat": "Exiger à plat",
+      "requireFlatHint": "L'immobilité ne suffit pas, il faut aussi être vers le haut",
+      "flatTolerance": "Tolérance d'inclinaison",
+      "scope": "Une fois verrouillé",
+      "scopeKeys": "Touches seules",
+      "scopeKeysLeds": "Touches + éclairage",
+      "scopeSoftOff": "Extinction douce",
+      "calibrateHint": "Prenez le clavier et marchez quelques pas pour voir la plage atteinte ; prenez le seuil de verrouillage au bas de cette plage et le seuil d'immobilité au niveau du bruit sur un bureau."
+    },
+    "peak": "Pic"
+  },
+  "unlockPanel": {
+    "title": "Raccourci de déverrouillage",
+    "desc": "Le clavier se verrouille pour qu'une page web ne puisse pas modifier votre keymap sans vous. Le déverrouillage est toujours une action physique — Studio ne peut pas le faire à distance.",
+    "viaCombo": "Combo",
+    "viaKeymap": "Keymap",
+    "protected": "Protégé",
+    "protectedHint": "Le firmware réserve cet emplacement pour le déverrouillage : son comportement ne peut pas être changé.",
+    "noneTitle": "Aucun raccourci de déverrouillage trouvé",
+    "noneDesc": "Ce firmware n'expose aucune liaison studio unlock. Une fois le clavier verrouillé, Studio ne pourra plus le modifier — reflashez-le avant de le verrouiller.",
+    "change": "Changer le raccourci",
+    "changeHint": "Vous devrez exécuter le nouveau geste avant qu'il remplace l'actuel, et le clavier reste déverrouillé pendant toute l'opération.",
+    "noSpareSlot": "Configurer un combo demande un emplacement libre pour confirmer le geste. Libérez-en un sur la page Combos.",
+    "create": "Ajouter un raccourci combo",
+    "createHint": "Définit une combinaison de touches qui déverrouille le clavier, en plus de la touche existante. Il vous sera demandé de l'exécuter une fois avant l'enregistrement."
+  },
+  "unlockChange": {
+    "title": "Changer le raccourci de déverrouillage",
+    "pickHint": "Cliquez les touches à utiliser — au moins deux, pressées ensemble.",
+    "noLayout": "Aucune disposition physique remontée, impossible de choisir des touches.",
+    "nothingPicked": "Rien de sélectionné",
+    "next": "Tester ce raccourci",
+    "warnConflict": "Un autre combo utilise déjà exactement ces touches. Choisissez-en d'autres.",
+    "warnTyping": "Ce sont toutes des touches ordinaires : l'accord pourrait se déclencher pendant la frappe. Studio exigera une brève pause — inclure une touche de calque ou un modificateur est plus sûr.",
+    "pressNow": "Exécutez le raccourci maintenant",
+    "pressHint": "Votre raccourci actuel reste intact jusqu'à confirmation, et le clavier reste déverrouillé — rien n'est en jeu si cela ne marche pas.",
+    "confirmed": "Raccourci déclenché",
+    "confirmedHint": "Le clavier a produit la frappe de test, donc ce geste fonctionne. L'appliquer comme raccourci de déverrouillage ?",
+    "apply": "Appliquer",
+    "applying": "Application…",
+    "timeoutSafe": "Vous pouvez appliquer sans confirmation : ce clavier garde un autre moyen de déverrouillage.",
+    "timeoutRisky": "Appliquer sans confirmation signifie que si le geste ne fonctionne pas, le clavier ne pourra plus être modifié sans reflashage.",
+    "applyAnyway": "Appliquer sans confirmation",
+    "done": "Raccourci de déverrouillage mis à jour",
+    "doneHint": "C'est actif maintenant, mais uniquement en mémoire — écrivez-le sur le clavier, sinon il disparaîtra à la prochaine coupure.",
+    "close": "Terminé",
+    "priorIdleApplied": "Une brève pause est désormais requise, l'accord ne peut donc plus se déclencher pendant la frappe.",
+    "warnUnverified": "Appliqué sans confirmation — testez-le avant de laisser le clavier se verrouiller.",
+    "errArm": "Impossible de préparer le test. Rien n'a été modifié.",
+    "errCommit": "L'écriture du nouveau raccourci a échoué. L'ancien fonctionne toujours.",
+    "errNoKeyPress": "Ce firmware n'a pas de comportement Key Press, le geste ne peut pas être testé.",
+    "probeKey": "Touche de test",
+    "keysSeen": "Frappes reçues par Studio",
+    "noKeysSeen": "Aucune frappe reçue pour l'instant",
+    "timeoutNoInput": "Aucune frappe n'arrive à Studio. Vérifiez que cette fenêtre a le focus et que le clavier écrit bien sur cet ordinateur.",
+    "tryAnotherProbe": "Réessayer avec une autre touche de test",
+    "probeTyped": "interceptée, rien n'est saisi",
+    "timeoutSwallowed": "Si rien n'apparaît quand vous les pressez ensemble, l'accord se déclenche bien — ZMK absorbe les touches qu'il consomme et envoie la touche de test à la place ; seule celle-ci manque. Essayez-en une autre. (Les voir individuellement signifie juste que l'accord n'a pas abouti.)",
+    "slotReadback": "Emplacement",
+    "errStoredBehavior": "Le firmware a accepté le test mais n'a pas enregistré la touche de test sur l'emplacement. C'est pourquoi l'accord absorbe les touches sans rien émettre : le déclencheur a été pris en compte, le comportement non. Cela demande un correctif firmware ; la relecture ci-dessus en est la preuve.",
+    "errStoredPositions": "Le firmware a accepté le test mais a enregistré d'autres touches de déclenchement que celles envoyées.",
+    "titleCreate": "Ajouter un raccourci de déverrouillage",
+    "pickHintCreate": "Votre touche de déverrouillage actuelle reste en place : c'est purement un ajout.",
+    "doneCreate": "Raccourci de déverrouillage ajouté",
+    "warnOverlap": "Ces touches sont aussi utilisées par un autre combo",
+    "warnOverlapHint": "Les combos qui se chevauchent se disputent la priorité et l'autre peut gagner — le test ci-dessous semblerait alors échouer sans raison.",
+    "warnSameAsCurrent": "C'est le raccourci déjà utilisé : il n'y a rien à confirmer. Choisissez d'autres touches, ou annulez pour le conserver tel quel.",
+    "warnShadowedByUnlock": "Ces touches recouvrent votre raccourci de déverrouillage actuel, qui reste actif pendant le test. Il gagnerait l'accord et déverrouillerait au lieu de produire la touche de test : le test ne peut donc rien confirmer. Choisissez des touches qu'il ne partage pas.",
+    "saveNow": "Enregistrer sur le clavier",
+    "savingNow": "Écriture…",
+    "saveRetry": "Réessayer l'enregistrement",
+    "savedOk": "Écrit sur le clavier — le firmware signale le raccourci sur l'emplacement.",
+    "savedVerifyHint": "Studio ne voit que l'emplacement actif, pas le stockage. Débranchez le clavier et rebranchez-le une fois pour confirmer, tant que votre ancienne méthode de déverrouillage fonctionne encore.",
+    "savedFailed": "L'enregistrement n'a pas pris — le firmware ne signale plus le raccourci sur l'emplacement. Ne laissez pas ce clavier se verrouiller avant de l'avoir vérifié avec votre méthode de déverrouillage existante."
   }
 }

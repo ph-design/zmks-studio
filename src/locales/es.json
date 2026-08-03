@@ -8,7 +8,8 @@
     "cancel": "Cancelar",
     "close": "Cerrar",
     "add": "Añadir",
-    "remove": "Quitar"
+    "remove": "Quitar",
+    "change": "Cambiar"
   },
   "welcome": {
     "title": "Bienvenido a ZMKs Studio",
@@ -99,7 +100,13 @@
       "holdTap": "Tap-Hold",
       "holdTapDesc": "Configuración de temporización hold-tap en ejecución",
       "lighting": "Iluminación",
-      "lightingDesc": "RGB underglow y retroiluminación"
+      "lightingDesc": "RGB underglow y retroiluminación",
+      "sideKey": "Tecla del chasis",
+      "sideKeyDesc": "Una tecla extra por capa en el borde",
+      "motion": "Movimiento",
+      "motionDesc": "Acción de toque IMU y bloqueo en movimiento",
+      "unlockCombo": "Combo de desbloqueo reservado",
+      "unlockComboDesc": "Ranura protegida por el firmware (aún no en producción)"
     }
   },
   "layer": {
@@ -213,7 +220,9 @@
       "changeKey": "Cambiar",
       "apply": "Aplicar",
       "clear": "Borrar"
-    }
+    },
+    "noLed": "Esta tecla no tiene LED",
+    "noLedShort": "sin led"
   },
   "behavior": {
     "category": {
@@ -323,7 +332,10 @@
     "body1": "Por razones de seguridad, tu teclado requiere desbloqueo antes de usar ZMK Studio.",
     "body2Prefix": "Si el desbloqueo de Studio no se ha añadido a tu keymap o a un combo, consulta la",
     "docs": "documentación del comportamiento Studio Unlock",
-    "body2Suffix": "para más información."
+    "body2Suffix": "para más información.",
+    "press": "Pulsa",
+    "toUnlock": "para desbloquear",
+    "customHint": "¿Lo cambiaste? Usa tu propio atajo."
   },
   "license": {
     "intro": "ZMK Studio se publica bajo la licencia de código abierto Apache 2.0. Aquí se incluye una copia del archivo NOTICE del repositorio de ZMK Studio:"
@@ -350,13 +362,14 @@
   "carbon": {
     "nav": {
       "keyboard": "Teclado",
-      "quick": "Ajustes rápidos",
       "layers": "Capas",
       "map": "Mapa",
       "behaviors": "Comportamientos",
       "lighting": "Iluminación",
       "combos": "Combos",
-      "settings": "Ajustes"
+      "motion": "Movimiento",
+      "device": "Dispositivo",
+      "preferences": "Preferencias"
     },
     "config": "CONFIGURACIÓN",
     "searchPlaceholder": "Buscar códigos de tecla…",
@@ -371,14 +384,12 @@
     "unsavedMark": "Cambios sin guardar *",
     "allSaved": "Todos los cambios guardados",
     "lockedTitle": "Teclado bloqueado",
-    "lockedDesc": "Pulsa la combinación studio-unlock en tu teclado para editar.",
     "layer": "Capa",
     "rename": "Renombrar",
     "delete": "Eliminar",
     "addLayer": "Añadir capa",
     "model": "Modelo",
     "clickKeyHint": "Haz clic en cualquier tecla para editar su binding",
-    "quickControls": "Controles rápidos",
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
     "zoomFit": "Ajustar",
@@ -394,9 +405,6 @@
     "theme": "Tema",
     "accentColor": "Color de acento",
     "accentColorDesc": "Colores interactivos de Carbon — se usan en selecciones, enlaces y botones principales.",
-    "accentSystem": "Seguir al navegador",
-    "accentSystemOn": "Siguiendo el color de acento del navegador.",
-    "accentSystemUnsupported": "Este navegador no expone su color de acento — se usará el azul de Carbon.",
     "accent": {
       "blue": "Azul",
       "cyan": "Cian",
@@ -429,7 +437,15 @@
     "defaultView": "Vista predeterminada",
     "defaultViewDesc": "Qué sección se abre al conectar un teclado.",
     "keysUnit": "teclas",
-    "layersUnit": "capas"
+    "layersUnit": "capas",
+    "lockedPress": "Pulsa",
+    "lockedToUnlock": "para desbloquear",
+    "lockedCustomHint": "Si cambiaste el atajo, usa el tuyo. Studio no puede desbloquear el teclado por ti — es intencionado.",
+    "resetConfirm": "Haz clic otra vez para borrar todo",
+    "resetConfirmHint": "Tu keymap, combos e iluminación vuelven al estado de fábrica del firmware. No se puede deshacer desde Studio.",
+    "resetWorking": "Restaurando…",
+    "resetWorkingHint": "Puede tardar unos segundos — no desconectes el teclado.",
+    "resetDone": "Ajustes restaurados"
   },
   "combos": {
     "loading": "Cargando…",
@@ -466,6 +482,125 @@
       "trigger": "Disparador",
       "timing": "Tiempo y comportamiento",
       "layers": "Capas"
-    }
+    },
+    "allReservedTitle": "No hay combos editables",
+    "allReservedHint": "El firmware reserva todas las ranuras de combo de este teclado. El atajo de desbloqueo se gestiona en la página Dispositivo.",
+    "clearFailed": "No se pudo vaciar la ranura. Inténtalo de nuevo."
+  },
+  "motion": {
+    "emptyTitle": "Funciones de movimiento no disponibles",
+    "emptyHint": "No se detectó sensor de movimiento, o el firmware tiene el subsistema motion desactivado.",
+    "live": "Intensidad en vivo",
+    "state": {
+      "locked": "Teclas bloqueadas",
+      "unlocked": "Teclas activas",
+      "lockedHint": "Movimiento sostenido detectado — se desbloquea al dejarlo en una superficie plana",
+      "unlockedHint": "Quieto, orientación normal"
+    },
+    "orientation": {
+      "unknown": "Desconocida",
+      "flatUp": "Plano, hacia arriba",
+      "flatDown": "Boca abajo",
+      "tilted": "Inclinado / en movimiento"
+    },
+    "tap": {
+      "title": "Toque en la carcasa",
+      "desc": "Golpea la carcasa para lanzar una acción, detectada por la interrupción de clic del sensor",
+      "bindingTitle": "Acción lanzada por el toque",
+      "action": "Acción",
+      "kind": "Tipo de toque",
+      "single": "Simple",
+      "double": "Doble",
+      "threshold": "Umbral de disparo",
+      "timeLimit": "Duración máxima",
+      "latency": "Tiempo muerto tras disparar",
+      "window": "Ventana del 2.º toque",
+      "calibrateHint": "Golpea la carcasa y lee la marca de pico que deja en la barra, luego fija el umbral justo por debajo — demasiado bajo y la vibración al escribir lo disparará."
+    },
+    "lock": {
+      "title": "Bloqueo por movimiento",
+      "desc": "Bloquea las teclas mientras se mueve en la mochila y las libera al dejarlo plano",
+      "lockGroup": "Cuándo bloquear",
+      "unlockGroup": "Cuándo desbloquear",
+      "scopeGroup": "Alcance del bloqueo",
+      "motionThreshold": "Umbral de bloqueo",
+      "motionDuration": "Movimiento sostenido",
+      "motionDurationHint": "Evita bloquear por una sacudida puntual",
+      "stillThreshold": "Umbral de quietud",
+      "stillDuration": "Tiempo quieto",
+      "requireFlat": "Exigir plano",
+      "requireFlatHint": "No basta con estar quieto, también hacia arriba",
+      "flatTolerance": "Tolerancia de inclinación",
+      "scope": "Al bloquear",
+      "scopeKeys": "Solo teclas",
+      "scopeKeysLeds": "Teclas + luz",
+      "scopeSoftOff": "Apagado suave",
+      "calibrateHint": "Coge el teclado y camina unos pasos para ver en qué rango se estabiliza; toma el umbral de bloqueo del extremo inferior y el de quietud del ruido sobre la mesa."
+    },
+    "peak": "Pico"
+  },
+  "unlockPanel": {
+    "title": "Atajo de desbloqueo",
+    "desc": "El teclado se bloquea para que ninguna página web cambie tu keymap sin ti. Desbloquear es siempre una acción física — Studio no puede hacerlo en remoto.",
+    "viaCombo": "Combo",
+    "viaKeymap": "Keymap",
+    "protected": "Protegido",
+    "protectedHint": "El firmware reserva esta ranura para el desbloqueo, así que no puede apuntar a otro comportamiento.",
+    "noneTitle": "No se encontró atajo de desbloqueo",
+    "noneDesc": "Este firmware no expone ninguna asignación de studio unlock. Cuando el teclado se bloquee, Studio ya no podrá editarlo — reflashéalo antes de bloquearlo.",
+    "change": "Cambiar atajo",
+    "changeHint": "Se te pedirá ejecutar el nuevo gesto antes de que sustituya al actual, y el teclado permanece desbloqueado en todo momento.",
+    "noSpareSlot": "Configurar un combo necesita una ranura libre para confirmar el gesto. Libera una en la página de Combos.",
+    "create": "Añadir un atajo de combo",
+    "createHint": "Configura una combinación de teclas que desbloquea el teclado, junto a la tecla de desbloqueo actual. Se te pedirá ejecutarla una vez antes de guardarla."
+  },
+  "unlockChange": {
+    "title": "Cambiar atajo de desbloqueo",
+    "pickHint": "Pulsa las teclas que debe usar el atajo — al menos dos, presionadas juntas.",
+    "noLayout": "El dispositivo no informa de una disposición física, así que no se pueden elegir teclas.",
+    "nothingPicked": "Nada seleccionado",
+    "next": "Probar este atajo",
+    "warnConflict": "Otro combo ya usa exactamente estas teclas. Elige otras.",
+    "warnTyping": "Son todas teclas normales, así que el acorde podría dispararse al escribir. Studio exigirá una pausa breve — incluir una tecla de capa o un modificador es más seguro.",
+    "pressNow": "Ejecuta el atajo ahora",
+    "pressHint": "Tu atajo actual no se toca hasta que este se confirme, y el teclado sigue desbloqueado — no hay riesgo si no funciona.",
+    "confirmed": "El atajo se disparó",
+    "confirmedHint": "El teclado produjo la pulsación de prueba, así que este gesto funciona. ¿Aplicarlo como atajo de desbloqueo?",
+    "apply": "Aplicar",
+    "applying": "Aplicando…",
+    "timeoutSafe": "Puedes aplicarlo sin confirmar; este teclado conserva otra forma de desbloquearse.",
+    "timeoutRisky": "Aplicar sin confirmar implica que, si el gesto no funciona, el teclado no podrá editarse sin volver a flashearlo.",
+    "applyAnyway": "Aplicar sin confirmar",
+    "done": "Atajo de desbloqueo actualizado",
+    "doneHint": "Ya está activo, pero solo en memoria — escríbelo en el teclado o se perderá al siguiente apagón.",
+    "close": "Hecho",
+    "priorIdleApplied": "Ahora hace falta una pausa breve, así que el acorde no puede dispararse al escribir.",
+    "warnUnverified": "Aplicado sin confirmar — pruébalo antes de dejar que el teclado se bloquee.",
+    "errArm": "No se pudo preparar la prueba. No se cambió nada.",
+    "errCommit": "Falló la escritura del nuevo atajo. El anterior sigue funcionando.",
+    "errNoKeyPress": "Este firmware no tiene comportamiento Key Press, así que el gesto no se puede probar.",
+    "probeKey": "Tecla de prueba",
+    "keysSeen": "Pulsaciones que llegan a Studio",
+    "noKeysSeen": "Aún no llega ninguna pulsación",
+    "timeoutNoInput": "No llega ninguna pulsación a Studio. Asegúrate de que esta ventana tiene el foco y que el teclado escribe en este ordenador.",
+    "tryAnotherProbe": "Reintentar con otra tecla de prueba",
+    "probeTyped": "interceptada, no se escribe en ningún sitio",
+    "timeoutSwallowed": "Si al pulsarlas juntas no aparece nada, el acorde SÍ se está disparando: ZMK absorbe las teclas que consume y envía la tecla de prueba en su lugar, así que solo falta esa. Prueba con otra. (Verlas por separado solo significa que el acorde no se completó.)",
+    "slotReadback": "Ranura",
+    "errStoredBehavior": "El firmware aceptó la prueba pero no guardó la tecla de prueba en la ranura. Por eso el acorde absorbe las teclas y no emite nada: el disparador se aplicó y el comportamiento no. Necesita un arreglo en el firmware; la relectura de arriba es la prueba.",
+    "errStoredPositions": "El firmware aceptó la prueba pero guardó teclas de disparo distintas a las enviadas.",
+    "titleCreate": "Añadir un atajo de desbloqueo",
+    "pickHintCreate": "Tu tecla de desbloqueo actual se mantiene, así que esto es solo una adición.",
+    "doneCreate": "Atajo de desbloqueo añadido",
+    "warnOverlap": "Estas teclas también las usa otro combo",
+    "warnOverlapHint": "Los combos que se solapan compiten y puede ganar el otro, lo que haría que la prueba de abajo pareciera fallar sin motivo.",
+    "warnSameAsCurrent": "Ese es el atajo que ya está en uso, así que no hay nada que confirmar. Elige otras teclas, o cancela para dejarlo como está.",
+    "warnShadowedByUnlock": "Estas teclas se solapan con tu atajo de desbloqueo actual, que sigue activo durante la prueba. Ganaría el acorde y desbloquearía en vez de producir la tecla de prueba, así que la prueba no puede confirmar nada. Elige teclas que no comparta.",
+    "saveNow": "Guardar en el teclado",
+    "savingNow": "Escribiendo…",
+    "saveRetry": "Reintentar guardado",
+    "savedOk": "Escrito en el teclado — el firmware informa del atajo en la ranura.",
+    "savedVerifyHint": "Studio solo ve la ranura activa, no el almacenamiento. Desconecta el teclado y vuelve a conectarlo una vez para confirmarlo, mientras tu método de desbloqueo anterior siga funcionando.",
+    "savedFailed": "El guardado no se aplicó — después el firmware no informa del atajo en la ranura. No dejes que este teclado se bloquee hasta comprobarlo con tu método de desbloqueo actual."
   }
 }

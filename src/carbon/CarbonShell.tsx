@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ChevronRight, Keyboard as KeyboardIcon, Layers, Zap, Link2,
   Settings, Sun, Moon, Save, Undo2, Redo2, LogOut,
-  Check, X, Lock, Gauge, Lightbulb,
+  Check, X, Lock, Cpu, Lightbulb, Waves,
 } from "lucide-react";
 
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
@@ -21,12 +21,15 @@ import { ComboPanel } from "../combos/ComboPanel";
 
 import { LayersView } from "./LayersView";
 import { LightingView } from "./LightingView";
-import { QuickSettingsView } from "./QuickSettingsView";
-import { SettingsView } from "./SettingsView";
+import { MotionView } from "./MotionView";
+import { DeviceView } from "./DeviceView";
+import { PreferencesView } from "./PreferencesView";
 import { TapHoldView } from "./TapHoldView";
 import { iconBtn } from "./CarbonChrome";
-
-type NavId = "keyboard" | "layers" | "behaviors" | "lighting" | "combos" | "settings";
+import { deserializeNav, resolveNav, type NavId } from "./navIds";
+import { useMotion } from "../motion/useMotion";
+import { GestureChips } from "../unlock/GestureChips";
+import { collectUnlockPaths, FACTORY_UNLOCK_KEYS } from "../unlock/unlockPaths";
 
 export interface CarbonShellProps {
   carbon: ReturnType<typeof useCarbonTheme>;
@@ -34,7 +37,8 @@ export interface CarbonShellProps {
   connectionType?: string;
   onDisconnect: () => void;
   onSwitchDevice: () => void;
-  onResetSettings: () => void;
+  /** Awaitable so the Device page can show a busy state — this one is slow. */
+  onResetSettings: () => Promise<boolean> | void;
   onSave: () => void | Promise<boolean>;
   onDiscard: () => void;
   canUndo: boolean;
@@ -45,30 +49,39 @@ export interface CarbonShellProps {
   onReady?: (ready: boolean) => void;
   onProgress?: (value: number) => void;
   onLightingChanged?: () => void;
+  onMotionChanged?: () => void;
+  onCombosChanged?: () => void;
   onShowAbout: () => void;
   onShowLicense: () => void;
-  roundedCorners: boolean;
-  setRoundedCorners: (v: boolean) => void;
 }
 
 export function CarbonShell(props: CarbonShellProps) {
   const { t, i18n } = useTranslation();
-  const { isDark, setting, setSetting, theme: th, toggle, accent, setAccent, systemAccentHex } = props.carbon;
+  const { isDark, setting, setSetting, theme: th, toggle, accent, setAccent } = props.carbon;
+  const [modelReady, setModelReady] = useState(false);
   const model = useKeyboardModel({
-    onReady: props.onReady,
+    onReady: setModelReady,
     onProgress: props.onProgress,
     onLightingChanged: props.onLightingChanged,
   });
+  const motion = useMotion({ onMotionChanged: props.onMotionChanged });
+
+  // Hold the loading screen until the motion probe resolves too, otherwise a
+  // capability-gated nav entry can pop in after the shell is already usable.
+  const { onReady } = props;
+  useEffect(() => {
+    onReady?.(modelReady && motion.loaded);
+  }, [modelReady, motion.loaded, onReady]);
 
   const lockState = useContext(LockStateContext);
   const isUnlocked = lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
 
   const [defaultNav, setDefaultNav] = useLocalStorageState<NavId>(
     "zmk-studio-default-nav",
-    "layers"
+    "layers",
+    { deserialize: deserializeNav }
   );
-  const { roundedCorners, setRoundedCorners } = props;
-  const [activeNav, setActiveNav] = useState<NavId>(defaultNav);
+  const [navSelection, setNavSelection] = useState<NavId>(defaultNav);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [toast, setToast] = useState<{ type: "success" | "error"; title: string } | null>(null);
@@ -81,23 +94,27 @@ export function CarbonShell(props: CarbonShellProps) {
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const [saving, setSaving] = useState(false);
-  const handleSave = async () => {
-    if (saving) return;
+  // Returns whether it succeeded, because callers other than the header button
+  // (the unlock flow) need to act on it rather than just show a toast.
+  const handleSave = async (): Promise<boolean> => {
+    if (saving) return false;
     setSaving(true);
     try {
       const ok = await props.onSave();
       showToast(ok === false ? "error" : "success",
         ok === false ? t("carbon.saveFailed", "Save failed — please retry")
           : t("carbon.saveSuccess", "Saved to keyboard"));
+      return ok !== false;
     } catch {
       showToast("error", t("carbon.saveFailed", "Save failed — please retry"));
+      return false;
     } finally {
       setSaving(false);
     }
   };
 
   const goToNav = (id: NavId) => {
-    setActiveNav(id);
+    setNavSelection(id);
     model.setSelectedKeyPosition(undefined);
   };
 
@@ -141,7 +158,24 @@ export function CarbonShell(props: CarbonShellProps) {
     [model.behaviorList]
   );
   const holdTap = useHoldTapConfigs(holdTapIds);
-  const combos = useCombos();
+  const combos = useCombos(props.onCombosChanged);
+
+  /*
+   * Every way this keyboard can be unlocked. The reserved unlock combo is kept
+   * out of the Combos panel — it isn't a shortcut the user authored, it's the
+   * key to the front door, managed from the Device page instead.
+   */
+  const unlockPaths = useMemo(
+    () => collectUnlockPaths(model.behaviors, model.keymap, combos.combos),
+    [model.behaviors, model.keymap, combos.combos]
+  );
+  const userCombos = useMemo(
+    () =>
+      unlockPaths.behaviorId === undefined
+        ? combos.combos
+        : combos.combos.filter((c) => c.behavior?.behaviorId !== unlockPaths.behaviorId),
+    [combos.combos, unlockPaths.behaviorId]
+  );
 
   const deviceName = deviceInfo?.name || props.connectedDeviceName || "Keyboard";
   const serialHex = deviceInfo?.serialNumber && deviceInfo.serialNumber.length > 0
@@ -150,14 +184,29 @@ export function CarbonShell(props: CarbonShellProps) {
   const keyCount = model.layouts?.[model.selectedPhysicalLayoutIndex]?.keys.length ?? 0;
   const layerCount = model.keymap?.layers.length ?? 0;
 
-  const NAV: { id: NavId; label: string; icon: React.ReactNode }[] = [
-    { id: "keyboard", label: t("carbon.nav.quick", "Quick settings"), icon: <Gauge size={16} /> },
-    { id: "layers", label: t("carbon.nav.map", "Map"), icon: <Layers size={16} /> },
-    { id: "lighting", label: t("carbon.nav.lighting", "Lighting"), icon: <Lightbulb size={16} /> },
-    { id: "behaviors", label: t("carbon.nav.tapHold", "Tap-Hold"), icon: <Zap size={16} /> },
-    { id: "combos", label: t("carbon.nav.combos", "Combos"), icon: <Link2 size={16} /> },
-    { id: "settings", label: t("carbon.nav.settings", "Settings"), icon: <Settings size={16} /> },
-  ];
+  const hasLighting =
+    model.hasRgb || model.hasBacklight || model.hasCapsLock ||
+    model.hasConnection || model.hasLayerLed;
+
+  /*
+   * The sidebar lists only what the connected device can serve — a keyboard
+   * without an IMU never shows a Motion section, the same way a keyboard
+   * without LEDs no longer shows Lighting. Availability comes from the RPC
+   * probes, never from the device name, so firmware stays the single authority.
+   */
+  const NAV = [
+    { id: "device" as NavId, label: t("carbon.nav.device", "Device"), icon: <Cpu size={16} />, available: true },
+    { id: "layers" as NavId, label: t("carbon.nav.map", "Map"), icon: <Layers size={16} />, available: true },
+    { id: "lighting" as NavId, label: t("carbon.nav.lighting", "Lighting"), icon: <Lightbulb size={16} />, available: hasLighting },
+    { id: "behaviors" as NavId, label: t("carbon.nav.tapHold", "Tap-Hold"), icon: <Zap size={16} />, available: holdTapIds.length > 0 },
+    { id: "combos" as NavId, label: t("carbon.nav.combos", "Combos"), icon: <Link2 size={16} />, available: combos.loaded },
+    { id: "motion" as NavId, label: t("carbon.nav.motion", "Motion"), icon: <Waves size={16} />, available: motion.hasMotion },
+    { id: "preferences" as NavId, label: t("carbon.nav.preferences", "Preferences"), icon: <Settings size={16} />, available: true },
+  ].filter((n) => n.available);
+
+  // A stored default view can name a section this device lacks (switching from
+  // an IMU keyboard to one without), so resolve rather than trust it.
+  const activeNav = resolveNav(navSelection, NAV.map((n) => n.id));
   const currentNav = NAV.find((n) => n.id === activeNav)!;
 
   // Breadcrumb: App > Section > (Layer). Non-leaf crumbs are clickable.
@@ -283,28 +332,31 @@ export function CarbonShell(props: CarbonShellProps) {
               <LayersView model={model} th={th} t={t} deviceName={deviceName} />
             ) : activeNav === "lighting" ? (
               <LightingView model={model} th={th} t={t} />
+            ) : activeNav === "motion" ? (
+              <MotionView motion={motion} behaviors={model.behaviors} behaviorList={model.behaviorList}
+                layers={model.keymap?.layers ?? []} th={th} t={t} />
             ) : activeNav === "behaviors" ? (
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
                 <TapHoldView behaviors={model.behaviorList} th={th} getConfig={holdTap.getConfig} applyConfig={holdTap.applyConfig} />
               </div>
-            ) : activeNav === "keyboard" ? (
-              <QuickSettingsView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
-                setting={setting} setSetting={setSetting} lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
-                defaultNav={defaultNav} setDefaultNav={setDefaultNav}
-                navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
-                roundedCorners={roundedCorners} setRoundedCorners={setRoundedCorners} />
-            ) : activeNav === "settings" ? (
-              <SettingsView th={th} t={t} setting={setting} setSetting={setSetting}
-                accent={accent} setAccent={setAccent} systemAccentHex={systemAccentHex}
+            ) : activeNav === "device" ? (
+              <DeviceView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
+                unlockPaths={unlockPaths} combos={combos.combos}
+                applyCombo={combos.applyConfig} readCombo={combos.readCombo}
+                onSaveToKeyboard={handleSave}
+                onResetSettings={props.onResetSettings} />
+            ) : activeNav === "preferences" ? (
+              <PreferencesView th={th} t={t} setting={setting} setSetting={setSetting}
+                accent={accent} setAccent={setAccent}
                 lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
-                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} onResetSettings={props.onResetSettings}
-                roundedCorners={roundedCorners} setRoundedCorners={setRoundedCorners} />
+                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} />
             ) : activeNav === "combos" ? (
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
                 <ComboPanel
-                  combos={combos.combos}
+                  combos={userCombos}
+                  reservedCount={combos.combos.length - userCombos.length}
                   loaded={combos.loaded}
                   behaviors={model.behaviors}
                   behaviorList={model.behaviorList}
@@ -357,12 +409,26 @@ export function CarbonShell(props: CarbonShellProps) {
   );
 }
 
+/*
+ * Shown when the session gets re-locked mid-use. Nothing about the keyboard is
+ * readable while it is locked — not the keymap, not the combos, not even the
+ * serial number — so the gesture shown here can only be the factory default.
+ * Once firmware exposes the configured gesture in the locked state (see
+ * docs/unlock-combo.md) this can show the user's own shortcut instead.
+ */
 function LockedNotice({ th, t }: { th: CarbonTheme; t: (k: string, d: string) => string }) {
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, textAlign: "center" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, textAlign: "center", padding: 24 }}>
       <Lock size={40} style={{ color: th.warning }} />
       <div style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary }}>{t("carbon.lockedTitle", "Keyboard locked")}</div>
-      <div style={{ fontSize: 13, color: th.textHelper, maxWidth: 340 }}>{t("carbon.lockedDesc", "Press the studio-unlock key combo on your keyboard to edit.")}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: th.textSecondary }}>
+        <span>{t("carbon.lockedPress", "Press")}</span>
+        <GestureChips keys={FACTORY_UNLOCK_KEYS} />
+        <span>{t("carbon.lockedToUnlock", "to unlock")}</span>
+      </div>
+      <div style={{ fontSize: 12, color: th.textHelper, maxWidth: 360, lineHeight: 1.6 }}>
+        {t("carbon.lockedCustomHint", "If you changed the unlock shortcut, use your own instead. Studio can't unlock the keyboard for you — that's the point.")}
+      </div>
     </div>
   );
 }

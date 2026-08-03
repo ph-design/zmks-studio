@@ -1,8 +1,11 @@
 import type { RpcTransport } from "@zmkfirmware/zmk-studio-ts-client/transport/index";
 import { Request, Response, RequestResponse } from "@zmkfirmware/zmk-studio-ts-client";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
-import type { ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
+import { SetComboErrorCode, type ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
 import type { Layer } from "@zmkfirmware/zmk-studio-ts-client/keymap";
+import { setDemoMotionEnabled } from "./motionBackend";
+import { setDemoKeyMeta } from "./demoKeyMeta";
+import { hid_usage_from_page_and_id } from "../hid-usages";
 
 const FRAMING_SOF = 0xab;
 const FRAMING_ESC = 0xac;
@@ -25,12 +28,34 @@ const B = {
   capsWord: 13,
 };
 
-const KEY = (usage: number) => ({ behaviorId: B.kp, param1: usage, param2: 0 });
+/*
+ * Real firmware sends `&kp` parameters as a full HID usage — `(page << 16) | id`
+ * — so the bare ids below have to be encoded the same way, or every label in
+ * Studio resolves to "?" and live keypress highlighting never matches.
+ */
+const KB_PAGE = 7;
+const CONSUMER_PAGE = 0x0c;
+
+const KEY = (id: number) => ({
+  behaviorId: B.kp,
+  param1: hid_usage_from_page_and_id(KB_PAGE, id),
+  param2: 0,
+});
+const CKEY = (id: number) => ({
+  behaviorId: B.kp,
+  param1: hid_usage_from_page_and_id(CONSUMER_PAGE, id),
+  param2: 0,
+});
 const TRANS = { behaviorId: B.trans, param1: 0, param2: 0 };
 const MO = (l: number) => ({ behaviorId: B.mo, param1: l, param2: 0 });
-const LT = (l: number, usage: number) => ({ behaviorId: B.lt, param1: l, param2: usage });
+const LT = (l: number, id: number) => ({
+  behaviorId: B.lt,
+  param1: l,
+  param2: hid_usage_from_page_and_id(KB_PAGE, id),
+});
 
-// A handful of HID usages for the demo keymap (page 0x07 keyboard).
+// Bare usage ids. Keyboard page (0x07) unless noted; `idxOf` also matches on
+// these, so they stay unencoded here.
 const U = {
   ESC: 0x29, N1: 0x1e, N2: 0x1f, N3: 0x20, N4: 0x21, N5: 0x22, N6: 0x23, N7: 0x24,
   N8: 0x25, N9: 0x26, N0: 0x27, MINUS: 0x2d, EQUAL: 0x2e, BSPC: 0x2a, TAB: 0x2b,
@@ -48,7 +73,12 @@ const U = {
   KP_ENTER: 0x58, KP_1: 0x59, KP_2: 0x5a, KP_3: 0x5b, KP_4: 0x5c, KP_5: 0x5d,
   KP_6: 0x5e, KP_7: 0x5f, KP_8: 0x60, KP_9: 0x61, KP_0: 0x62, KP_DOT: 0x63,
   MENU: 0x65,
-  VOL_UP: 0x80, VOL_DN: 0x81, MUTE: 0x7f, PLAY_PAUSE: 0xcd, NEXT: 0xb5, PREV: 0xb6,
+};
+
+// Consumer page (0x0C) — media keys aren't on the keyboard page.
+const C = {
+  MUTE: 0xe2, VOL_UP: 0xe9, VOL_DN: 0xea,
+  PLAY_PAUSE: 0xcd, NEXT: 0xb5, PREV: 0xb6,
 };
 
 // Standard 104-key ANSI layout matching KLE format.
@@ -138,6 +168,18 @@ const LAYOUT_KEYS = (() => {
 
 const KEY_COUNT = LAYOUT_KEYS.length;
 
+/*
+ * A frame-mounted programmable button (ES60). It is an ordinary per-layer key
+ * position — the only thing that makes it special is the `kind`/`label`
+ * metadata published via `setDemoKeyMeta`.
+ *
+ * Parked in the top-right corner: the F-row stops at 18.25u while the number
+ * row runs to 22.5u, so this slot is empty and costs the layout no extra
+ * bounding box (auto-fit zoom derives its scale from `max(x + width)`).
+ */
+const SIDE_KEY_ATTRS = { width: 100, height: 100, x: 2150, y: 0, r: 0, rx: 0, ry: 0 };
+const SIDE_KEY_POSITION = KEY_COUNT;
+
 // Index of a key position by scanning ROW_DEFS for a usage (first match).
 function idxOf(usage: number): number {
   let i = 0;
@@ -188,8 +230,8 @@ function buildLayers(): Layer[] {
     [idxOf(U.N7)]: KEY(U.F7), [idxOf(U.N8)]: KEY(U.F8),
     [idxOf(U.N9)]: KEY(U.F9), [idxOf(U.N0)]: KEY(U.F10), [idxOf(U.MINUS)]: KEY(U.F11), [idxOf(U.EQUAL)]: KEY(U.F12),
     [idxOf(U.Q)]: KEY(U.HOME), [idxOf(U.W)]: KEY(U.END), [idxOf(U.E)]: KEY(U.PG_UP), [idxOf(U.R)]: KEY(U.PG_DN),
-    [idxOf(U.A)]: KEY(U.MUTE), [idxOf(U.S)]: KEY(U.VOL_DN), [idxOf(U.D)]: KEY(U.VOL_UP),
-    [idxOf(U.Z)]: KEY(U.PREV), [idxOf(U.X)]: KEY(U.PLAY_PAUSE), [idxOf(U.C)]: KEY(U.NEXT),
+    [idxOf(U.A)]: CKEY(C.MUTE), [idxOf(U.S)]: CKEY(C.VOL_DN), [idxOf(U.D)]: CKEY(C.VOL_UP),
+    [idxOf(U.Z)]: CKEY(C.PREV), [idxOf(U.X)]: CKEY(C.PLAY_PAUSE), [idxOf(U.C)]: CKEY(C.NEXT),
   };
   Object.entries(ra).forEach(([i, b]) => { raise[Number(i)] = b; });
 
@@ -224,7 +266,7 @@ function buildLayers(): Layer[] {
   ];
 }
 
-function buildCombos(): ComboConfig[] {
+function buildCombos(reserveUnlock: boolean): ComboConfig[] {
   const base = {
     timeoutMs: 50,
     requirePriorIdleMs: -1,
@@ -233,10 +275,33 @@ function buildCombos(): ComboConfig[] {
     editableBehavior: true,
     editableKeyPositions: true,
   };
+
+  /*
+   * Slot 0 as the studio unlock shortcut — the keyboard's front door. Firmware
+   * reserves it: the trigger keys can be changed but the behavior can't be
+   * repointed, which is what stops anyone (Studio included) from deleting the
+   * only way back in. A generous timeout because Fn+\ can't be hit by accident
+   * while typing — Fn produces no keystroke of its own.
+   *
+   * Shipping firmware doesn't do this yet, so it's off unless asked for; the
+   * unlock binding lives in the keymap instead (see the Adjust layer).
+   */
+  const slot0 = reserveUnlock
+    ? {
+        ...base,
+        index: 0,
+        behavior: { behaviorId: B.studioUnlock, param1: 0, param2: 0 },
+        // Fn + \ — MENU carries `&mo 3` on the base layer, so it stands in for Fn.
+        keyPositions: [idxOf(U.MENU), idxOf(U.BSLH)],
+        timeoutMs: 200,
+        editableBehavior: false,
+      }
+    : { ...base, index: 0, behavior: undefined, keyPositions: [] };
+
   return [
-    { ...base, index: 0, behavior: KEY(U.ESC), keyPositions: [idxOf(U.J), idxOf(U.K)] },
-    { ...base, index: 1, behavior: KEY(U.TAB), keyPositions: [idxOf(U.D), idxOf(U.F)] },
-    { ...base, index: 2, behavior: undefined, keyPositions: [] },
+    slot0,
+    { ...base, index: 1, behavior: KEY(U.ESC), keyPositions: [idxOf(U.J), idxOf(U.K)] },
+    { ...base, index: 2, behavior: KEY(U.TAB), keyPositions: [idxOf(U.D), idxOf(U.F)] },
     { ...base, index: 3, behavior: undefined, keyPositions: [] },
     { ...base, index: 4, behavior: undefined, keyPositions: [] },
   ];
@@ -265,26 +330,61 @@ export interface DemoFeatures {
   combos: boolean;      // combos subsystem + reserved slots
   holdTap: boolean;     // hold-tap runtime configs in the Behaviors panel
   lighting: boolean;    // RGB underglow / backlight subsystem
+  sideKey: boolean;     // a frame-mounted programmable key position (ES60)
+  motion: boolean;      // IMU: case-tap action + walk-detect lock (PH60SCV2EVO)
+  /**
+   * Off by default, matching shipping firmware: the factory unlock gesture is a
+   * keymap binding, not a reserved combo slot. Turning it on previews the
+   * reserved-slot design in docs/unlock-combo.md, which is what makes the
+   * *change* path (rather than the *add* path) reachable.
+   */
+  unlockCombo: boolean;
 }
 
 export const DEFAULT_DEMO_FEATURES: DemoFeatures = {
   combos: true,
   holdTap: true,
   lighting: true,
+  sideKey: true,
+  motion: true,
+  unlockCombo: false,
 };
 
 // In-memory demo firmware: answers the RPCs ZMK Studio issues during connect
 // and while browsing the panels. State (keymap/combos) lives only for the
 // session — nothing is persisted.
 class DemoFirmware {
-  layers = buildLayers();
-  combos = buildCombos();
+  layers: Layer[];
+  combos: ComboConfig[];
   availableLayers = 5;
   unsaved = false;
   features: DemoFeatures;
 
   constructor(features: DemoFeatures) {
     this.features = features;
+    this.combos = buildCombos(features.unlockCombo);
+    this.layers = this.freshLayers();
+  }
+
+  /*
+   * The frame button is just one more position appended to every layer's
+   * bindings — nothing about it needs a separate code path, which is the whole
+   * argument for keeping it in the keymap instead of its own subsystem.
+   */
+  private freshLayers(): Layer[] {
+    const layers = buildLayers();
+    if (!this.features.sideKey) return layers;
+    return layers.map((layer, i) => ({
+      ...layer,
+      bindings: [
+        ...layer.bindings,
+        i === 0 ? { behaviorId: B.bt, param1: 0, param2: 0 } : TRANS,
+      ],
+    }));
+  }
+
+  private layoutKeys() {
+    return this.features.sideKey ? [...LAYOUT_KEYS, SIDE_KEY_ATTRS] : LAYOUT_KEYS;
   }
 
   handle(req: Request): Response | null {
@@ -304,8 +404,8 @@ class DemoFirmware {
         });
       }
       if (c.resetSettings) {
-        this.layers = buildLayers();
-        this.combos = buildCombos();
+        this.layers = this.freshLayers();
+        this.combos = buildCombos(this.features.unlockCombo);
         this.unsaved = false;
         return respond({ core: { resetSettings: true } });
       }
@@ -317,7 +417,7 @@ class DemoFirmware {
         return respond({ keymap: { getKeymap: { layers: this.layers, availableLayers: this.availableLayers, maxLayerNameLength: 16 } } });
       }
       if (k.getPhysicalLayouts) {
-        return respond({ keymap: { getPhysicalLayouts: { activeLayoutIndex: 0, layouts: [{ name: "Demo 60%", keys: LAYOUT_KEYS }] } } });
+        return respond({ keymap: { getPhysicalLayouts: { activeLayoutIndex: 0, layouts: [{ name: "Demo 60%", keys: this.layoutKeys() }] } } });
       }
       if (k.checkUnsavedChanges) {
         return respond({ keymap: { checkUnsavedChanges: this.unsaved } });
@@ -409,12 +509,40 @@ class DemoFirmware {
       if (c.setCombo?.combo) {
         const idx = c.setCombo.index;
         const i = this.combos.findIndex((x) => x.index === idx);
-        if (i >= 0) {
-          this.combos[i] = { ...c.setCombo.combo, index: idx, editableBehavior: true, editableKeyPositions: true };
-          this.unsaved = true;
-          return respond({ combos: { setCombo: { ok: true } } });
+        if (i < 0) {
+          return respond({ combos: { setCombo: { err: SetComboErrorCode.SET_COMBO_ERR_INVALID_INDEX } } });
         }
-        return respond({ combos: { setCombo: { err: 2 } } });
+
+        /*
+         * The editable flags belong to firmware — a client can't grant itself
+         * permission by echoing them back as true. This is what keeps the
+         * reserved studio-unlock slot pointed at unlock no matter which client
+         * is talking, so the keyboard always has a way back in.
+         */
+        const existing = this.combos[i];
+        const next = c.setCombo.combo;
+        const behaviorChanged =
+          (next.behavior?.behaviorId ?? -1) !== (existing.behavior?.behaviorId ?? -1) ||
+          (next.behavior?.param1 ?? 0) !== (existing.behavior?.param1 ?? 0) ||
+          (next.behavior?.param2 ?? 0) !== (existing.behavior?.param2 ?? 0);
+        const positionsChanged =
+          next.keyPositions.join(",") !== existing.keyPositions.join(",");
+
+        if (
+          (!existing.editableBehavior && behaviorChanged) ||
+          (!existing.editableKeyPositions && positionsChanged)
+        ) {
+          return respond({ combos: { setCombo: { err: SetComboErrorCode.SET_COMBO_ERR_UNSUPPORTED_FIELD } } });
+        }
+
+        this.combos[i] = {
+          ...next,
+          index: idx,
+          editableBehavior: existing.editableBehavior,
+          editableKeyPositions: existing.editableKeyPositions,
+        };
+        this.unsaved = true;
+        return respond({ combos: { setCombo: { ok: true } } });
       }
     }
 
@@ -442,6 +570,7 @@ class DemoFirmware {
           const b = hue < 120 ? 0 : hue < 240 ? Math.round(((hue - 120) / 120) * 255) : 255;
           bindings.push({ keyPosition: i, color: (r << 16) | (g << 8) | b });
         }
+        // Matrix keys only — the frame button has no LED behind it.
         return respond({ lighting: { getLayerLedColors: { layers: [{ layerId: 0, bindings }], keyCount: KEY_COUNT, layerCount: this.layers.length, enabled: true } } });
       }
       if (l.getCapsLockIndicator) {
@@ -472,6 +601,18 @@ class DemoFirmware {
 export function connect(features: DemoFeatures = DEFAULT_DEMO_FEATURES): Promise<RpcTransport> {
   const fw = new DemoFirmware(features);
   const abortController = new AbortController();
+
+  /*
+   * Two features are served beside the transport rather than through it: the
+   * generated protobuf codec drops fields it doesn't know, so neither the
+   * `motion` subsystem nor the `kind`/`label` key attributes can survive a
+   * round trip until the ts-client fork is regenerated. Both move inside once
+   * it is.
+   */
+  setDemoMotionEnabled(features.motion);
+  setDemoKeyMeta(
+    features.sideKey ? { [SIDE_KEY_POSITION]: { kind: "side", label: "Side" } } : {}
+  );
 
   let readableController!: ReadableStreamDefaultController<Uint8Array>;
   const readable = new ReadableStream<Uint8Array>({

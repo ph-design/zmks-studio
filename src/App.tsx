@@ -32,8 +32,8 @@ import { valueAfter } from "./misc/async";
 import { AboutModal } from "./AboutModal";
 import { LicenseNoticeModal } from "./misc/LicenseNoticeModal";
 import { CarbonShell } from "./carbon/CarbonShell";
+import { saveMotionState } from "./motion/useMotion";
 import { useCarbonTheme } from "./carbon/theme";
-import { useLocalStorageState } from "./misc/useLocalStorageState";
 
 declare global {
   interface Window {
@@ -210,18 +210,17 @@ function App() {
   const [loadProgress, setLoadProgress] = useState(0);
   const connectionAbortRef = useRef(connectionAbort);
 
-  // Rounded corners mode — applied at App level to cover the connect modal too
-  const [roundedCorners, setRoundedCorners] = useLocalStorageState<boolean>(
-    "zmk-studio-rounded-corners",
-    false,
-    { serialize: (v) => String(v), deserialize: (v) => v === "true" }
-  );
-  useEffect(() => {
-    document.documentElement.classList.toggle("rounded-mode", roundedCorners);
-  }, [roundedCorners]);
-
   const [lockState, setLockState] = useState<LockState | undefined>(undefined);
   const [hasUnsavedLightingChanges, setHasUnsavedLightingChanges] = useState(false);
+  const [hasUnsavedMotionChanges, setHasUnsavedMotionChanges] = useState(false);
+  /*
+   * Combo writes are a `combos` call, but the header's unsaved indicator reads
+   * `keymap.checkUnsavedChanges`. Rather than assume firmware flags one
+   * subsystem's write on another's counter, track it here — `keymap.saveChanges`
+   * (always issued by `save`) is what persists combos, so this only has to make
+   * the Save button appear. It not appearing is how an unlock combo was lost.
+   */
+  const [hasUnsavedComboChanges, setHasUnsavedComboChanges] = useState(false);
   const [connectionType, setConnectionType] = useState<string | undefined>();
 
   useEffect(() => {
@@ -304,6 +303,14 @@ function App() {
     setHasUnsavedLightingChanges(true);
   }, []);
 
+  const markMotionChanged = useCallback(() => {
+    setHasUnsavedMotionChanges(true);
+  }, []);
+
+  const markCombosChanged = useCallback(() => {
+    setHasUnsavedComboChanges(true);
+  }, []);
+
   const save = useCallback(async (): Promise<boolean> => {
     if (!conn.conn) {
       return false;
@@ -333,11 +340,21 @@ function App() {
       }
     }
 
+    if (hasUnsavedMotionChanges) {
+      const motionSaved = await saveMotionState(conn.conn);
+      if (!motionSaved) {
+        saved = false;
+        console.error(t("errors.failedToSave"), "motion");
+      }
+    }
+
     if (saved) {
       setHasUnsavedLightingChanges(false);
+      setHasUnsavedMotionChanges(false);
+      setHasUnsavedComboChanges(false);
     }
     return saved;
-  }, [conn, hasUnsavedLightingChanges, t]);
+  }, [conn, hasUnsavedLightingChanges, hasUnsavedMotionChanges, t]);
 
   const discard = useCallback(() => {
     async function doDiscard() {
@@ -359,25 +376,32 @@ function App() {
     doDiscard();
   }, [conn]);
 
-  const resetSettings = useCallback(() => {
-    async function doReset() {
-      if (!conn.conn) {
-        return;
-      }
-
-      let resp = await call_rpc(conn.conn, {
-        core: { resetSettings: true },
-      });
-      if (!resp.core?.resetSettings) {
-        console.error(t("errors.failedToReset"), resp);
-      }
-
-      reset();
-    setHasUnsavedLightingChanges(false);
-      setConn({ conn: conn.conn });
+  /*
+   * Returns a promise so the caller can show a busy state — a factory reset takes
+   * long enough on hardware that without one the button looks unresponsive and
+   * gets clicked again.
+   */
+  const resetSettings = useCallback(async (): Promise<boolean> => {
+    if (!conn.conn) {
+      return false;
     }
 
-    doReset();
+    let ok = true;
+    const resp = await call_rpc(conn.conn, {
+      core: { resetSettings: true },
+    });
+    if (!resp.core?.resetSettings) {
+      ok = false;
+      console.error(t("errors.failedToReset"), resp);
+    }
+
+    reset();
+    // Everything the keyboard held is gone, so no subsystem has pending edits.
+    setHasUnsavedLightingChanges(false);
+    setHasUnsavedMotionChanges(false);
+    setHasUnsavedComboChanges(false);
+    setConn({ conn: conn.conn });
+    return ok;
   }, [conn]);
 
   const disconnect = useCallback(() => {
@@ -511,14 +535,14 @@ function App() {
                 canRedo={canRedo}
                 onUndo={undo}
                 onRedo={redo}
-                extraSaveEnabled={hasUnsavedLightingChanges}
+                extraSaveEnabled={hasUnsavedLightingChanges || hasUnsavedMotionChanges || hasUnsavedComboChanges}
                 onReady={setKeyboardReady}
                 onProgress={setLoadProgress}
                 onLightingChanged={markLightingChanged}
+                onMotionChanged={markMotionChanged}
+                onCombosChanged={markCombosChanged}
                 onShowAbout={() => setShowAbout(true)}
                 onShowLicense={() => setShowLicenseNotice(true)}
-                roundedCorners={roundedCorners}
-                setRoundedCorners={setRoundedCorners}
               />
             ) : (
               // Carbon-toned backdrop behind the connect modal

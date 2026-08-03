@@ -8,7 +8,8 @@
     "cancel": "Cancel",
     "close": "Close",
     "add": "Add",
-    "remove": "Remove"
+    "remove": "Remove",
+    "change": "Change"
   },
   "welcome": {
     "title": "Welcome to ZMKs Studio",
@@ -99,7 +100,13 @@
       "holdTap": "Tap-Hold",
       "holdTapDesc": "Runtime hold-tap timing configs",
       "lighting": "Lighting",
-      "lightingDesc": "RGB underglow & backlight"
+      "lightingDesc": "RGB underglow & backlight",
+      "sideKey": "Frame button",
+      "sideKeyDesc": "An extra per-layer key on the case edge",
+      "motion": "Motion",
+      "motionDesc": "IMU case-tap action & walk-detect lock",
+      "unlockCombo": "Reserved unlock combo",
+      "unlockComboDesc": "Firmware-protected unlock slot (not shipping yet)"
     }
   },
   "layer": {
@@ -213,7 +220,9 @@
       "changeKey": "Change",
       "apply": "Apply",
       "clear": "Clear"
-    }
+    },
+    "noLed": "No LED behind this key",
+    "noLedShort": "no led"
   },
   "behavior": {
     "category": {
@@ -323,7 +332,10 @@
     "body1": "For security reasons, your keyboard requires unlocking before using ZMK Studio.",
     "body2Prefix": "If studio unlocking hasn't been added to your keymap or a combo, see the",
     "docs": "Studio Unlock Behavior documentation",
-    "body2Suffix": "for more infomation."
+    "body2Suffix": "for more infomation.",
+    "press": "Press",
+    "toUnlock": "to unlock",
+    "customHint": "Changed it yourself? Use your own shortcut."
   },
   "license": {
     "intro": "ZMK Studio is released under the open source Apache 2.0 license. A copy of the NOTICE file from the ZMK Studio repository is included here:"
@@ -350,13 +362,14 @@
   "carbon": {
     "nav": {
       "keyboard": "Keyboard",
-      "quick": "Quick settings",
       "layers": "Layers",
       "map": "Map",
       "behaviors": "Behaviors",
       "lighting": "Lighting",
       "combos": "Combos",
-      "settings": "Settings"
+      "motion": "Motion",
+      "device": "Device",
+      "preferences": "Preferences"
     },
     "config": "CONFIGURATION",
     "searchPlaceholder": "Search keycodes…",
@@ -371,14 +384,12 @@
     "unsavedMark": "Unsaved changes *",
     "allSaved": "All changes saved",
     "lockedTitle": "Keyboard locked",
-    "lockedDesc": "Press the studio-unlock key combo on your keyboard to edit.",
     "layer": "Layer",
     "rename": "Rename",
     "delete": "Delete",
     "addLayer": "Add layer",
     "model": "Model",
     "clickKeyHint": "Click any key to edit its binding",
-    "quickControls": "Quick controls",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "zoomFit": "Fit",
@@ -394,9 +405,6 @@
     "theme": "Theme",
     "accentColor": "Accent color",
     "accentColorDesc": "Carbon interactive colors — used for selections, links and primary buttons.",
-    "accentSystem": "Follow browser",
-    "accentSystemOn": "Following the browser's accent color.",
-    "accentSystemUnsupported": "This browser doesn't expose its accent color — falling back to Carbon Blue.",
     "accent": {
       "blue": "Blue",
       "cyan": "Cyan",
@@ -429,7 +437,15 @@
     "defaultView": "Default view",
     "defaultViewDesc": "Which section opens when you connect a keyboard.",
     "keysUnit": "keys",
-    "layersUnit": "layers"
+    "layersUnit": "layers",
+    "lockedPress": "Press",
+    "lockedToUnlock": "to unlock",
+    "lockedCustomHint": "If you changed the unlock shortcut, use your own instead. Studio can't unlock the keyboard for you — that's the point.",
+    "resetConfirm": "Click again to erase everything",
+    "resetConfirmHint": "Your keymap, combos and lighting all go back to how the firmware shipped. This can't be undone from Studio.",
+    "resetWorking": "Restoring…",
+    "resetWorkingHint": "This can take a few seconds — don't unplug the keyboard.",
+    "resetDone": "Settings restored"
   },
   "combos": {
     "loading": "Loading…",
@@ -466,6 +482,125 @@
       "trigger": "Trigger",
       "timing": "Timing & Behavior",
       "layers": "Layers"
-    }
+    },
+    "allReservedTitle": "No editable combos",
+    "allReservedHint": "Every combo slot on this keyboard is reserved by firmware. The unlock shortcut is managed from the Device page.",
+    "clearFailed": "Couldn't clear the slot. Please try again."
+  },
+  "motion": {
+    "emptyTitle": "Motion features unavailable",
+    "emptyHint": "No motion sensor was detected on this device, or the firmware has the motion subsystem disabled.",
+    "live": "Live magnitude",
+    "state": {
+      "locked": "Keys locked",
+      "unlocked": "Keys active",
+      "lockedHint": "Sustained movement detected — unlocks once set down on a flat surface",
+      "unlockedHint": "Still, orientation normal"
+    },
+    "orientation": {
+      "unknown": "Unknown",
+      "flatUp": "Flat, face up",
+      "flatDown": "Upside down",
+      "tilted": "Tilted / moving"
+    },
+    "tap": {
+      "title": "Case tap",
+      "desc": "Tap the case to trigger an action, recognised by the sensor's click interrupt",
+      "bindingTitle": "Action triggered by a case tap",
+      "action": "Action",
+      "kind": "Tap style",
+      "single": "Single",
+      "double": "Double",
+      "threshold": "Trigger threshold",
+      "timeLimit": "Max tap length",
+      "latency": "Dead time after trigger",
+      "window": "Second-tap window",
+      "calibrateHint": "Tap the case and read the peak marker it leaves behind, then set the threshold just below it — too low and typing vibration will trigger it."
+    },
+    "lock": {
+      "title": "Motion lock",
+      "desc": "Locks the keys automatically while it's moving in a bag, and unlocks once set down flat",
+      "lockGroup": "When to lock",
+      "unlockGroup": "When to unlock",
+      "scopeGroup": "Lock scope",
+      "motionThreshold": "Lock threshold",
+      "motionDuration": "Sustained movement",
+      "motionDurationHint": "Stops a single jolt from locking",
+      "stillThreshold": "Still threshold",
+      "stillDuration": "Time held still",
+      "requireFlat": "Require flat",
+      "requireFlatHint": "Still isn't enough — must also be face up",
+      "flatTolerance": "Tilt tolerance",
+      "scope": "While locked",
+      "scopeKeys": "Keys only",
+      "scopeKeysLeds": "Keys + lighting",
+      "scopeSoftOff": "Soft off",
+      "calibrateHint": "Pick the keyboard up and walk a few steps to see the range it settles into; take the lock threshold from the bottom of that range and the still threshold from the noise floor on a desk."
+    },
+    "peak": "Peak"
+  },
+  "unlockPanel": {
+    "title": "Unlock shortcut",
+    "desc": "The keyboard locks itself so a web page can't change your keymap without you. Unlocking is always a physical action — Studio cannot do it remotely.",
+    "viaCombo": "Combo",
+    "viaKeymap": "Keymap",
+    "protected": "Protected",
+    "protectedHint": "Firmware reserves this slot for unlocking, so it can't be repointed at another behavior.",
+    "noneTitle": "No unlock shortcut found",
+    "noneDesc": "This firmware exposes no studio unlock binding. Once the keyboard locks, Studio won't be able to edit it again — reflash before locking it.",
+    "change": "Change shortcut",
+    "changeHint": "You'll be asked to perform the new gesture before it replaces the current one, and the keyboard stays unlocked throughout.",
+    "noSpareSlot": "Setting up a combo shortcut needs one free combo slot to confirm the gesture with. Free a slot on the Combos page first.",
+    "create": "Add a combo shortcut",
+    "createHint": "Sets up a key combination that unlocks the keyboard, alongside the existing unlock key. You'll be asked to perform it once before it's saved."
+  },
+  "unlockChange": {
+    "title": "Change unlock shortcut",
+    "pickHint": "Click the keys the shortcut should use — at least two, pressed together.",
+    "noLayout": "No physical layout reported, so keys can't be picked.",
+    "nothingPicked": "Nothing picked yet",
+    "next": "Test this shortcut",
+    "warnConflict": "Another combo already uses exactly these keys. Pick a different set.",
+    "warnTyping": "These are all ordinary keys, so the chord could fire while typing. Studio will require a brief pause before it counts — including one layer or modifier key is safer.",
+    "pressNow": "Press the shortcut now",
+    "pressHint": "Your current shortcut is untouched until this one is confirmed, and the keyboard stays unlocked throughout — so nothing is at risk if it doesn't work.",
+    "confirmed": "Shortcut fired",
+    "confirmedHint": "The keyboard produced the test keystroke, so this gesture works. Apply it as the unlock shortcut?",
+    "apply": "Apply",
+    "applying": "Applying…",
+    "timeoutSafe": "You can apply without confirmation; this keyboard still has another way to unlock.",
+    "timeoutRisky": "Applying without confirmation means that if the gesture doesn't work, the keyboard can't be edited again without reflashing.",
+    "applyAnyway": "Apply without confirmation",
+    "done": "Unlock shortcut updated",
+    "doneHint": "It's live right now, but only in memory — write it to the keyboard or it's gone at the next power cycle.",
+    "close": "Done",
+    "priorIdleApplied": "A brief pause is now required before the chord counts, so it can't fire while typing.",
+    "warnUnverified": "Applied without confirmation — test it before you let the keyboard lock.",
+    "errArm": "Couldn't set up the test. Nothing was changed.",
+    "errCommit": "Writing the new shortcut failed. Your old one still works.",
+    "errNoKeyPress": "This firmware has no Key Press behavior, so the gesture can't be tested.",
+    "probeKey": "Test key",
+    "keysSeen": "Keystrokes reaching Studio",
+    "noKeysSeen": "No keystrokes reaching Studio yet",
+    "timeoutNoInput": "No keystrokes are reaching Studio at all. Make sure this window has focus and that the keyboard is typing into this computer.",
+    "tryAnotherProbe": "Retry with a different test key",
+    "probeTyped": "swallowed, not typed anywhere",
+    "timeoutSwallowed": "If pressing them together shows nothing at all, the combo IS firing — ZMK swallows the keys it consumes and sends the test key instead, so only the test key is going missing. Try a different one. (Seeing the keys individually just means the chord didn't complete.)",
+    "slotReadback": "Slot",
+    "errStoredBehavior": "Firmware accepted the test but didn't store the test keystroke on the slot. That's why the chord swallows keys and emits nothing — the trigger landed and the behavior didn't. This needs a firmware fix; the read-back above is the evidence.",
+    "errStoredPositions": "Firmware accepted the test but stored different trigger keys, so this device isn't taking the write as sent.",
+    "titleCreate": "Add an unlock shortcut",
+    "pickHintCreate": "Your existing unlock key stays as it is, so this is purely an addition.",
+    "doneCreate": "Unlock shortcut added",
+    "warnOverlap": "These keys are also used by another combo",
+    "warnOverlapHint": "Overlapping combos compete, and the other one may win — which makes the test below look like it failed for no reason.",
+    "warnSameAsCurrent": "That's the shortcut already in use, so there's nothing to confirm. Pick different keys — or cancel to keep it as it is.",
+    "warnShadowedByUnlock": "These keys overlap your current unlock shortcut, which stays live during the test. It would win the chord and unlock instead of producing the test keystroke, so the test can't confirm anything. Pick keys it doesn't share.",
+    "saveNow": "Save to keyboard",
+    "savingNow": "Writing…",
+    "saveRetry": "Try saving again",
+    "savedOk": "Written to the keyboard — firmware reports the shortcut on the slot.",
+    "savedVerifyHint": "Studio can't see storage, only the live slot. Worth unplugging the keyboard and reconnecting once to confirm it stuck — while your old unlock method still works.",
+    "savedFailed": "The save didn't take — firmware doesn't report the shortcut on the slot afterwards. Don't let this keyboard lock until you've used your existing unlock method to check it."
   }
 }

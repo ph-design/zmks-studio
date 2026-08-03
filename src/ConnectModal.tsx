@@ -17,6 +17,8 @@ import { useModalRef } from "./misc/useModalRef";
 import { ExternalLink } from "./misc/ExternalLink";
 import { GenericModal } from "./GenericModal";
 import { connect as demo_connect, DEFAULT_DEMO_FEATURES, type DemoFeatures } from "./demo/mockTransport";
+import { GestureChips } from "./unlock/GestureChips";
+import { FACTORY_UNLOCK_KEYS } from "./unlock/unlockPaths";
 
 export type TransportFactory = {
   label: string;
@@ -323,6 +325,16 @@ function UnlockStep() {
       title={t("unlock.title")}
       body={t("unlock.body1")}
     >
+      {/* The factory gesture, since a locked keyboard reveals nothing about
+          itself — not even which keys its own unlock combo uses. */}
+      <div className="flex items-center justify-center gap-2 text-sm">
+        <span>{t("unlock.press", "Press")}</span>
+        <GestureChips keys={FACTORY_UNLOCK_KEYS} />
+        <span>{t("unlock.toUnlock", "to unlock")}</span>
+      </div>
+      <p className="text-sm opacity-75">
+        {t("unlock.customHint", "Changed it yourself? Use your own shortcut.")}
+      </p>
       <p className="text-sm opacity-75">
         {t("unlock.body2Prefix")} {" "}
         <ExternalLink href="https://zmk.dev/docs/keymaps/behaviors/studio-unlock">
@@ -812,6 +824,9 @@ function DemoModeCard({
     { key: "combos", label: t("demo.feature.combos", "Combos"), desc: t("demo.feature.combosDesc", "Reserved combo slots, editable at runtime") },
     { key: "holdTap", label: t("demo.feature.holdTap", "Tap-Hold"), desc: t("demo.feature.holdTapDesc", "Runtime hold-tap timing configs") },
     { key: "lighting", label: t("demo.feature.lighting", "Lighting"), desc: t("demo.feature.lightingDesc", "RGB underglow & backlight") },
+    { key: "sideKey", label: t("demo.feature.sideKey", "Frame button"), desc: t("demo.feature.sideKeyDesc", "An extra per-layer key on the case edge") },
+    { key: "motion", label: t("demo.feature.motion", "Motion"), desc: t("demo.feature.motionDesc", "IMU case-tap action & walk-detect lock") },
+    { key: "unlockCombo", label: t("demo.feature.unlockCombo", "Reserved unlock combo"), desc: t("demo.feature.unlockComboDesc", "Firmware-protected unlock slot (not shipping yet)") },
   ];
 
   const launch = async () => {

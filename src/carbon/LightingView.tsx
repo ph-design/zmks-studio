@@ -6,6 +6,8 @@ import { useKeyboardModel } from "./useKeyboardModel";
 import LightingControl, { type LightSource } from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
 import RgbEffectPreview from "../lighting/RgbEffectPreview";
+import { KeyboardCanvas } from "../keyboard/KeyboardCanvas";
+import { ResizableDrawer } from "./ResizableDrawer";
 import { Loading, NotSupportedHint } from "./CarbonChrome";
 
 interface LightingViewProps {
@@ -86,33 +88,38 @@ export function LightingView({ model, th, t }: LightingViewProps) {
             );
           })}
         </div>
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, overflow: "auto", minHeight: 0 }}>
-          {currentSource === "rgb" && model.rgbState ? (
-            <RgbEffectPreview
-              key={model.selectedPhysicalLayoutIndex}
-              layout={model.layouts[model.selectedPhysicalLayoutIndex]}
-              keymap={km}
-              rgbState={model.rgbState}
-              scale={model.keymapScale}
-              ledData={model.ledData}
-              selectedLayerIndex={model.selectedLayerIndex}
-            />
-          ) : (
-            <LayerLedMap
-              keymap={km}
-              layout={model.layouts[model.selectedPhysicalLayoutIndex]}
-              scale={model.keymapScale}
-              selectedLayerIndex={model.selectedLayerIndex}
-              ledData={model.ledData}
-              selectedPositions={model.selectedLedPositions}
-              onSelectionChanged={(sel) => { if (!model.handleIndicatorPick(sel)) model.setSelectedLedPositions(sel); }}
-              indicatorPositions={model.indicatorPositions}
-              activeSource={model.lightingSource}
-            />
-          )}
-        </div>
-        <div style={{ flexShrink: 0, height: 360, borderTop: `1px solid ${th.border}`, background: th.layer1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <KeyboardCanvas th={th} t={t} scale={model.keymapScale} setScale={model.setKeymapScale}>
+          {(fitContainerRef) =>
+            currentSource === "rgb" && model.rgbState ? (
+              <RgbEffectPreview
+                key={model.selectedPhysicalLayoutIndex}
+                layout={model.layouts![model.selectedPhysicalLayoutIndex]}
+                keymap={km}
+                rgbState={model.rgbState}
+                scale={model.keymapScale}
+                ledData={model.ledData}
+                selectedLayerIndex={model.selectedLayerIndex}
+                fitContainerRef={fitContainerRef}
+              />
+            ) : (
+              <LayerLedMap
+                keymap={km}
+                layout={model.layouts![model.selectedPhysicalLayoutIndex]}
+                scale={model.keymapScale}
+                selectedLayerIndex={model.selectedLayerIndex}
+                ledData={model.ledData}
+                selectedPositions={model.selectedLedPositions}
+                onSelectionChanged={(sel) => { if (!model.handleIndicatorPick(sel)) model.setSelectedLedPositions(sel); }}
+                indicatorPositions={model.indicatorPositions}
+                activeSource={model.lightingSource}
+                fitContainerRef={fitContainerRef}
+              />
+            )
+          }
+        </KeyboardCanvas>
+        <ResizableDrawer th={th} storageKey="zmk-studio-drawer-h-lighting">
           <LightingControl
+            th={th}
             selectedSource={currentSource ?? "rgb"}
             hasLayerLed={model.hasLayerLed}
             selectedLedPositions={model.selectedLedPositions}
@@ -138,7 +145,7 @@ export function LightingView({ model, th, t }: LightingViewProps) {
             onClearIndicator={() => model.setIndicatorPositionDraft(undefined)}
             onLightingChanged={model.onLightingChanged}
           />
-        </div>
+        </ResizableDrawer>
       </div>
     </div>
   );

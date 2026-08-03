@@ -422,7 +422,9 @@ export const BehaviorBindingPicker = ({
       </div>
 
       {/* Behavior list — Carbon list rows */}
-      <div key={selectedCategoryId} className="flex flex-col min-h-0 overflow-y-auto border-r border-base-300 animate-fade-in custom-scrollbar"
+      {/* No fade on category change: the list is the thing being navigated, so it
+          should be readable the instant it changes. */}
+      <div className="flex flex-col min-h-0 overflow-y-auto border-r border-base-300 custom-scrollbar"
         onMouseLeave={() => setHoveredBehaviorId(null)}
       >
         <div className="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-base-content/50">
@@ -449,10 +451,7 @@ export const BehaviorBindingPicker = ({
       <div className="min-h-0 min-w-0 flex flex-col overflow-hidden">
         {!isBehaviorInCategory ? (
           <div className="flex items-center justify-center h-full px-6">
-            <div
-              key={hoveredBehavior ? hoveredBehavior.id : '__hint'}
-              className="flex flex-col items-center gap-2 text-center max-w-md animate-fade-in"
-            >
+            <div className="flex flex-col items-center gap-2 text-center max-w-md">
               {hoveredBehavior ? (<>
                 <span className="text-lg font-semibold text-base-content">{DISPLAY_NAME_OVERRIDES[hoveredBehavior.displayName] ?? hoveredBehavior.displayName}</span>
                 <span className="text-sm text-base-content/60 leading-relaxed">{t(`behaviorDesc.${hoveredBehavior.displayName}`, '')}</span>
@@ -633,7 +632,7 @@ const ModeOptions = ({
   value: number;
   onChange: (id: number) => void;
 }) => (
-  <div className="flex gap-1.5 flex-wrap animate-fade-in">
+  <div className="flex gap-1.5 flex-wrap">
     {modes.map((m) => (
       <button
         key={m.id}

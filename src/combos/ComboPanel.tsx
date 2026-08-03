@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link2 } from "lucide-react";
+import { Link2, Eraser } from "lucide-react";
 import type { ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
 import type { GetBehaviorDetailsResponse } from "@zmkfirmware/zmk-studio-ts-client/behaviors";
 import type { Layer, PhysicalLayout as PhysicalLayoutMsg } from "@zmkfirmware/zmk-studio-ts-client/keymap";
@@ -13,6 +13,12 @@ import { combosEqual } from "./useCombos";
 
 interface ComboPanelProps {
   combos: ComboConfig[];
+  /**
+   * Slots the shell filtered out because firmware reserves them (the unlock
+   * combo). Only used to tell "this firmware has no combos" apart from "every
+   * slot here is reserved", which are very different messages.
+   */
+  reservedCount?: number;
   loaded: boolean;
   behaviors: Record<number, GetBehaviorDetailsResponse>;
   behaviorList: GetBehaviorDetailsResponse[];
@@ -24,7 +30,7 @@ interface ComboPanelProps {
 
 // Left rail of combo slots; settings-style editor on the right. Editing a
 // behavior swaps the pane for a full-width binding picker.
-export const ComboPanel = ({ combos, loaded, behaviors, behaviorList, layers, layout, th, applyConfig }: ComboPanelProps) => {
+export const ComboPanel = ({ combos, reservedCount = 0, loaded, behaviors, behaviorList, layers, layout, th, applyConfig }: ComboPanelProps) => {
   const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<ComboConfig | null>(null);
@@ -44,7 +50,13 @@ export const ComboPanel = ({ combos, loaded, behaviors, behaviorList, layers, la
     return <CenteredHint th={th}>{t("combos.loading", "Loading…")}</CenteredHint>;
   }
   if (combos.length === 0) {
-    return (
+    return reservedCount > 0 ? (
+      <NotSupportedHint th={th}
+        icon={<Link2 size={40} />}
+        title={t("combos.allReservedTitle", "No editable combos")}
+        desc={t("combos.allReservedHint", "Every combo slot on this keyboard is reserved by firmware. The unlock shortcut is managed from the Device page.")}
+      />
+    ) : (
       <NotSupportedHint th={th}
         icon={<Link2 size={40} />}
         title={t("combos.emptyTitle", "组合键不可用")}
@@ -69,6 +81,29 @@ export const ComboPanel = ({ combos, loaded, behaviors, behaviorList, layers, la
       setSaving(false);
     }
   };
+
+  /*
+   * Frees the slot by dropping its key positions — that alone is what makes a
+   * slot read as unused, so the behavior is left in place: firmware can reject a
+   * setCombo carrying no behavior, and clearing it buys nothing.
+   *
+   * Applied straight away, like the layer rail's own destructive actions; going
+   * through the draft would leave a rail button that appears to do nothing until
+   * you find the Save button on the far side of the pane.
+   */
+  const clearSlot = async () => {
+    if (!active || active.keyPositions.length === 0) return;
+    setError(null);
+    setSaving(true);
+    try {
+      const ok = await applyConfig({ ...active, keyPositions: [] });
+      if (ok) setDraft(null);
+      else setError(t("combos.clearFailed", "Couldn't clear the slot. Please try again."));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const clearable = !!active && active.keyPositions.length > 0 && active.editableKeyPositions;
 
   // Behavior editing: swap the whole right pane for a full-width binding picker.
   if (editingBehavior && cfg && active) {
@@ -145,6 +180,25 @@ export const ComboPanel = ({ combos, loaded, behaviors, behaviorList, layers, la
             );
           })}
         </div>
+
+        {/* Bottom action bar for the selected slot, matching the layer rail */}
+        {active && (
+          <div style={{ borderTop: `1px solid ${th.border}`, padding: "6px 0", flexShrink: 0 }}>
+            <button
+              onClick={clearable && !saving ? clearSlot : undefined}
+              disabled={!clearable || saving}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, width: "100%",
+                padding: "8px 16px", fontSize: 12, background: "none", border: "none",
+                color: !clearable || saving ? th.textDisabled : th.error,
+                cursor: !clearable || saving ? "default" : "pointer",
+                fontFamily: "var(--font-sans)", textAlign: "left",
+              }}
+            >
+              <Eraser size={13} />{t("combos.clearSlot", "Clear slot")}
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Right content — editor */}
@@ -268,17 +322,11 @@ const ComboEditor = ({
             <span className="text-sm text-base-content/60 min-w-[7rem] shrink-0 whitespace-nowrap">
               {t("combos.positions", "Key positions")}
             </span>
+            {/* Clearing the whole slot is a rail action, not a field-level one —
+                see the bottom bar in the slot list. */}
             <span className="text-sm text-base-content font-medium flex-1 min-w-0 truncate">
               {cfg.keyPositions.length > 0 ? cfg.keyPositions.map((p) => `#${p}`).join(" + ") : t("combos.none", "None")}
             </span>
-            {editablePositions && cfg.keyPositions.length > 0 && (
-              <button
-                onClick={() => onUpdate({ keyPositions: [] })}
-                className="px-2.5 py-1.5 text-sm text-base-content/70 hover:bg-base-300 rounded cursor-pointer shrink-0"
-              >
-                {t("combos.clearSlot", "Clear slot")}
-              </button>
-            )}
           </div>
 
           {editableBehavior ? (

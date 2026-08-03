@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { PhysicalLayout, Keymap } from "@zmkfirmware/zmk-studio-ts-client/keymap";
@@ -10,6 +10,7 @@ import {
   LayoutZoom,
   PhysicalLayout as PhysicalLayoutComp,
 } from "../keyboard/PhysicalLayout";
+import { ledlessPositions, useKeyMeta } from "../keyboard/keyMeta";
 import { RgbEffectEngine, type LedPosition } from "./rgbEffectEngine";
 
 export interface RgbEffectPreviewProps {
@@ -19,6 +20,7 @@ export interface RgbEffectPreviewProps {
   scale: LayoutZoom;
   ledData?: GetLayerLedColorsResponse | null;
   selectedLayerIndex?: number;
+  fitContainerRef?: RefObject<HTMLElement>;
 }
 
 // Interactive effects that respond to key clicks in the preview
@@ -31,8 +33,17 @@ export default function RgbEffectPreview({
   scale,
   ledData,
   selectedLayerIndex,
+  fitContainerRef,
 }: RgbEffectPreviewProps) {
   const { t } = useTranslation();
+
+  // A key with no LED behind it takes no effect colour — it renders inert.
+  const keyMeta = useKeyMeta(layout);
+  const unlit = useMemo(
+    () => ledlessPositions(layout.keys.length, keyMeta, ledData?.keyCount),
+    [layout.keys.length, keyMeta, ledData?.keyCount]
+  );
+
   const engineRef = useRef<RgbEffectEngine | null>(null);
   const colorDivsRef = useRef<(HTMLDivElement | null)[]>([]);
   const frameBufRef = useRef<Float32Array>(new Float32Array(0));
@@ -129,7 +140,7 @@ export default function RgbEffectPreview({
   }, []);
 
   const handlePositionClicked = (pos: number) => {
-    if (!INTERACTIVE_EFFECTS.has(stateRef.current.effect)) return;
+    if (!INTERACTIVE_EFFECTS.has(stateRef.current.effect) || unlit.has(pos)) return;
     const p = ledPositions[pos];
     if (p) engineRef.current?.triggerKey(p.x, p.y);
   };
@@ -138,32 +149,37 @@ export default function RgbEffectPreview({
 
   const positions = useMemo(
     () =>
-      layout.keys.map((k, i) => ({
-        id: `fx-${i}`,
-        x: k.x / 100.0,
-        y: k.y / 100.0,
-        width: k.width / 100,
-        height: k.height / 100.0,
-        r: (k.r || 0) / 100.0,
-        rx: (k.rx || 0) / 100.0,
-        ry: (k.ry || 0) / 100.0,
-        children: (
-          <div
-            ref={(el) => {
-              colorDivsRef.current[i] = el;
-            }}
-            className="absolute inset-[2px] rounded"
-            style={{ backgroundColor: "rgb(0,0,0)" }}
-          />
-        ),
-      })),
-    [layout],
+      layout.keys.map((k, i) => {
+        const isUnlit = unlit.has(i);
+        return {
+          id: `fx-${i}`,
+          x: k.x / 100.0,
+          y: k.y / 100.0,
+          width: k.width / 100,
+          height: k.height / 100.0,
+          r: (k.r || 0) / 100.0,
+          rx: (k.rx || 0) / 100.0,
+          ry: (k.ry || 0) / 100.0,
+          dimmed: isUnlit,
+          children: isUnlit ? null : (
+            <div
+              ref={(el) => {
+                colorDivsRef.current[i] = el;
+              }}
+              className="absolute inset-[2px] rounded"
+              style={{ backgroundColor: "rgb(0,0,0)" }}
+            />
+          ),
+        };
+      }),
+    [layout, unlit],
   );
 
   return (
     <div className="h-full w-full grid items-center justify-center relative min-w-0 min-h-0 select-none">
       <PhysicalLayoutComp
         positions={positions}
+        fitContainerRef={fitContainerRef}
         oneU={48}
         hoverZoom={!isInteractive}
         zoom={scale}
