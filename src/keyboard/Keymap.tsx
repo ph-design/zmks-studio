@@ -79,7 +79,7 @@ export const Keymap = ({
         height: k.height / 100.0,
         accent: keyMeta[i] !== undefined,
         cornerLabel: keyMeta[i]?.label,
-        children: <div key={`${selectedLayerIndex}-${i}`} className="animate-fade-in"><span></span></div>,
+        children: <div><span></span></div>,
       };
     }
 
@@ -98,8 +98,10 @@ export const Keymap = ({
       rx: (k.rx || 0) / 100.0,
       ry: (k.ry || 0) / 100.0,
       pressed: isPressed(keymap.layers[selectedLayerIndex].bindings[i]),
+      // No key on the layer index and no fade: switching layer should just show
+      // the new legends, not replay a load-in on all 100+ keycaps at once.
       children: (
-        <div key={`${selectedLayerIndex}-${i}`} className="animate-fade-in">
+        <div>
           {(() => {
             const binding = keymap.layers[selectedLayerIndex].bindings[i];
             const behaviorName = behaviors[binding.behaviorId]?.displayName;

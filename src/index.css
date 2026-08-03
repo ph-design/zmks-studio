@@ -346,19 +346,31 @@ body {
   background: transparent;
 }
 
-/* Binding picker — always open, so no collapsed state and no height animation. */
-.keymap-drawer {
-  height: 200px;
+/* Drag handle on the drawer's top edge. Invisible until pointed at — it lives on
+   a border that already reads as a divider, so it only needs to announce itself
+   when the pointer is there. */
+.drawer-resize-handle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--primary));
+  opacity: 0;
+  transition: opacity 0.12s;
 }
-@media (min-height: 650px) {
-  .keymap-drawer { height: 240px; }
+.drawer-resize-handle:hover::after {
+  opacity: 0.5;
 }
-@media (min-height: 750px) {
-  .keymap-drawer { height: 280px; }
+html.panel-resizing .drawer-resize-handle::after {
+  opacity: 1;
 }
-@media (min-height: 900px) {
-  .keymap-drawer { height: 340px; }
+
+/* While dragging, kill the canvas's scale easing (each frame would otherwise
+   restart a 240ms curve and the keyboard trails the pointer) and stop the drag
+   from selecting text it passes over. */
+html.panel-resizing {
+  cursor: ns-resize;
+  user-select: none;
 }
-@media (min-height: 1080px) {
-  .keymap-drawer { height: 400px; }
+html.panel-resizing .keyboard-scale {
+  transition: none !important;
 }

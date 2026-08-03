@@ -7,6 +7,7 @@ import LightingControl, { type LightSource } from "../lighting/LightingControl";
 import LayerLedMap from "../lighting/LayerLedMap";
 import RgbEffectPreview from "../lighting/RgbEffectPreview";
 import { KeyboardCanvas } from "../keyboard/KeyboardCanvas";
+import { ResizableDrawer } from "./ResizableDrawer";
 import { Loading, NotSupportedHint } from "./CarbonChrome";
 
 interface LightingViewProps {
@@ -116,9 +117,7 @@ export function LightingView({ model, th, t }: LightingViewProps) {
             )
           }
         </KeyboardCanvas>
-        {/* Same height ramp as the binding drawer, so the canvas keeps a fair
-            share of the window instead of a flat 360px. */}
-        <div className="keymap-drawer" style={{ flexShrink: 0, borderTop: `1px solid ${th.border}`, background: th.layer1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <ResizableDrawer th={th} storageKey="zmk-studio-drawer-h-lighting">
           <LightingControl
             th={th}
             selectedSource={currentSource ?? "rgb"}
@@ -146,7 +145,7 @@ export function LightingView({ model, th, t }: LightingViewProps) {
             onClearIndicator={() => model.setIndicatorPositionDraft(undefined)}
             onLightingChanged={model.onLightingChanged}
           />
-        </div>
+        </ResizableDrawer>
       </div>
     </div>
   );

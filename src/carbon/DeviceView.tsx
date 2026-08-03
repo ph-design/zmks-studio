@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Cpu, RotateCcw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Cpu, Loader, RotateCcw } from "lucide-react";
 
 import type { ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
 
@@ -28,7 +28,7 @@ interface DeviceViewProps {
   readCombo: (index: number) => Promise<ComboConfig | null>;
   /** Same save the header runs; the unlock flow offers it inline. */
   onSaveToKeyboard?: () => Promise<boolean> | void;
-  onResetSettings: () => void;
+  onResetSettings: () => Promise<boolean> | void;
 }
 
 export function DeviceView({
@@ -136,11 +136,108 @@ export function DeviceView({
           }} />
 
         <div style={{ paddingTop: 20 }}>
-          <button onClick={onResetSettings} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", fontSize: 13, background: "transparent", color: th.error, border: `1px solid ${th.error}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
-            <RotateCcw size={14} />{t("carbon.factoryReset", "Restore stock settings")}
-          </button>
+          <ResetButton th={th} t={t} onReset={onResetSettings} />
         </div>
       </div>
     </div>
+  );
+}
+
+/*
+ * Factory reset, in three states.
+ *
+ * The confirmation is the button turning into itself-but-committed rather than a
+ * dialog: the action is one click either way, and a modal for it would be more
+ * ceremony than the rest of this page uses. Carbon's danger button is the solid
+ * red one, so the armed state is exactly that — the colour is the warning.
+ *
+ * The busy state matters as much as the confirmation. On hardware this takes long
+ * enough that an unchanged button reads as "didn't work", and the obvious response
+ * is to click it again.
+ */
+function ResetButton({ th, t, onReset }: {
+  th: CarbonTheme;
+  t: (k: string, d: string) => string;
+  onReset: () => Promise<boolean> | void;
+}) {
+  const [state, setState] = useState<"idle" | "armed" | "working" | "done">("idle");
+  const doneTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(doneTimer.current), []);
+
+  // Don't leave it armed indefinitely — a red button left over from a click a
+  // minute ago is a trap.
+  useEffect(() => {
+    if (state !== "armed") return;
+    const id = setTimeout(() => setState("idle"), 6000);
+    return () => clearTimeout(id);
+  }, [state]);
+
+  /*
+   * A successful reset makes the app refetch everything from the keyboard, which
+   * unmounts this button — so the "done" state is usually never seen, and doesn't
+   * need to be. What matters is that "working" is on screen for however long the
+   * RPC takes, with the button disabled so a second click can't land.
+   */
+  const run = async () => {
+    setState("working");
+    try {
+      await onReset();
+    } finally {
+      setState("done");
+      doneTimer.current = setTimeout(() => setState("idle"), 2500);
+    }
+  };
+
+  const base: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 8, padding: "10px 16px",
+    fontSize: 13, fontFamily: "var(--font-sans)", border: `1px solid ${th.error}`,
+  };
+
+  if (state === "working" || state === "done") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+        <button disabled
+          style={{ ...base, background: th.error, color: "#fff", borderColor: th.error, cursor: "default", opacity: 0.85 }}>
+          {state === "working"
+            ? <Loader size={14} style={{ animation: "circular-rotate 1s linear infinite" }} />
+            : <Check size={14} />}
+          {state === "working"
+            ? t("carbon.resetWorking", "Restoring…")
+            : t("carbon.resetDone", "Settings restored")}
+        </button>
+        {state === "working" && (
+          <span style={{ fontSize: 12, color: th.textHelper }}>
+            {t("carbon.resetWorkingHint", "This can take a few seconds — don't unplug the keyboard.")}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  if (state === "armed") {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={run} autoFocus
+            style={{ ...base, background: th.error, color: "#fff", cursor: "pointer", fontWeight: 500 }}>
+            <RotateCcw size={14} />{t("carbon.resetConfirm", "Click again to erase everything")}
+          </button>
+          <button onClick={() => setState("idle")}
+            style={{ ...base, background: "transparent", color: th.textSecondary, borderColor: th.borderStrong, cursor: "pointer" }}>
+            {t("common.cancel", "Cancel")}
+          </button>
+        </div>
+        <span style={{ fontSize: 12, color: th.textHelper, maxWidth: 460, lineHeight: 1.5 }}>
+          {t("carbon.resetConfirmHint", "Your keymap, combos and lighting all go back to how the firmware shipped. This can't be undone from Studio.")}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <button onClick={() => setState("armed")}
+      style={{ ...base, background: "transparent", color: th.error, cursor: "pointer" }}>
+      <RotateCcw size={14} />{t("carbon.factoryReset", "Restore stock settings")}
+    </button>
   );
 }

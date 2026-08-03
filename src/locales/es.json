@@ -440,7 +440,12 @@
     "layersUnit": "capas",
     "lockedPress": "Pulsa",
     "lockedToUnlock": "para desbloquear",
-    "lockedCustomHint": "Si cambiaste el atajo, usa el tuyo. Studio no puede desbloquear el teclado por ti — es intencionado."
+    "lockedCustomHint": "Si cambiaste el atajo, usa el tuyo. Studio no puede desbloquear el teclado por ti — es intencionado.",
+    "resetConfirm": "Haz clic otra vez para borrar todo",
+    "resetConfirmHint": "Tu keymap, combos e iluminación vuelven al estado de fábrica del firmware. No se puede deshacer desde Studio.",
+    "resetWorking": "Restaurando…",
+    "resetWorkingHint": "Puede tardar unos segundos — no desconectes el teclado.",
+    "resetDone": "Ajustes restaurados"
   },
   "combos": {
     "loading": "Cargando…",

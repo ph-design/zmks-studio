@@ -123,14 +123,29 @@ export const PhysicalLayout = ({
       animationFrame = requestAnimationFrame(() => setAnimateScale(true));
     }
 
-    const resizeObserver = new ResizeObserver(() => {
-      // Throttle: only recalc once per frame to avoid layout thrashing
-      if (rafId !== undefined) return;
+    /*
+     * Throttled to one recalc per frame, but on the *leading* edge: dragging the
+     * drawer resizes this container continuously, and deferring every update by a
+     * frame put the keyboard visibly behind the pointer. Recalculating first and
+     * then holding off for a frame keeps it in step.
+     */
+    let pending = false;
+    const schedule = () => {
+      if (rafId !== undefined) {
+        pending = true;
+        return;
+      }
+      calculateScale();
       rafId = requestAnimationFrame(() => {
         rafId = undefined;
-        calculateScale();
+        if (pending) {
+          pending = false;
+          schedule();
+        }
       });
-    });
+    };
+
+    const resizeObserver = new ResizeObserver(schedule);
 
     resizeObserver.observe(element);
     resizeObserver.observe(fitElement);
@@ -177,7 +192,7 @@ export const PhysicalLayout = ({
 
   return (
     <div
-      className="relative"
+      className="relative keyboard-scale"
       style={{
         height: bottomMost * oneU + "px",
         width: rightMost * oneU + "px",

@@ -376,25 +376,32 @@ function App() {
     doDiscard();
   }, [conn]);
 
-  const resetSettings = useCallback(() => {
-    async function doReset() {
-      if (!conn.conn) {
-        return;
-      }
-
-      let resp = await call_rpc(conn.conn, {
-        core: { resetSettings: true },
-      });
-      if (!resp.core?.resetSettings) {
-        console.error(t("errors.failedToReset"), resp);
-      }
-
-      reset();
-    setHasUnsavedLightingChanges(false);
-      setConn({ conn: conn.conn });
+  /*
+   * Returns a promise so the caller can show a busy state — a factory reset takes
+   * long enough on hardware that without one the button looks unresponsive and
+   * gets clicked again.
+   */
+  const resetSettings = useCallback(async (): Promise<boolean> => {
+    if (!conn.conn) {
+      return false;
     }
 
-    doReset();
+    let ok = true;
+    const resp = await call_rpc(conn.conn, {
+      core: { resetSettings: true },
+    });
+    if (!resp.core?.resetSettings) {
+      ok = false;
+      console.error(t("errors.failedToReset"), resp);
+    }
+
+    reset();
+    // Everything the keyboard held is gone, so no subsystem has pending edits.
+    setHasUnsavedLightingChanges(false);
+    setHasUnsavedMotionChanges(false);
+    setHasUnsavedComboChanges(false);
+    setConn({ conn: conn.conn });
+    return ok;
   }, [conn]);
 
   const disconnect = useCallback(() => {

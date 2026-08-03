@@ -23,13 +23,19 @@ export function UnlockPanel({ th, t, paths, mode, noSpareSlot, onChange }: {
   noSpareSlot?: boolean;
   onChange?: () => void;
 }) {
-  const rowStyle: React.CSSProperties = {
+  /*
+   * Rules go on the top edge of every row but the first, not the bottom of every
+   * row: a trailing bottom border sits on top of the container's own and reads as
+   * a double-thickness edge — obvious with a single row, which is the normal case
+   * before a combo has been set up.
+   */
+  const rowStyle = (first: boolean): React.CSSProperties => ({
     display: "flex",
     alignItems: "center",
     gap: 10,
     padding: "10px 14px",
-    borderBottom: `1px solid ${th.border}`,
-  };
+    borderTop: first ? undefined : `1px solid ${th.border}`,
+  });
 
   return (
     <div style={{ padding: "16px 0", borderBottom: `1px solid ${th.border}` }}>
@@ -57,8 +63,8 @@ export function UnlockPanel({ th, t, paths, mode, noSpareSlot, onChange }: {
         </div>
       ) : (
         <div style={{ border: `1px solid ${th.border}` }}>
-          {paths.combos.map(({ combo, keyLabels, protectedByFirmware }) => (
-            <div key={`combo-${combo.index}`} style={rowStyle}>
+          {paths.combos.map(({ combo, keyLabels, protectedByFirmware }, i) => (
+            <div key={`combo-${combo.index}`} style={rowStyle(i === 0)}>
               <span style={{ width: 92, flexShrink: 0, fontSize: 12, color: th.textHelper }}>
                 {t("unlockPanel.viaCombo", "Combo")}
               </span>
@@ -73,8 +79,8 @@ export function UnlockPanel({ th, t, paths, mode, noSpareSlot, onChange }: {
               )}
             </div>
           ))}
-          {paths.keymap.map((p) => (
-            <div key={`keymap-${p.layerIndex}-${p.keyPosition}`} style={rowStyle}>
+          {paths.keymap.map((p, i) => (
+            <div key={`keymap-${p.layerIndex}-${p.keyPosition}`} style={rowStyle(i === 0 && paths.combos.length === 0)}>
               <span style={{ width: 92, flexShrink: 0, fontSize: 12, color: th.textHelper }}>
                 {t("unlockPanel.viaKeymap", "Keymap")}
               </span>

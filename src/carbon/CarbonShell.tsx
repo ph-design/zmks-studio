@@ -37,7 +37,8 @@ export interface CarbonShellProps {
   connectionType?: string;
   onDisconnect: () => void;
   onSwitchDevice: () => void;
-  onResetSettings: () => void;
+  /** Awaitable so the Device page can show a busy state — this one is slow. */
+  onResetSettings: () => Promise<boolean> | void;
   onSave: () => void | Promise<boolean>;
   onDiscard: () => void;
   canUndo: boolean;

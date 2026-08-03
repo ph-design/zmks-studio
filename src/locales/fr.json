@@ -440,7 +440,12 @@
     "layersUnit": "couches",
     "lockedPress": "Appuyez sur",
     "lockedToUnlock": "pour déverrouiller",
-    "lockedCustomHint": "Si vous avez changé le raccourci, utilisez le vôtre. Studio ne peut pas déverrouiller le clavier à votre place — c'est voulu."
+    "lockedCustomHint": "Si vous avez changé le raccourci, utilisez le vôtre. Studio ne peut pas déverrouiller le clavier à votre place — c'est voulu.",
+    "resetConfirm": "Cliquez à nouveau pour tout effacer",
+    "resetConfirmHint": "Votre keymap, vos combos et votre éclairage reviennent à l'état d'usine du firmware. Irréversible depuis Studio.",
+    "resetWorking": "Restauration…",
+    "resetWorkingHint": "Cela peut prendre quelques secondes — ne débranchez pas le clavier.",
+    "resetDone": "Réglages restaurés"
   },
   "combos": {
     "loading": "Chargement…",

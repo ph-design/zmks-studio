@@ -440,7 +440,12 @@
     "layersUnit": "layers",
     "lockedPress": "Press",
     "lockedToUnlock": "to unlock",
-    "lockedCustomHint": "If you changed the unlock shortcut, use your own instead. Studio can't unlock the keyboard for you — that's the point."
+    "lockedCustomHint": "If you changed the unlock shortcut, use your own instead. Studio can't unlock the keyboard for you — that's the point.",
+    "resetConfirm": "Click again to erase everything",
+    "resetConfirmHint": "Your keymap, combos and lighting all go back to how the firmware shipped. This can't be undone from Studio.",
+    "resetWorking": "Restoring…",
+    "resetWorkingHint": "This can take a few seconds — don't unplug the keyboard.",
+    "resetDone": "Settings restored"
   },
   "combos": {
     "loading": "Loading…",

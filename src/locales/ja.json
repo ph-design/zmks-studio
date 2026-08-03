@@ -440,7 +440,12 @@
     "layersUnit": "レイヤー",
     "lockedPress": "押してください:",
     "lockedToUnlock": "でロック解除",
-    "lockedCustomHint": "解除ショートカットを変更した場合はご自身の組み合わせを使ってください。Studio から解除することはできません（それが仕様です）。"
+    "lockedCustomHint": "解除ショートカットを変更した場合はご自身の組み合わせを使ってください。Studio から解除することはできません（それが仕様です）。",
+    "resetConfirm": "もう一度クリックすると全消去",
+    "resetConfirmHint": "キーマップ・コンボ・ライティングがすべてファームウェア出荷時の状態に戻ります。Studio では取り消せません。",
+    "resetWorking": "復元中…",
+    "resetWorkingHint": "数秒かかることがあります — キーボードを抜かないでください。",
+    "resetDone": "設定を復元しました"
   },
   "combos": {
     "loading": "読み込み中…",

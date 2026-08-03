@@ -13,6 +13,7 @@ import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
 import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
 import { Loading, rowIcon, Badge } from "./CarbonChrome";
 import { KeyboardCanvas } from "../keyboard/KeyboardCanvas";
+import { ResizableDrawer } from "./ResizableDrawer";
 
 interface LayersViewProps {
   model: ReturnType<typeof useKeyboardModel>;
@@ -176,16 +177,7 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
           )}
         </KeyboardCanvas>
 
-        <div
-          className="keymap-drawer"
-          style={{
-            flexShrink: 0,
-            borderTop: `1px solid ${th.border}`,
-            background: th.layer1,
-            display: "flex", flexDirection: "column",
-            minHeight: 0,
-          }}
-        >
+        <ResizableDrawer th={th} storageKey="zmk-studio-drawer-h-keymap">
           {/* Compact single-line header */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, height: 36, padding: "0 16px", borderBottom: `1px solid ${th.border}`, flexShrink: 0, minWidth: 0 }}>
             {model.selectedKeyPosition !== undefined ? (
@@ -222,7 +214,7 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
               </div>
             )}
           </div>
-        </div>
+        </ResizableDrawer>
       </div>
     </div>
   );

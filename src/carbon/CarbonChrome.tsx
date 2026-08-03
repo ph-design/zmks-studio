@@ -109,11 +109,12 @@ export function SegmentedControl({ th, opts, value, onChange }: {
  * Carbon caps this at five items; past that the labels stop fitting and a Select
  * is the right control instead.
  */
-export function ContentSwitcher<T extends string>({ th, opts, value, onChange, size = "md", label }: {
+export function ContentSwitcher<T extends string>({ th, opts, value, onChange, size = "sm", label }: {
   th: CarbonTheme;
   opts: { id: T; label: string }[];
   value: T;
   onChange: (v: T) => void;
+  /** Defaults to Carbon's `sm` — `md` reads oversized next to 14px labels. */
   size?: "sm" | "md" | "lg";
   label?: string;
 }) {
@@ -132,7 +133,7 @@ export function ContentSwitcher<T extends string>({ th, opts, value, onChange, s
         return (
           <button key={o.id} role="tab" aria-selected={selected} onClick={() => onChange(o.id)}
             style={{
-              flex: 1, minWidth: 0, height, padding: "0 14px", border: "none",
+              flex: 1, minWidth: 0, height, padding: "0 12px", border: "none",
               fontSize: 14, fontFamily: "var(--font-sans)", cursor: "pointer",
               whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
               background: selected ? th.textPrimary : th.fieldBg,

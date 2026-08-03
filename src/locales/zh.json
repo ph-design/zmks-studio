@@ -440,7 +440,12 @@
     "layersUnit": "图层",
     "lockedPress": "按",
     "lockedToUnlock": "解锁",
-    "lockedCustomHint": "如果你改过解锁组合，请用自己的那一组。Studio 无法替你解锁 —— 这正是它的设计意图。"
+    "lockedCustomHint": "如果你改过解锁组合，请用自己的那一组。Studio 无法替你解锁 —— 这正是它的设计意图。",
+    "resetConfirm": "再点一次，全部清除",
+    "resetConfirmHint": "键位、组合键和灯光都会回到固件出厂时的状态。此操作无法在 Studio 中撤销。",
+    "resetWorking": "正在恢复…",
+    "resetWorkingHint": "可能需要几秒钟 —— 请不要拔掉键盘。",
+    "resetDone": "已恢复出厂设置"
   },
   "combos": {
     "loading": "加载中…",
