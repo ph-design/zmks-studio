@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.4.0](https://github.com/ph-design/zmks-studio/compare/v0.3.0...v0.4.0) (2026-09-22)
+
+
+### Features
+
+* add IMU panel ([50ae195](https://github.com/ph-design/zmks-studio/commit/50ae195132464a3f13f4b289834be67a9ba21267))
+* guided unlock-shortcut change, full-width Device page ([d3ca757](https://github.com/ph-design/zmks-studio/commit/d3ca75707c873fb154d140efb968fc0862104fbd))
+* implement carry threshold draft functionality in MotionView ([fb04e7a](https://github.com/ph-design/zmks-studio/commit/fb04e7ad1cc0bd7c0544058124b6b96f0a0dad6a))
+* motion (IMU) panel, ES60 frame key, shared keyboard canvas ([3d8522a](https://github.com/ph-design/zmks-studio/commit/3d8522a4d692eb5c392da43963e436ace1710f7b))
+* motion (IMU) panel, ES60 frame key, shared keyboard canvas ([1c2f084](https://github.com/ph-design/zmks-studio/commit/1c2f0848efaed8ed37563a32d8b11710470b2f0e))
+* peak-hold meter, Carbon content switcher, and a rail clear-slot ([9d0d2f4](https://github.com/ph-design/zmks-studio/commit/9d0d2f489699d175f78936d77fc903a58662f2fe))
+* support adding an unlock combo, not just changing one ([a300615](https://github.com/ph-design/zmks-studio/commit/a300615165c93071f431d097fba8ebff225cd67d))
+* surface the unlock shortcut, split Device from Preferences ([63e5cdc](https://github.com/ph-design/zmks-studio/commit/63e5cdc2a8385fd8318b37e8d1cc2befa400632b))
+
+
+### Bug Fixes
+
+* five UI issues — drawer resize, reset confirmation, and no load-in fades ([b035090](https://github.com/ph-design/zmks-studio/commit/b035090d51b2266f99e6890a33050966d4aa67aa))
+* motion panel as a vertical settings list, and document the combo save gap ([0dc2ab3](https://github.com/ph-design/zmks-studio/commit/0dc2ab37614242ba58460986979826bfc12aa5fa))
+* probe ladder falls back to keys every platform delivers ([0fe4357](https://github.com/ph-design/zmks-studio/commit/0fe43573685167a3a9337bd13ddabbd3e6a97fc4))
+* retry armed the previous test key, so the test could never pass ([fe5c13d](https://github.com/ph-design/zmks-studio/commit/fe5c13d9a37ff9fa561666e5ab867092e7dbfef4))
+* start the probe ladder on a key that actually gets delivered ([709913a](https://github.com/ph-design/zmks-studio/commit/709913ab6021e3beab5e5113c28c344c5399f690))
+* stop losing the unlock combo, and rebuild the motion form on Carbon's grid ([2f293c8](https://github.com/ph-design/zmks-studio/commit/2f293c83bcd60d6cd4f0518459c61a01922b20c7))
+* the live unlock combo was winning the chord under test ([7406755](https://github.com/ph-design/zmks-studio/commit/7406755375fcac85996cb380c5e31709d2b9dcdc))
+* unlock probe inherited the wrong layer mask; flag the change as risky ([245c9ef](https://github.com/ph-design/zmks-studio/commit/245c9efaf28ac6ce2af27a6a56c92274182ccde1))
+
 ## [0.3.0](https://github.com/ph-design/zmks-studio/compare/v0.2.1...v0.3.0) (2026-07-27)
 
 
