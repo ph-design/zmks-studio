@@ -32,6 +32,7 @@ import { valueAfter } from "./misc/async";
 import { AboutModal } from "./AboutModal";
 import { LicenseNoticeModal } from "./misc/LicenseNoticeModal";
 import { CarbonShell } from "./carbon/CarbonShell";
+import { FactoryApp } from "./factory/FactoryApp";
 import { saveMotionState } from "./motion/useMotion";
 import { useCarbonTheme } from "./carbon/theme";
 
@@ -208,6 +209,30 @@ function App() {
   const [keyboardReady, setKeyboardReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const connectionAbortRef = useRef(connectionAbort);
+
+  /*
+   * Factory mode is a different application, not a section of this one: it needs
+   * to work before a connection exists (the board is still in its bootloader) and
+   * while the keyboard is locked, neither of which this shell can represent. The
+   * URL param is what a bench shortcut or a kiosk launcher uses; the stored flag
+   * keeps a bench PC in the flow across restarts, and the exit button clears it.
+   */
+  const [factoryMode, setFactoryMode] = useState<boolean>(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get("factory") === "1") return true;
+      return localStorage.getItem("zmk-studio-factory-mode") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("zmk-studio-factory-mode", factoryMode ? "1" : "0");
+    } catch {
+      // Private mode; not worth interrupting the bench over.
+    }
+  }, [factoryMode]);
 
   const [lockState, setLockState] = useState<LockState | undefined>(undefined);
   const [hasUnsavedLightingChanges, setHasUnsavedLightingChanges] = useState(false);
@@ -432,9 +457,15 @@ function App() {
     doDisconnect();
   }, [conn]);
 
-  // Give up if initialization stalls past 60s instead of spinning forever.
+  /*
+   * Give up if initialization stalls past 60s instead of spinning forever.
+   *
+   * Not in factory mode: readiness there is reported by the bench flow, never by
+   * CarbonShell's `onReady`, so this watchdog would tear down a perfectly good
+   * bench connection a minute into a run.
+   */
   useEffect(() => {
-    if (connectionPhase !== "initializing" || keyboardReady) {
+    if (factoryMode || connectionPhase !== "initializing" || keyboardReady) {
       return;
     }
 
@@ -444,7 +475,7 @@ function App() {
     }, 60000);
 
     return () => clearTimeout(timer);
-  }, [connectionPhase, keyboardReady, disconnect]);
+  }, [factoryMode, connectionPhase, keyboardReady, disconnect]);
 
   const onConnect = useCallback(
     (t: RpcTransport, meta?: { isWireless?: boolean }) => {
@@ -494,6 +525,29 @@ function App() {
     setConnectionPhase("idle");
   }, []);
 
+  /*
+   * The bench has exactly one keyboard plugged into it, so the modal's question
+   * ("which device?") has a fixed answer — attach to whatever USB serial device
+   * is present and let the flow retry until one appears.
+   */
+  const connectBenchDevice = useCallback(async (): Promise<boolean> => {
+    if (!window.__TAURI_INTERNALS__) {
+      return false;
+    }
+    try {
+      const devices = await serial_list_devices();
+      if (!devices || devices.length === 0) {
+        return false;
+      }
+      const transport = await tauri_serial_connect(devices[0]);
+      onConnect(transport, { isWireless: false });
+      return true;
+    } catch (e) {
+      console.error("Bench auto-connect failed", e);
+      return false;
+    }
+  }, [onConnect]);
+
   const connectModalOpen =
     !conn.conn ||
     connectionPhase !== "idle" ||
@@ -504,6 +558,15 @@ function App() {
       <ConnectionContext.Provider value={conn}>
         <LockStateContext.Provider value={lockState}>
           <UndoRedoContext.Provider value={doIt}>
+            {factoryMode ? (
+              <FactoryApp
+                carbon={carbon}
+                onAutoConnect={connectBenchDevice}
+                onDisconnect={disconnect}
+                onExit={() => setFactoryMode(false)}
+              />
+            ) : (
+              <>
             <ConnectModal
               open={connectModalOpen}
               transports={TRANSPORTS}
@@ -542,10 +605,13 @@ function App() {
                 onCombosChanged={markCombosChanged}
                 onShowAbout={() => setShowAbout(true)}
                 onShowLicense={() => setShowLicenseNotice(true)}
+                onEnterFactoryMode={() => setFactoryMode(true)}
               />
             ) : (
               // Carbon-toned backdrop behind the connect modal
               <div style={{ height: "100vh", width: "100vw", background: carbon.theme.bg }} />
+            )}
+              </>
             )}
           </UndoRedoContext.Provider>
         </LockStateContext.Provider>

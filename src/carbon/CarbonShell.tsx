@@ -53,6 +53,8 @@ export interface CarbonShellProps {
   onCombosChanged?: () => void;
   onShowAbout: () => void;
   onShowLicense: () => void;
+  /** Hand off to the pre-shipment test flow (Preferences → 工厂测试). */
+  onEnterFactoryMode: () => void;
 }
 
 export function CarbonShell(props: CarbonShellProps) {
@@ -351,7 +353,8 @@ export function CarbonShell(props: CarbonShellProps) {
                 lang={i18n.language} setLang={(l) => i18n.changeLanguage(l)}
                 defaultNav={defaultNav} setDefaultNav={setDefaultNav}
                 navOptions={NAV.map((n) => ({ id: n.id, label: n.label }))}
-                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense} />
+                onShowAbout={props.onShowAbout} onShowLicense={props.onShowLicense}
+                onEnterFactoryMode={props.onEnterFactoryMode} />
             ) : activeNav === "combos" ? (
               <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
                 <ComboPanel

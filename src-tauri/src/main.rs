@@ -6,10 +6,13 @@ use std::env;
 use futures::lock::Mutex;
 
 mod transport;
+mod factory;
 use transport::commands::{transport_close, transport_send_data, ActiveConnection};
 
 use transport::gatt::{gatt_connect, gatt_list_devices};
 use transport::serial::{serial_connect, serial_list_devices};
+
+use factory::{factory_flash_uf2, factory_list_firmware, factory_list_uf2_drives};
 
 fn main() {
     tauri::Builder::default()
@@ -24,6 +27,9 @@ fn main() {
             gatt_connect,
             serial_list_devices,
             serial_connect,
+            factory_list_uf2_drives,
+            factory_list_firmware,
+            factory_flash_uf2,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
