@@ -53,9 +53,9 @@ export function LightingView({ model, th, t }: LightingViewProps) {
   }
 
   return (
-    <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+    <div className="carbon-feature-page">
       {/* Left source rail */}
-      <aside style={{ width: 210, flexShrink: 0, display: "flex", flexDirection: "column", background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Lightbulb size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.lighting", "Lighting")}</span>
@@ -75,7 +75,7 @@ export function LightingView({ model, th, t }: LightingViewProps) {
       </aside>
 
       {/* Main: LED canvas + control drawer */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+      <div className="carbon-feature-content">
         <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderBottom: `1px solid ${th.border}`, background: th.layer1, overflowX: "auto" }} className="custom-scrollbar">
           <span style={{ fontSize: 12, color: th.textSecondary, marginRight: 6, flexShrink: 0 }}>{t("carbon.nav.layers", "Layers")}</span>
           {km.layers.map((l, idx) => {

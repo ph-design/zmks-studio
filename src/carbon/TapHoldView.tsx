@@ -82,11 +82,8 @@ export const TapHoldView = ({ behaviors, th, getConfig, applyConfig }: TapHoldVi
   }
 
   return (
-    <div className="flex min-h-0 h-full w-full">
-      <aside style={{
-        width: 240, flexShrink: 0, display: "flex", flexDirection: "column",
-        background: th.railBg, borderRight: `1px solid ${th.border}`,
-      }}>
+    <div className="carbon-feature-page">
+      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{
           padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`,
           display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
@@ -146,19 +143,17 @@ export const TapHoldView = ({ behaviors, th, getConfig, applyConfig }: TapHoldVi
       </aside>
 
       {/* ── Right content — editor ── */}
-      <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar">
-        <div className="max-w-2xl px-6 py-4 flex flex-col">
-          {active && (
-            <TapHoldEditor
-              key={active.id}
-              behavior={active}
-              isBuiltin={isBuiltinHoldTap(active)}
-              presets={userPresets}
-              getConfig={getConfig}
-              applyConfig={applyConfig}
-            />
-          )}
-        </div>
+      <div className="carbon-editor-scroll custom-scrollbar">
+        {active && (
+          <TapHoldEditor
+            key={active.id}
+            behavior={active}
+            isBuiltin={isBuiltinHoldTap(active)}
+            presets={userPresets}
+            getConfig={getConfig}
+            applyConfig={applyConfig}
+          />
+        )}
       </div>
     </div>
   );
@@ -245,10 +240,13 @@ const TapHoldEditor = ({
   };
 
   return (
-    <div className="flex flex-col gap-1">
-      <Section title={behavior.displayName} desc={isBuiltin ? t("holdTap.scope.builtin", "Firmware-wide default") : t("holdTap.scope.userPreset", "User-defined preset")}>
-        <HoldTapConfigFields cfg={cfg} onChange={update} />
-      </Section>
+    <div className="carbon-editor-grid">
+      <div className="carbon-editor-main">
+        <Section title={behavior.displayName} desc={isBuiltin ? t("holdTap.scope.builtin", "Firmware-wide default") : t("holdTap.scope.userPreset", "User-defined preset")}>
+          <HoldTapConfigFields cfg={cfg} onChange={update} />
+        </Section>
+      </div>
+      <div className="carbon-editor-aside">
 
       {isBuiltin && presets.length > 0 && (
         <Section title={t("holdTap.applyTitle", "Apply a preset")}
@@ -306,6 +304,7 @@ const TapHoldEditor = ({
         </div>
       </div>
       {error ? <div className="text-sm text-error pt-2">{error}</div> : null}
+      </div>
     </div>
   );
 };

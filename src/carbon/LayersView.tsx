@@ -70,9 +70,9 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
   );
 
   return (
-    <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+    <div className="carbon-feature-page">
       {/* Secondary sidebar: layer list */}
-      <aside style={{ width: 210, flexShrink: 0, display: "flex", flexDirection: "column", background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Layers size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.layers", "Layers")}</span>
@@ -152,7 +152,7 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
       </aside>
 
       {/* Canvas + binding drawer */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+      <div className="carbon-feature-content">
         {/* Layout picker strip (only when multiple layouts) */}
         {model.layouts.length > 1 && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 24px", borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>

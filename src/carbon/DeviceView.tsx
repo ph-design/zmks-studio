@@ -93,7 +93,7 @@ export function DeviceView({
   }
 
   return (
-    <div style={{ flex: 1, overflow: "auto", padding: 24 }} className="custom-scrollbar">
+    <div className="carbon-editor-scroll custom-scrollbar">
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
         <div style={{ width: 48, height: 48, background: th.layer2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <Cpu size={24} style={{ color: th.interactive }} />
@@ -107,7 +107,7 @@ export function DeviceView({
         </div>
       </div>
 
-      <div style={{ maxWidth: 720 }}>
+      <div style={{ width: "100%" }}>
         <div style={{ border: `1px solid ${th.border}` }}>
           {rows.map(([k, v], i) => (
             <div key={k} style={{ display: "flex", padding: "10px 16px", borderBottom: i < rows.length - 1 ? `1px solid ${th.border}` : "none", background: i % 2 === 0 ? th.layer1 : th.bg }}>

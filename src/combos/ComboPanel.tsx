@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link2, Eraser } from "lucide-react";
 import type { ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
@@ -142,9 +142,9 @@ export const ComboPanel = ({ combos, reservedCount = 0, loaded, behaviors, behav
   }
 
   return (
-    <div className="flex min-h-0 h-full w-full">
+    <div className="carbon-feature-page">
       {/* Left rail — combo slots */}
-      <aside style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Link2 size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.combos", "Combos")}</span>
@@ -203,25 +203,23 @@ export const ComboPanel = ({ combos, reservedCount = 0, loaded, behaviors, behav
       </aside>
 
       {/* Right content — editor */}
-      <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar">
-        <div className="max-w-2xl px-6 py-4 flex flex-col">
-          {cfg && active && (
-            <ComboEditor
-              key={active.index}
-              cfg={cfg}
-              behaviors={behaviors}
-              layers={layers}
-              layout={layout}
-              dirty={dirty}
-              saving={saving}
-              error={error}
-              onUpdate={update}
-              onSave={save}
-              onCancel={() => setDraft(null)}
-              onEditBehavior={() => setEditingBehavior(true)}
-            />
-          )}
-        </div>
+      <div className="carbon-editor-scroll custom-scrollbar">
+        {cfg && active && (
+          <ComboEditor
+            key={active.index}
+            cfg={cfg}
+            behaviors={behaviors}
+            layers={layers}
+            layout={layout}
+            dirty={dirty}
+            saving={saving}
+            error={error}
+            onUpdate={update}
+            onSave={save}
+            onCancel={() => setDraft(null)}
+            onEditBehavior={() => setEditingBehavior(true)}
+          />
+        )}
       </div>
     </div>
   );
@@ -271,6 +269,7 @@ const ComboEditor = ({
   onEditBehavior: () => void;
 }) => {
   const { t } = useTranslation();
+  const triggerRef = useRef<HTMLDivElement>(null);
 
   const editablePositions = cfg.editableKeyPositions && !!layout;
   const editableBehavior = cfg.editableBehavior;
@@ -288,14 +287,15 @@ const ComboEditor = ({
   };
 
   return (
-    <div className="flex flex-col min-w-0">
+    <div className="carbon-editor-grid">
+      <div className="carbon-editor-main">
       <Section
         title={t("combos.section.trigger", "Trigger")}
         desc={editablePositions ? t("combos.triggerHint", "Click keys on the layout to add or remove them from this combo.") : undefined}
       >
         <div className="flex flex-col gap-3">
           {editablePositions && layout ? (
-            <div className="relative w-full" style={{ maxWidth: 560 }}>
+            <div ref={triggerRef} className="relative w-full flex items-center justify-center overflow-hidden" style={{ height: "clamp(220px, 32vw, 420px)" }}>
               <PhysicalLayout
                 positions={layout.keys.map((k, i) => ({
                   id: `key-${i}`,
@@ -311,6 +311,8 @@ const ComboEditor = ({
                   ry: (k.ry || 0) / 100.0,
                 }))}
                 oneU={34}
+                zoom="auto"
+                fitContainerRef={triggerRef}
                 selectedPositions={new Set(cfg.keyPositions)}
                 onPositionClicked={(pos) => togglePosition(pos)}
               />
@@ -368,7 +370,9 @@ const ComboEditor = ({
           )}
         </div>
       </Section>
+      </div>
 
+      <div className="carbon-editor-aside">
       <Section title={t("combos.section.timing", "Timing & Behavior")}>
         <div className="flex flex-col gap-4">
           <MsField
@@ -415,6 +419,7 @@ const ComboEditor = ({
         </div>
       </div>
       {error ? <div className="text-sm text-error pt-2">{error}</div> : null}
+      </div>
     </div>
   );
 };

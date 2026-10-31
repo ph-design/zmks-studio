@@ -179,6 +179,8 @@
     "effect": "Effect",
     "speed": "Speed",
     "color": "Color",
+    "transparent": "Transparent",
+    "transparentHint": "Show the underlying RGB effect",
     "notSupported": "Lighting Control Not Available",
     "notSupportedDesc": "Lighting control is not an official ZMK feature. To use it, you need to build your firmware based on our custom branch and add the RGB-related devicetree overlay configuration.",
     "turnOnHint": "Turn on a light source to adjust settings",
@@ -191,7 +193,9 @@
       "selectKey": "Click keys or drag to select, then edit color below",
       "editKey": "Key {{key}}",
       "editKeys": "{{count}} keys selected",
-      "clear": "Clear"
+      "clear": "Clear",
+      "transparent": "Transparent",
+      "transparentHint": "Show the underlying RGB effect"
     },
     "capsLock": {
       "title": "CapsLock Indicator",

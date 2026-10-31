@@ -179,6 +179,8 @@
     "effect": "エフェクト",
     "speed": "速度",
     "color": "カラー",
+    "transparent": "透明",
+    "transparentHint": "下地の RGB エフェクトを表示",
     "notSupported": "ライティング制御は利用できません",
     "notSupportedDesc": "ライティング制御は ZMK の公式機能ではありません。使用するには、当方のカスタムブランチをベースにファームウェアをビルドし、RGB 関連の devicetree オーバーレイ設定を追加する必要があります。",
     "turnOnHint": "設定を調整するには光源をオンにしてください",
@@ -191,7 +193,9 @@
       "selectKey": "キーをクリックまたはドラッグして選択し、下でカラーを編集",
       "editKey": "キー {{key}}",
       "editKeys": "{{count}} 個のキーを選択中",
-      "clear": "クリア"
+      "clear": "クリア",
+      "transparent": "透明",
+      "transparentHint": "下地の RGB エフェクトを表示"
     },
     "capsLock": {
       "title": "CapsLock 表示灯",

@@ -34,7 +34,7 @@ const LANGUAGES = [
 
 export function PreferencesView({ th, t, setting, setSetting, accent, setAccent, lang, setLang, defaultNav, setDefaultNav, navOptions, onShowAbout, onShowLicense }: PreferencesViewProps) {
   return (
-    <div style={{ flex: 1, overflow: "auto", padding: 24, maxWidth: 560 }} className="custom-scrollbar">
+    <div className="carbon-editor-scroll custom-scrollbar">
       <h2 style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary, marginBottom: 20 }}>{t("carbon.nav.preferences", "Preferences")}</h2>
 
       <SettingsBlock th={th} label={t("carbon.theme", "Theme")}>

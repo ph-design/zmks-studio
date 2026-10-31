@@ -87,9 +87,9 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
   }
 
   return (
-    <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+    <div className="carbon-feature-page">
       {/* Capability rail */}
-      <aside style={{ width: 210, flexShrink: 0, display: "flex", flexDirection: "column", background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Waves size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.motion", "Motion")}</span>
@@ -114,7 +114,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
       </aside>
 
       {/* Live canvas + config drawer */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+      <div className="carbon-feature-content">
         {/* The meter gets full width and stays pinned while settings scroll. */}
         <div style={{ flexShrink: 0, padding: "14px 24px 14px" }}>
           {current !== "tap" && (
@@ -484,10 +484,9 @@ function TapTestPanel({ th, t, live, tapConfig }: {
 // One column: label → helper → control. Values sit on the label line so every
 // number right-aligns to one edge.
 const FIELD_H = 40; // Carbon field height, size md
-const LIST_MAX_W = 680; // a slider stops being readable much past this
 
 function SettingsList({ children }: { children: React.ReactNode }) {
-  return <div style={{ maxWidth: LIST_MAX_W }}>{children}</div>;
+  return <div className="carbon-settings-list">{children}</div>;
 }
 
 function Field({ th, label, tag, value, hint, height = FIELD_H, children }: {
@@ -527,7 +526,7 @@ function Field({ th, label, tag, value, hint, height = FIELD_H, children }: {
 // Carbon section heading; the entries' rules carry the structure.
 function GroupHeading({ th, children }: { th: CarbonTheme; children: React.ReactNode }) {
   return (
-    <div style={{ paddingTop: 20, paddingBottom: 2 }}>
+    <div className="carbon-settings-group" style={{ paddingTop: 20, paddingBottom: 2 }}>
       <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{children}</span>
     </div>
   );

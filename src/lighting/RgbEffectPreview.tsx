@@ -105,29 +105,29 @@ export default function RgbEffectPreview({
       const buf = frameBufRef.current;
       if (engine && st && buf.length > 0) {
         const dt = Math.min(100, now - last);
+        const brightness = st.on ? (st.color?.b ?? 0) / 100 : 0;
         const hsv = {
           h: st.color?.h ?? 0,
           s: st.color?.s ?? 0,
-          b: st.on ? (st.color?.b ?? 0) : 0,
+          b: 100,
         };
         engine.advance(st.effect, st.speed, dt);
         engine.draw(st.effect, hsv, st.speed, buf);
         const overlay = overlayRef.current;
         if (overlay && st.on) {
-          const brt = (st.color?.b ?? 0) / 100;
           for (const [pos, color] of overlay) {
             if (pos * 3 + 2 >= buf.length) continue;
-            buf[pos * 3] = Math.pow(((color >> 16) & 0xff) / 255 * brt, 2.2);
-            buf[pos * 3 + 1] = Math.pow(((color >> 8) & 0xff) / 255 * brt, 2.2);
-            buf[pos * 3 + 2] = Math.pow((color & 0xff) / 255 * brt, 2.2);
+            buf[pos * 3] = Math.pow(((color >> 16) & 0xff) / 255, 2.2);
+            buf[pos * 3 + 1] = Math.pow(((color >> 8) & 0xff) / 255, 2.2);
+            buf[pos * 3 + 2] = Math.pow((color & 0xff) / 255, 2.2);
           }
         }
         for (let i = 0; i < buf.length / 3; i++) {
           const div = colorDivsRef.current[i];
           if (!div) continue;
-          const r = Math.round(buf[i * 3] * 255);
-          const g = Math.round(buf[i * 3 + 1] * 255);
-          const b = Math.round(buf[i * 3 + 2] * 255);
+          const r = Math.round(buf[i * 3] * brightness * 255);
+          const g = Math.round(buf[i * 3 + 1] * brightness * 255);
+          const b = Math.round(buf[i * 3 + 2] * brightness * 255);
           div.style.backgroundColor = `rgb(${r},${g},${b})`;
         }
       }

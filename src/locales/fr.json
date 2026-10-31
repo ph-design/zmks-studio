@@ -179,6 +179,8 @@
     "effect": "Effet",
     "speed": "Vitesse",
     "color": "Couleur",
+    "transparent": "Transparent",
+    "transparentHint": "Afficher l’effet RGB sous-jacent",
     "notSupported": "Contrôle de l'éclairage indisponible",
     "notSupportedDesc": "Le contrôle de l'éclairage n'est pas une fonctionnalité officielle de ZMK. Pour l'utiliser, vous devez compiler votre firmware à partir de notre branche personnalisée et ajouter la configuration overlay devicetree liée au RGB.",
     "turnOnHint": "Activez une source lumineuse pour régler les paramètres",
@@ -191,7 +193,9 @@
       "selectKey": "Cliquez ou glissez pour sélectionner des touches, puis modifiez la couleur ci-dessous",
       "editKey": "Touche {{key}}",
       "editKeys": "{{count}} touches sélectionnées",
-      "clear": "Effacer"
+      "clear": "Effacer",
+      "transparent": "Transparent",
+      "transparentHint": "Afficher l’effet RGB sous-jacent"
     },
     "capsLock": {
       "title": "Indicateur Verr. Maj",

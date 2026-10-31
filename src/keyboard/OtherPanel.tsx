@@ -54,9 +54,9 @@ export const OtherPanel = ({ behaviors, th, getConfig, applyConfig }: OtherPanel
   }
 
   return (
-    <div className="flex min-h-0 h-full w-full">
+    <div className="carbon-feature-page">
       {/* Left secondary sidebar — same style as the Lighting source rail. */}
-      <aside style={{ width: 210, flexShrink: 0, display: "flex", flexDirection: "column", background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Zap size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.behaviors", "Behaviors")}</span>
@@ -71,8 +71,8 @@ export const OtherPanel = ({ behaviors, th, getConfig, applyConfig }: OtherPanel
       </aside>
 
       {/* Right content — settings-style titled sections */}
-      <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar">
-        <div className="max-w-2xl px-6 py-4 flex flex-col">
+      <div className="carbon-editor-scroll custom-scrollbar">
+        <div className="w-full flex flex-col">
           {builtinModTap && (
             <Section title={BUILTIN_MOD_TAP} desc={t("holdTap.scope.builtin", "Firmware-wide default")}>
               <TapHoldEditor

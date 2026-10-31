@@ -577,7 +577,7 @@ class DemoFirmware {
         return respond({ lighting: { getCapsLockIndicator: { enabled: false, offColor: 0, onColor: 0, keyPosition: 0, layerId: 0 } } });
       }
       if (l.getConnectionIndicator) {
-        return respond({ lighting: { getConnectionIndicator: { enabled: false, usbColor: 0, btColor: 0, keyPosition: 0, layerId: 0 } } });
+        return respond({ lighting: { getConnectionIndicator: { enabled: false, usbColor: 0, btColor: 0, keyPosition: 0xff, layerId: 0 } } });
       }
       if (l.setRgbUnderglowState) return respond({ lighting: { setRgbUnderglowState: true } });
       if (l.setBacklightState) return respond({ lighting: { setBacklightState: true } });

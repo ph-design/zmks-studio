@@ -179,6 +179,8 @@
     "effect": "效果",
     "speed": "速度",
     "color": "颜色",
+    "transparent": "透明",
+    "transparentHint": "显示底层 RGB 灯效",
     "notSupported": "灯光控制不可用",
     "notSupportedDesc": "灯光控制并非 ZMK 官方功能。如需使用，请基于我们的自定义分支构建固件，并编写 RGB 相关的 devicetree (DT) 配置。",
     "turnOnHint": "开启灯光后可调整参数",
@@ -191,7 +193,9 @@
       "selectKey": "点击按键或拖动框选，然后在下方编辑颜色",
       "editKey": "按键 {{key}}",
       "editKeys": "已选 {{count}} 个按键",
-      "clear": "清除"
+      "clear": "清除",
+      "transparent": "透明",
+      "transparentHint": "显示底层 RGB 灯效"
     },
     "capsLock": {
       "title": "大写指示灯",

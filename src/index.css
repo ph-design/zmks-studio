@@ -374,3 +374,90 @@ html.panel-resizing {
 html.panel-resizing .keyboard-scale {
   transition: none !important;
 }
+
+/* Shared Carbon page grid: a responsive secondary rail plus a fluid content area. */
+.carbon-feature-page {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.carbon-feature-rail {
+  width: 224px;
+  flex: 0 0 224px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.carbon-feature-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.carbon-editor-scroll {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 24px;
+}
+.carbon-editor-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.carbon-editor-main,
+.carbon-editor-aside {
+  grid-column: span 12;
+  min-width: 0;
+}
+.carbon-settings-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 24px;
+}
+.carbon-settings-group {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1024px) {
+  .carbon-editor-main {
+    grid-column: span 8;
+  }
+  .carbon-editor-aside {
+    grid-column: span 4;
+  }
+}
+
+@media (min-width: 1280px) {
+  .carbon-settings-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1279px) {
+  .carbon-feature-rail {
+    width: 192px;
+    flex-basis: 192px;
+  }
+  .carbon-editor-scroll {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 767px) {
+  .carbon-feature-rail {
+    width: 160px;
+    flex-basis: 160px;
+  }
+  .carbon-editor-scroll {
+    padding: 12px;
+  }
+  .carbon-editor-grid {
+    gap: 12px;
+  }
+}
