@@ -301,7 +301,7 @@ const ComboEditor = ({
                   id: `key-${i}`,
                   // Position number is the key's only content, so it renders
                   // centered at a readable size instead of the tiny header style.
-                  children: <span className="text-[13px] leading-none">{i}</span>,
+                  children: <span className="text-[11px] leading-none">{i}</span>,
                   x: k.x / 100.0,
                   y: k.y / 100.0,
                   width: k.width / 100,

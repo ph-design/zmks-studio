@@ -3,6 +3,7 @@ import { Request, Response, RequestResponse } from "@zmkfirmware/zmk-studio-ts-c
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import { SetComboErrorCode, type ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
 import type { Layer } from "@zmkfirmware/zmk-studio-ts-client/keymap";
+import { SwitchResult, Transport, type BleProfile, type State } from "@zmkfirmware/zmk-studio-ts-client/connection";
 import { setDemoMotionEnabled } from "./motionBackend";
 import { setDemoKeyMeta } from "./demoKeyMeta";
 import { hid_usage_from_page_and_id } from "../hid-usages";
@@ -360,6 +361,20 @@ class DemoFirmware {
   unsaved = false;
   features: DemoFeatures;
 
+  // Link state for the Connection panel: one tri-mode keyboard, USB plugged in,
+  // slot 1 bonded, 2.4G unpaired until the user runs the pairing flow.
+  private bootedAt = Date.now();
+  private transport = Transport.ZMK_CONNECTION_TRANSPORT_USB;
+  private activeProfile = 0;
+  private profiles: BleProfile[] = [
+    { index: 0, open: false, connected: false, active: true, address: new Uint8Array([0x11, 0x22, 0x33, 0x44, 0x55, 0x66]), addressType: 0 },
+    { index: 1, open: true, connected: false, active: false, address: new Uint8Array(0), addressType: 0 },
+    { index: 2, open: true, connected: false, active: false, address: new Uint8Array(0), addressType: 0 },
+  ];
+  private pairedKey?: Uint8Array;
+  private rfAddr = new Uint8Array(5);
+  private rfChannel = 0;
+
   constructor(features: DemoFeatures) {
     this.features = features;
     this.combos = buildCombos(features.unlockCombo);
@@ -418,6 +433,15 @@ class DemoFirmware {
       }
       if (k.getPhysicalLayouts) {
         return respond({ keymap: { getPhysicalLayouts: { activeLayoutIndex: 0, layouts: [{ name: "Demo 60%", keys: this.layoutKeys() }] } } });
+      }
+      if (k.setActivePhysicalLayout !== undefined) {
+        return respond({
+          keymap: {
+            setActivePhysicalLayout: {
+              ok: { layers: this.layers, availableLayers: this.availableLayers, maxLayerNameLength: 16 },
+            },
+          },
+        });
       }
       if (k.checkUnsavedChanges) {
         return respond({ keymap: { checkUnsavedChanges: this.unsaved } });
@@ -590,8 +614,194 @@ class DemoFirmware {
       return { requestResponse: { requestId: r, meta: { noResponse: true } } };
     }
 
+    // Device info, link state and 2.4G pairing, so both panels work without hardware.
+    if (req.sysinfo) {
+      const s = req.sysinfo;
+      const uptime = Math.floor((Date.now() - this.bootedAt) / 1000);
+      if (s.getIdentity) {
+        return respond({
+          sysinfo: {
+            identity: {
+              name: "Demo Keyboard",
+              model: "PH60-SC_V2_EVO",
+              manufacturer: "Team PHDesign",
+              family: "PH60",
+              serialNumber: new Uint8Array([0x7b, 0x81, 0xb1, 0xb3, 0x37, 0x52, 0xf9, 0x9c, 0xc6]),
+            },
+          },
+        });
+      }
+      if (s.getFirmware) {
+        return respond({
+          sysinfo: {
+            firmware: {
+              zmkVersion: "v0.3.0-lts",
+              zephyrVersion: "3.5.0",
+              buildDate: "2026-11-01",
+              buildTime: "02:44:11",
+              gitHash: "ea262b6",
+              board: "ph_lite",
+              studioProtocol: "0.3",
+              imageSizeKb: 244,
+              ramUsedKb: 95,
+            },
+          },
+        });
+      }
+      if (s.getHardware) {
+        return respond({
+          sysinfo: {
+            hardware: {
+              mcu: "nRF52840",
+              flashKb: 1024,
+              ramKb: 256,
+              keyCount: KEY_COUNT,
+              layerCount: this.layers.length,
+              layoutCount: 1,
+              ledCount: KEY_COUNT,
+              resetCauseRaw: 0x4,
+              resetCause: "软件复位",
+              hasRgb: true,
+              hasBacklight: false,
+              hasImu: this.features.motion,
+              hasDisplay: false,
+              hasSplit: false,
+              hasPointing: true,
+              hasBle: true,
+              hasUsb: true,
+              has2g4: true,
+            },
+          },
+        });
+      }
+      if (s.getRuntime) {
+        return respond({
+          sysinfo: {
+            runtime: {
+              uptimeS: uptime,
+              batteryPercent: 76,
+              batteryMv: 3985,
+              charging: this.connState().usbAttached,
+              activeLayer: 0,
+              highestLayer: 0,
+              usbPresent: this.connState().usbAttached,
+              hidReady: true,
+              endpoint: "USB",
+              bleProfile: 0,
+              bleConnected: false,
+              idleState: 0,
+              rgbEnabled: true,
+              vddhMv: this.connState().usbAttached ? 5000 : 0,
+              twoG4Paired: true,
+            },
+          },
+        });
+      }
+      if (s.getDiagnostics) {
+        return respond({
+          sysinfo: {
+            diagnostics: { rpcStackUsedPct: 34, workqStackUsedPct: 41, heapFree: 12288, settingsSavePending: 0, twoG4TxTotal: 0, twoG4TxFail: 0, studioRpcDropped: 0 },
+          },
+        });
+      }
+    }
+
+    if (req.connection) {
+      const c = req.connection;
+      if (c.getState) return respond({ connection: { getState: this.connState() } });
+      if (c.selectTransport) {
+        // Loopback link: a switch cannot drop the RPC transport here, so report success.
+        this.transport = c.selectTransport.transport ?? this.transport;
+        return respond({ connection: { selectTransport: { result: SwitchResult.ZMK_CONNECTION_SWITCH_RESULT_OK, state: this.connState() } } });
+      }
+      if (c.selectBleProfile) {
+        this.activeProfile = c.selectBleProfile.index ?? this.activeProfile;
+        return respond({ connection: { selectBleProfile: this.connState() } });
+      }
+      if (c.unpairBleProfile) {
+        const i = c.unpairBleProfile.index ?? 0;
+        this.profiles = this.profiles.map((p) =>
+          p.index === i ? { index: i, open: true, connected: false, active: p.active, address: new Uint8Array(0), addressType: 0 } : p
+        );
+        return respond({ connection: { unpairBleProfile: this.connState() } });
+      }
+      if (c.unpairAllBle) {
+        this.profiles = this.profiles.map((p) => ({
+          index: p.index, open: true, connected: false, active: p.active, address: new Uint8Array(0), addressType: 0,
+        }));
+        return respond({ connection: { unpairAllBle: this.connState() } });
+      }
+      if (c.toggleTransport) {
+        return respond({ connection: { toggleTransport: { result: SwitchResult.ZMK_CONNECTION_SWITCH_RESULT_OK, state: this.connState() } } });
+      }
+    }
+
+    if (req.pairing) {
+      const p = req.pairing;
+      if (p.getPairState) {
+        return respond({
+          pairing: {
+            getPairState: {
+              usesFactoryKey: !this.pairedKey,
+              keyId: this.pairedKey ? 0x1a2b3c4d : 0x00000000,
+              addrPaired: !!this.pairedKey,
+              rfAddr: this.rfAddr,
+              rfChannel: this.rfChannel,
+            },
+          },
+        });
+      }
+      if (p.generateAndPair) {
+        // Deterministic bytes so the UI/validation table is stable across runs.
+        this.pairedKey = new Uint8Array(16).map((_, i) => (0xc0 + i) & 0xff);
+        this.rfAddr = new Uint8Array([0x6d, 0x61, 0x64, 0x65, 0x1f]);
+        this.rfChannel = 42;
+        return respond({
+          pairing: {
+            generateAndPair: {
+              keyId: 0x1a2b3c4d,
+              key: this.pairedKey,
+              rfAddr: this.rfAddr,
+              rfChannel: this.rfChannel,
+            },
+          },
+        });
+      }
+      if (p.clearPairing) {
+        this.pairedKey = undefined;
+        this.rfAddr = new Uint8Array(5);
+        this.rfChannel = 0;
+        return respond({ pairing: { clearPairing: {} } });
+      }
+    }
+
     // Unknown / unsupported request: no_response meta so call_rpc rejects cleanly.
     return { requestResponse: { requestId: r, meta: { noResponse: true } } };
+  }
+
+  // One plausible tri-mode link: USB plugged in, three BLE slots, one bonded.
+  private connState(): State {
+    return {
+      supportsUsb: true,
+      supportsBle: true,
+      supports2g4: true,
+      activeTransport: this.transport,
+      endpoint: this.transport === Transport.ZMK_CONNECTION_TRANSPORT_USB ? "USB"
+        : this.transport === Transport.ZMK_CONNECTION_TRANSPORT_2G4 ? "2.4G" : `BLE:${this.activeProfile}`,
+      usbAttached: true,
+      usbHidReady: true,
+      bleActiveProfile: this.activeProfile,
+      bleProfileCount: this.profiles.length,
+      bleProfiles: this.profiles,
+      twoG4Ready: this.transport === Transport.ZMK_CONNECTION_TRANSPORT_2G4,
+      twoG4AddressPaired: !!this.pairedKey,
+      twoG4KeyPaired: !!this.pairedKey,
+      twoG4Channel: this.rfChannel,
+      twoG4Address: this.rfAddr,
+      preferredWireless2g4: false,
+      radioSwitching: false,
+      bleAdvertising: false,
+    };
   }
 }
 

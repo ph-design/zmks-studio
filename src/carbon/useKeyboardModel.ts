@@ -576,7 +576,7 @@ export function useKeyboardModel({
             return;
           }
 
-          let resp = await call_rpc(conn.conn, {
+          const resp = await call_rpc(conn.conn, {
             keymap: {
               setLayerBinding: { layerId, keyPosition, binding: oldBinding },
             },
@@ -618,7 +618,7 @@ export function useKeyboardModel({
           return;
         }
 
-        let resp = await call_rpc(conn.conn, {
+        const resp = await call_rpc(conn.conn, {
           keymap: { moveLayer: { startIndex, destIndex } },
         });
 

@@ -52,6 +52,8 @@ export function LightingView({ model, th, t }: LightingViewProps) {
     );
   }
 
+  const previewScale = model.keymapScale === "auto" ? 0.8 : model.keymapScale;
+
   return (
     <div className="carbon-feature-page">
       {/* Left source rail */}
@@ -88,7 +90,7 @@ export function LightingView({ model, th, t }: LightingViewProps) {
             );
           })}
         </div>
-        <KeyboardCanvas th={th} t={t} scale={model.keymapScale} setScale={model.setKeymapScale}>
+        <KeyboardCanvas th={th} t={t} scale={previewScale} setScale={model.setKeymapScale}>
           {(fitContainerRef) =>
             currentSource === "rgb" && model.rgbState ? (
               <RgbEffectPreview
@@ -96,7 +98,7 @@ export function LightingView({ model, th, t }: LightingViewProps) {
                 layout={model.layouts![model.selectedPhysicalLayoutIndex]}
                 keymap={km}
                 rgbState={model.rgbState}
-                scale={model.keymapScale}
+                scale={previewScale}
                 ledData={model.ledData}
                 selectedLayerIndex={model.selectedLayerIndex}
                 fitContainerRef={fitContainerRef}
@@ -105,7 +107,7 @@ export function LightingView({ model, th, t }: LightingViewProps) {
               <LayerLedMap
                 keymap={km}
                 layout={model.layouts![model.selectedPhysicalLayoutIndex]}
-                scale={model.keymapScale}
+                scale={previewScale}
                 selectedLayerIndex={model.selectedLayerIndex}
                 ledData={model.ledData}
                 selectedPositions={model.selectedLedPositions}

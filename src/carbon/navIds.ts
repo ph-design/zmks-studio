@@ -15,10 +15,10 @@ export type NavId =
   | "lighting"
   | "combos"
   | "motion"
-  | "preferences";
+  | "preferences"
+  | "connection";
 
-/** Sections that exist on every device, so a stored default is always valid. */
-export const ALWAYS_AVAILABLE_NAV: NavId[] = ["device", "layers", "preferences"];
+export const ALWAYS_AVAILABLE_NAV: NavId[] = ["device", "layers", "preferences", "connection"];
 
 export const FALLBACK_NAV: NavId = "layers";
 
@@ -29,7 +29,7 @@ const LEGACY_NAV_IDS: Record<string, NavId> = {
 };
 
 const KNOWN_NAV_IDS: NavId[] = [
-  "device", "layers", "behaviors", "lighting", "combos", "motion", "preferences",
+  "device", "layers", "behaviors", "lighting", "combos", "motion", "preferences", "connection",
 ];
 
 /**

@@ -11,7 +11,7 @@ import { useLocalStorageState } from "../misc/useLocalStorageState";
 import { Keymap as KeymapComp } from "../keyboard/Keymap";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
 import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
-import { Loading, rowIcon, Badge } from "./CarbonChrome";
+import { Loading, Badge } from "./CarbonChrome";
 import { KeyboardCanvas } from "../keyboard/KeyboardCanvas";
 import { ResizableDrawer } from "./ResizableDrawer";
 
@@ -109,12 +109,12 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
                   </button>
                 )}
                 {editing ? (
-                  <button title={t("carbon.rename", "Rename")} onClick={() => { model.changeLayerName(l.id, l.name || "", editName); setEditIdx(null); }} style={rowIcon(th)}><Check size={14} /></button>
+                  <button title={t("carbon.rename", "Rename")} onClick={() => { model.changeLayerName(l.id, l.name || "", editName); setEditIdx(null); }} className="flex h-[26px] w-[26px] items-center justify-center text-icon"><Check size={14} /></button>
                 ) : (
                   <>
                     {locked && <Lock size={11} style={{ color: th.textDisabled, flexShrink: 0 }} />}
                     {/* Only rename on the row; copy/lock/delete live at the bottom */}
-                    <button title={t("carbon.rename", "Rename")} onClick={() => { setEditIdx(idx); setEditName(l.name || ""); }} style={rowIcon(th)}><Pencil size={13} /></button>
+                    <button title={t("carbon.rename", "Rename")} onClick={() => { setEditIdx(idx); setEditName(l.name || ""); }} className="flex h-[26px] w-[26px] items-center justify-center text-icon"><Pencil size={13} /></button>
                   </>
                 )}
                 {duping && model.duplicateProgress && (

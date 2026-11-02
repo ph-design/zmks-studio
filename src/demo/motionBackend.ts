@@ -19,6 +19,7 @@ const CAPABILITIES: MotionCapabilities = {
   supportsDoubleTap: true,
   supportsCarry: true,
   supportsStillWake: true,
+  supportsSleepWake: true,
   thresholdMax: 127,
 };
 
