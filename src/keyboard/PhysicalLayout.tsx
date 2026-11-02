@@ -274,6 +274,7 @@ export const PhysicalLayout = ({
       style={{
         height: bottomMost * oneU + "px",
         width: rightMost * oneU + "px",
+        flexShrink: 0,
         transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
         transformOrigin: "center center",
         transition: animateScale && !panning ? "transform 240ms ease" : "none",

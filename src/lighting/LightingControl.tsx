@@ -27,6 +27,9 @@ import HsbColorPicker, {
   rgbToHsb,
   hsbToRgb,
 } from "./HsbColorPicker";
+import { encodeRgbOverride, isRgbOverrideTransparent } from "./rgbOverride";
+import TransparentColorPicker from "./TransparentColorPicker";
+import { hasIndicatorPosition } from "./indicatorPosition";
 
 export type LightSource = "rgb" | "backlight" | "capslock" | "connection" | "layerLed";
 
@@ -40,7 +43,7 @@ export interface LightingControlProps {
   ledData?: GetLayerLedColorsResponse | null;
   selectedLayerIndex?: number;
   keymap?: Keymap;
-  onLayerLedColorChanged?: (positions: number[], color: number) => void;
+  onLayerLedColorChanged?: (positions: number[], color: number | null) => void;
   layerLedEnabled?: boolean;
   onLayerLedEnabledChanged?: (enabled: boolean) => void;
   rgbState: RgbUnderglowState | null;
@@ -110,12 +113,17 @@ export default function LightingControl({
     lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
 
   const [layerLedHsb, setLayerLedHsb] = useState<HsbColor>({ h: 0, s: 100, b: 100 });
+  const [layerLedTransparent, setLayerLedTransparent] = useState(true);
 
   const [capsOnHsb, setCapsOnHsb] = useState<HsbColor>({ h: 0, s: 100, b: 100 });
   const [capsOffHsb, setCapsOffHsb] = useState<HsbColor>({ h: 0, s: 0, b: 0 });
+  const [capsOnTransparent, setCapsOnTransparent] = useState(false);
+  const [capsOffTransparent, setCapsOffTransparent] = useState(true);
 
   const [connUsbHsb, setConnUsbHsb] = useState<HsbColor>({ h: 0, s: 0, b: 100 });
   const [connBtHsb, setConnBtHsb] = useState<HsbColor>({ h: 240, s: 100, b: 100 });
+  const [connUsbTransparent, setConnUsbTransparent] = useState(false);
+  const [connBtTransparent, setConnBtTransparent] = useState(false);
 
   const capsInitialized = useRef(false);
   const connInitialized = useRef(false);
@@ -132,6 +140,8 @@ export default function LightingControl({
     capsInitialized.current = true;
     setCapsOnHsb(rgbToHsb(capsLockState.onColor));
     setCapsOffHsb(rgbToHsb(capsLockState.offColor));
+    setCapsOnTransparent(isRgbOverrideTransparent(capsLockState.onColor));
+    setCapsOffTransparent(isRgbOverrideTransparent(capsLockState.offColor));
   }, [capsLockState]);
 
   useEffect(() => {
@@ -139,6 +149,8 @@ export default function LightingControl({
     connInitialized.current = true;
     setConnUsbHsb(rgbToHsb(connectionState.usbColor));
     setConnBtHsb(rgbToHsb(connectionState.btColor));
+    setConnUsbTransparent(isRgbOverrideTransparent(connectionState.usbColor));
+    setConnBtTransparent(isRgbOverrideTransparent(connectionState.btColor));
   }, [connectionState]);
 
   useEffect(() => {
@@ -150,16 +162,16 @@ export default function LightingControl({
     const layerConfig = ledData.layers.find((l) => l.layerId === layerId);
     const binding = layerConfig?.bindings.find((b) => b.keyPosition === firstPos);
     const color = binding?.color ?? 0;
-    if (color > 0) {
+    setLayerLedTransparent(isRgbOverrideTransparent(color));
+    if (!isRgbOverrideTransparent(color)) {
       setLayerLedHsb(rgbToHsb(color));
-    } else {
-      setLayerLedHsb({ h: 0, s: 100, b: 100 });
     }
   }, [selectedLedPositions, ledData, keymap, selectedLayerIndex]);
 
   const handleLayerLedHsbChanged = useCallback(
     (hsb: HsbColor) => {
       setLayerLedHsb(hsb);
+      setLayerLedTransparent(false);
       if (!selectedLedPositions || selectedLedPositions.size === 0 || !onLayerLedColorChanged) return;
       const rgbColor = hsbToRgb(hsb);
       onLayerLedColorChanged(Array.from(selectedLedPositions), rgbColor);
@@ -167,10 +179,18 @@ export default function LightingControl({
     [selectedLedPositions, onLayerLedColorChanged]
   );
 
-  const handleClearLayerLed = useCallback(() => {
-    if (!selectedLedPositions || selectedLedPositions.size === 0 || !onLayerLedColorChanged) return;
-    onLayerLedColorChanged(Array.from(selectedLedPositions), 0);
-  }, [selectedLedPositions, onLayerLedColorChanged]);
+  const handleLayerLedModeChange = useCallback(
+    (transparent: boolean) => {
+      if (transparent === layerLedTransparent) return;
+      setLayerLedTransparent(transparent);
+      if (!selectedLedPositions || selectedLedPositions.size === 0 || !onLayerLedColorChanged) return;
+      onLayerLedColorChanged(
+        Array.from(selectedLedPositions),
+        transparent ? null : hsbToRgb(layerLedHsb)
+      );
+    },
+    [selectedLedPositions, onLayerLedColorChanged, layerLedHsb, layerLedTransparent]
+  );
 
   const setRgbProp = useCallback(
     async (props: Partial<RgbUnderglowState>) => {
@@ -375,8 +395,7 @@ export default function LightingControl({
   );
 
   const positionInfo = (state: { enabled: boolean; keyPosition: number; layerId: number }, storedAllLayers: boolean) => {
-    const showPos =
-      indicatorPositionDraft || state.enabled || state.keyPosition > 0 || state.layerId !== 0;
+    const showPos = !!indicatorPositionDraft || hasIndicatorPosition(state.keyPosition);
     return (
       <div className="flex items-center gap-3 flex-wrap">
         {showPos ? (
@@ -454,16 +473,38 @@ export default function LightingControl({
       <>
         <Block title={t("lighting.capsLock.offColor", "Off color")}>
           <div className={!capsLockState.enabled ? "opacity-40 pointer-events-none" : ""}>
-            <HsbColorPicker hsb={capsOffHsb}
-              onHsbChanged={(hsb) => { setCapsOffHsb(hsb); setCapsLockProp({ offColor: hsbToRgb(hsb) }); }}
-              disabled={!isUnlocked} />
+            <TransparentColorPicker
+              hsb={capsOffHsb}
+              transparent={capsOffTransparent}
+              onHsbChanged={(hsb) => {
+                setCapsOffHsb(hsb);
+                setCapsOffTransparent(false);
+                setCapsLockProp({ offColor: encodeRgbOverride(hsbToRgb(hsb)) });
+              }}
+              onTransparentChange={(transparent) => {
+                setCapsOffTransparent(transparent);
+                setCapsLockProp({ offColor: transparent ? 0 : encodeRgbOverride(hsbToRgb(capsOffHsb)) });
+              }}
+              disabled={!isUnlocked}
+            />
           </div>
         </Block>
         <Block title={t("lighting.capsLock.onColor", "On color")}>
           <div className={!capsLockState.enabled ? "opacity-40 pointer-events-none" : ""}>
-            <HsbColorPicker hsb={capsOnHsb}
-              onHsbChanged={(hsb) => { setCapsOnHsb(hsb); setCapsLockProp({ onColor: hsbToRgb(hsb) }); }}
-              disabled={!isUnlocked} />
+            <TransparentColorPicker
+              hsb={capsOnHsb}
+              transparent={capsOnTransparent}
+              onHsbChanged={(hsb) => {
+                setCapsOnHsb(hsb);
+                setCapsOnTransparent(false);
+                setCapsLockProp({ onColor: encodeRgbOverride(hsbToRgb(hsb)) });
+              }}
+              onTransparentChange={(transparent) => {
+                setCapsOnTransparent(transparent);
+                setCapsLockProp({ onColor: transparent ? 0 : encodeRgbOverride(hsbToRgb(capsOnHsb)) });
+              }}
+              disabled={!isUnlocked}
+            />
           </div>
         </Block>
       </>
@@ -471,7 +512,7 @@ export default function LightingControl({
   } else if (isConnSelected && connectionState) {
     topBar = (
       <>
-        <OnOff th={th} value={connectionState.enabled} onChange={(v) => setConnectionProp({ enabled: v })} disabled={!isUnlocked} />
+        <OnOff th={th} value={connectionState.enabled} onChange={(v) => setConnectionProp({ enabled: v })} disabled={!isUnlocked || (!connectionState.enabled && !hasIndicatorPosition(connectionState.keyPosition))} />
         <div className="ml-auto">{positionInfo(connectionState, !!connStoredAllLayers)}</div>
       </>
     );
@@ -479,16 +520,38 @@ export default function LightingControl({
       <>
         <Block title={t("lighting.connection.usbColor", "USB color")}>
           <div className={!connectionState.enabled ? "opacity-40 pointer-events-none" : ""}>
-            <HsbColorPicker hsb={connUsbHsb}
-              onHsbChanged={(hsb) => { setConnUsbHsb(hsb); setConnectionProp({ usbColor: hsbToRgb(hsb) }); }}
-              disabled={!isUnlocked} />
+            <TransparentColorPicker
+              hsb={connUsbHsb}
+              transparent={connUsbTransparent}
+              onHsbChanged={(hsb) => {
+                setConnUsbHsb(hsb);
+                setConnUsbTransparent(false);
+                setConnectionProp({ usbColor: encodeRgbOverride(hsbToRgb(hsb)) });
+              }}
+              onTransparentChange={(transparent) => {
+                setConnUsbTransparent(transparent);
+                setConnectionProp({ usbColor: transparent ? 0 : encodeRgbOverride(hsbToRgb(connUsbHsb)) });
+              }}
+              disabled={!isUnlocked}
+            />
           </div>
         </Block>
         <Block title={t("lighting.connection.btColor", "Bluetooth color")}>
           <div className={!connectionState.enabled ? "opacity-40 pointer-events-none" : ""}>
-            <HsbColorPicker hsb={connBtHsb}
-              onHsbChanged={(hsb) => { setConnBtHsb(hsb); setConnectionProp({ btColor: hsbToRgb(hsb) }); }}
-              disabled={!isUnlocked} />
+            <TransparentColorPicker
+              hsb={connBtHsb}
+              transparent={connBtTransparent}
+              onHsbChanged={(hsb) => {
+                setConnBtHsb(hsb);
+                setConnBtTransparent(false);
+                setConnectionProp({ btColor: encodeRgbOverride(hsbToRgb(hsb)) });
+              }}
+              onTransparentChange={(transparent) => {
+                setConnBtTransparent(transparent);
+                setConnectionProp({ btColor: transparent ? 0 : encodeRgbOverride(hsbToRgb(connBtHsb)) });
+              }}
+              disabled={!isUnlocked}
+            />
           </div>
         </Block>
       </>
@@ -507,11 +570,13 @@ export default function LightingControl({
                   ? t("lighting.layerLed.editKey", { key: Math.min(...selectedLedPositions) })
                   : t("lighting.layerLed.editKeys", { count: selectedLedPositions.size })}
               </div>
-              <HsbColorPicker hsb={layerLedHsb} onHsbChanged={handleLayerLedHsbChanged} disabled={!isUnlocked} />
-              <button onClick={handleClearLayerLed} disabled={!isUnlocked}
-                className="mt-1 px-3 py-1.5 text-sm cursor-pointer transition-colors border border-base-300 bg-base-100 hover:border-base-content/40 self-start">
-                {t("lighting.layerLed.clear")}
-              </button>
+              <TransparentColorPicker
+                hsb={layerLedHsb}
+                transparent={layerLedTransparent}
+                onHsbChanged={handleLayerLedHsbChanged}
+                onTransparentChange={handleLayerLedModeChange}
+                disabled={!isUnlocked}
+              />
             </>
           )}
         </div>
@@ -577,6 +642,8 @@ const SegButton = ({
   children: React.ReactNode;
 }) => (
   <button
+    type="button"
+    aria-pressed={active}
     onClick={onClick}
     disabled={disabled}
     className={`px-3 py-1.5 text-sm cursor-pointer transition-colors border whitespace-nowrap ${

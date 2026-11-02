@@ -1,13 +1,10 @@
 import { Info, FileText, Check } from "lucide-react";
 
 import { ACCENT_PRESETS, type CarbonTheme } from "./theme";
-import { SettingsBlock, ContentSwitcher, Select, secBtn, normalizeLang } from "./CarbonChrome";
+import { SettingsBlock, ContentSwitcher, Select, ActionButton } from "./CarbonChrome";
+import { normalizeLang, SUPPORTED_LANGUAGES } from "../i18n";
 import type { NavId } from "./navIds";
 
-/*
- * App preferences only — nothing here talks to the keyboard. Device-side state
- * (identity, active layout, unlock shortcut, factory reset) lives in DeviceView.
- */
 interface PreferencesViewProps {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
@@ -24,18 +21,11 @@ interface PreferencesViewProps {
   onShowLicense: () => void;
 }
 
-const LANGUAGES = [
-  { id: "en", label: "English" },
-  { id: "zh", label: "中文" },
-  { id: "ja", label: "日本語" },
-  { id: "fr", label: "Français" },
-  { id: "es", label: "Español" },
-];
-
 export function PreferencesView({ th, t, setting, setSetting, accent, setAccent, lang, setLang, defaultNav, setDefaultNav, navOptions, onShowAbout, onShowLicense }: PreferencesViewProps) {
   return (
-    <div style={{ flex: 1, overflow: "auto", padding: 24, maxWidth: 560 }} className="custom-scrollbar">
-      <h2 style={{ fontSize: 16, fontWeight: 600, color: th.textPrimary, marginBottom: 20 }}>{t("carbon.nav.preferences", "Preferences")}</h2>
+    <div className="carbon-editor-scroll custom-scrollbar">
+      <div className="mr-auto w-full max-w-[920px]">
+      <h2 className="mb-5 text-base font-semibold text-base-content">{t("carbon.nav.preferences", "Preferences")}</h2>
 
       <SettingsBlock th={th} label={t("carbon.theme", "Theme")}>
         <ContentSwitcher th={th}
@@ -49,19 +39,18 @@ export function PreferencesView({ th, t, setting, setSetting, accent, setAccent,
           onChange={(v) => setSetting(v as "dark" | "light" | "system")} />
       </SettingsBlock>
 
-      {/* Swatches, not a switcher — the choice *is* the color, so a label would
-          only restate it. */}
       <SettingsBlock th={th} label={t("carbon.accentColor", "Accent color")}>
-        <p style={{ fontSize: 12, color: th.textHelper, marginTop: -4, marginBottom: 10 }}>
+        <p className="-mt-1 mb-2.5 text-xs text-helper">
           {t("carbon.accentColorDesc", "Carbon interactive colors — used for selections, links and primary buttons.")}
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        <div className="flex flex-wrap items-center gap-2">
           {ACCENT_PRESETS.map((p) => {
             const active = accent === p.id;
             return (
               <button key={p.id} onClick={() => setAccent(p.id)} aria-pressed={active}
                 title={t(`carbon.accent.${p.id}`, p.id)}
-                style={{ width: 30, height: 30, padding: 0, display: "flex", alignItems: "center", justifyContent: "center", background: p.hex, cursor: "pointer", border: `2px solid ${active ? th.textPrimary : th.border}` }}>
+                className={`flex h-[30px] w-[30px] items-center justify-center border-2 ${active ? "border-base-content" : "border-base-300"}`}
+                style={{ background: p.hex }}>
                 {active && <Check size={15} color="#fff" strokeWidth={3} />}
               </button>
             );
@@ -73,14 +62,12 @@ export function PreferencesView({ th, t, setting, setSetting, accent, setAccent,
         <ContentSwitcher th={th}
           label={t("carbon.language", "Language")}
           value={normalizeLang(lang)}
-          opts={LANGUAGES}
+          opts={SUPPORTED_LANGUAGES}
           onChange={setLang} />
       </SettingsBlock>
 
-      {/* A Select rather than a switcher: this list grows with the keyboard's
-          capabilities and already runs past Carbon's five-item ceiling. */}
       <SettingsBlock th={th} label={t("carbon.defaultView", "Default view")}>
-        <p style={{ fontSize: 12, color: th.textHelper, marginTop: -4, marginBottom: 8 }}>
+        <p className="-mt-1 mb-2 text-xs text-helper">
           {t("carbon.defaultViewDesc", "Which section opens when you connect a keyboard.")}
         </p>
         <Select th={th}
@@ -91,11 +78,12 @@ export function PreferencesView({ th, t, setting, setSetting, accent, setAccent,
       </SettingsBlock>
 
       <SettingsBlock th={th} label={t("carbon.about", "About")}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onShowAbout} style={secBtn(th)}><Info size={13} />{t("carbon.aboutApp", "About ZMK Studio")}</button>
-          <button onClick={onShowLicense} style={secBtn(th)}><FileText size={13} />{t("carbon.license", "License")}</button>
+        <div className="flex gap-2">
+          <ActionButton th={th} onClick={onShowAbout} icon={<Info size={13} />} label={t("carbon.aboutApp", "About ZMK Studio")} />
+          <ActionButton th={th} onClick={onShowLicense} icon={<FileText size={13} />} label={t("carbon.license", "License")} />
         </div>
       </SettingsBlock>
+      </div>
     </div>
   );
 }

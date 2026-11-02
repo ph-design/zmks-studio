@@ -385,13 +385,12 @@ function App() {
       return false;
     }
 
-    let ok = true;
     const resp = await call_rpc(conn.conn, {
       core: { resetSettings: true },
     });
     if (!resp.core?.resetSettings) {
-      ok = false;
       console.error(t("errors.failedToReset"), resp);
+      return false;
     }
 
     reset();
@@ -400,7 +399,7 @@ function App() {
     setHasUnsavedMotionChanges(false);
     setHasUnsavedComboChanges(false);
     setConn({ conn: conn.conn });
-    return ok;
+    return true;
   }, [conn]);
 
   const disconnect = useCallback(() => {

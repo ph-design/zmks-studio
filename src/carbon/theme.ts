@@ -271,7 +271,10 @@ export function useCarbonTheme() {
     const root = document.documentElement.style;
     root.setProperty("--primary", hsl);
     root.setProperty("--accent", hsl);
-  }, [accentHex]);
+    root.setProperty("--carbon-selected-border", theme.selectedBorder);
+    root.setProperty("--carbon-selected-layer", theme.selectedLayer);
+    root.setProperty("--carbon-link", theme.linkPrimary);
+  }, [accentHex, theme.selectedBorder, theme.selectedLayer, theme.linkPrimary]);
 
   return {
     setting,

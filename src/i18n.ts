@@ -6,19 +6,30 @@ import jaTranslations from "./locales/ja.json";
 import frTranslations from "./locales/fr.json";
 import esTranslations from "./locales/es.json";
 
-// 获取浏览器语言或从 localStorage 中读取用户选择的语言
-const getInitialLanguage = () => {
-  const saved = localStorage.getItem("language");
-  if (saved) {
-    return saved;
-  }
+export const SUPPORTED_LANGUAGES = [
+  { id: "en", label: "English" },
+  { id: "zh", label: "中文" },
+  { id: "ja", label: "日本語" },
+  { id: "fr", label: "Français" },
+  { id: "es", label: "Español" },
+];
 
-  const lang = navigator.language.toLowerCase();
+export const normalizeLang = (lang: string): string => {
   if (lang.startsWith("zh")) return "zh";
   if (lang.startsWith("ja")) return "ja";
   if (lang.startsWith("fr")) return "fr";
   if (lang.startsWith("es")) return "es";
   return "en";
+};
+
+// 获取浏览器语言或从 localStorage 中读取用户选择的语言
+const getInitialLanguage = () => {
+  const saved = localStorage.getItem("language");
+  if (saved) {
+    return normalizeLang(saved);
+  }
+
+  return normalizeLang(navigator.language.toLowerCase());
 };
 
 i18n.use(initReactI18next).init({

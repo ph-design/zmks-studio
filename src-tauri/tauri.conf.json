@@ -65,10 +65,13 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 768,
+        "height": 760,
+        "width": 1280,
+        "minHeight": 640,
+        "minWidth": 960,
+        "center": true,
         "resizable": true,
-        "title": "ZMKs Studio",
-        "width": 1024
+        "title": "ZMKs Studio"
       }
     ]
   }

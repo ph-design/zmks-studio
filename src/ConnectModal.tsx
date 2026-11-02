@@ -19,6 +19,7 @@ import { GenericModal } from "./GenericModal";
 import { connect as demo_connect, DEFAULT_DEMO_FEATURES, type DemoFeatures } from "./demo/mockTransport";
 import { GestureChips } from "./unlock/GestureChips";
 import { FACTORY_UNLOCK_KEYS } from "./unlock/unlockPaths";
+import { normalizeLang, SUPPORTED_LANGUAGES } from "./i18n";
 
 export type TransportFactory = {
   label: string;
@@ -753,24 +754,21 @@ export const ConnectModal = ({
           </Button>
           {langOpen && (
             <div className="absolute right-0 mt-1 shadow-lg rounded border border-base-300 bg-base-100 text-base-content overflow-hidden z-50 min-w-32">
-              <button
-                className="w-full text-left px-2 py-1 hover:bg-base-200"
-                onClick={() => {
-                  i18n.changeLanguage("en");
-                  setLangOpen(false);
-                }}
-              >
-                English
-              </button>
-              <button
-                className="w-full text-left px-2 py-1 hover:bg-base-200"
-                onClick={() => {
-                  i18n.changeLanguage("zh");
-                  setLangOpen(false);
-                }}
-              >
-                中文
-              </button>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <button
+                  key={lang.id}
+                  aria-pressed={normalizeLang(i18n.language) === lang.id}
+                  className={`w-full px-2 py-1 text-left hover:bg-base-200 ${
+                    normalizeLang(i18n.language) === lang.id ? "bg-base-200 font-medium" : ""
+                  }`}
+                  onClick={() => {
+                    i18n.changeLanguage(lang.id);
+                    setLangOpen(false);
+                  }}
+                >
+                  {lang.label}
+                </button>
+              ))}
             </div>
           )}
         </div>

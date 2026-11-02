@@ -35,6 +35,8 @@ import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import { deserializeLayoutZoom, LayoutZoom } from "../keyboard/PhysicalLayout";
 import { useLocalStorageState } from "../misc/useLocalStorageState";
 import { useSub } from "../usePubSub";
+import { encodeRgbOverride } from "../lighting/rgbOverride";
+import { hasIndicatorPosition } from "../lighting/indicatorPosition";
 
 type BehaviorMap = Record<number, GetBehaviorDetailsResponse>;
 
@@ -282,13 +284,15 @@ export function useKeyboardModel({
     } else if (
       lightingSource === "capslock" &&
       capsLockState?.enabled &&
-      capsLockState.keyPosition !== undefined
+      capsLockState.keyPosition !== undefined &&
+      hasIndicatorPosition(capsLockState.keyPosition)
     ) {
       set.add(capsLockState.keyPosition);
     } else if (
       lightingSource === "connection" &&
       connectionState?.enabled &&
-      connectionState.keyPosition !== undefined
+      connectionState.keyPosition !== undefined &&
+      hasIndicatorPosition(connectionState.keyPosition)
     ) {
       set.add(connectionState.keyPosition);
     }
@@ -430,11 +434,12 @@ export function useKeyboardModel({
   );
 
   const handleLayerLedColorChanged = useCallback(
-    async (positions: number[], color: number) => {
+    async (positions: number[], color: number | null) => {
       if (!conn.conn || !keymap || !ledData) return;
       const layerIdx = selectedLayerIndex;
       const layerId = keymap.layers[layerIdx]?.id;
       if (layerId === undefined) return;
+      const encodedColor = encodeRgbOverride(color);
 
       setLedData(
         produce((draft) => {
@@ -449,9 +454,9 @@ export function useKeyboardModel({
               (b) => b.keyPosition === pos
             );
             if (existing) {
-              existing.color = color;
+              existing.color = encodedColor;
             } else {
-              layerConfig.bindings.push({ keyPosition: pos, color });
+              layerConfig.bindings.push({ keyPosition: pos, color: encodedColor });
             }
           }
         })
@@ -460,7 +465,7 @@ export function useKeyboardModel({
       for (const pos of positions) {
         try {
           await call_rpc(conn.conn, {
-            lighting: { setLayerLedBinding: { layerId, keyPosition: pos, color } },
+            lighting: { setLayerLedBinding: { layerId, keyPosition: pos, color: encodedColor } },
           });
           onLightingChanged?.();
         } catch (e) {
@@ -571,7 +576,7 @@ export function useKeyboardModel({
             return;
           }
 
-          let resp = await call_rpc(conn.conn, {
+          const resp = await call_rpc(conn.conn, {
             keymap: {
               setLayerBinding: { layerId, keyPosition, binding: oldBinding },
             },
@@ -613,7 +618,7 @@ export function useKeyboardModel({
           return;
         }
 
-        let resp = await call_rpc(conn.conn, {
+        const resp = await call_rpc(conn.conn, {
           keymap: { moveLayer: { startIndex, destIndex } },
         });
 

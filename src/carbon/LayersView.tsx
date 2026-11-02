@@ -11,7 +11,7 @@ import { useLocalStorageState } from "../misc/useLocalStorageState";
 import { Keymap as KeymapComp } from "../keyboard/Keymap";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
 import { PhysicalLayoutPicker } from "../keyboard/PhysicalLayoutPicker";
-import { Loading, rowIcon, Badge } from "./CarbonChrome";
+import { Loading, Badge } from "./CarbonChrome";
 import { KeyboardCanvas } from "../keyboard/KeyboardCanvas";
 import { ResizableDrawer } from "./ResizableDrawer";
 
@@ -70,9 +70,9 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
   );
 
   return (
-    <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+    <div className="carbon-feature-page">
       {/* Secondary sidebar: layer list */}
-      <aside style={{ width: 210, flexShrink: 0, display: "flex", flexDirection: "column", background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Layers size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.layers", "Layers")}</span>
@@ -109,12 +109,12 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
                   </button>
                 )}
                 {editing ? (
-                  <button title={t("carbon.rename", "Rename")} onClick={() => { model.changeLayerName(l.id, l.name || "", editName); setEditIdx(null); }} style={rowIcon(th)}><Check size={14} /></button>
+                  <button title={t("carbon.rename", "Rename")} onClick={() => { model.changeLayerName(l.id, l.name || "", editName); setEditIdx(null); }} className="flex h-[26px] w-[26px] items-center justify-center text-icon"><Check size={14} /></button>
                 ) : (
                   <>
                     {locked && <Lock size={11} style={{ color: th.textDisabled, flexShrink: 0 }} />}
                     {/* Only rename on the row; copy/lock/delete live at the bottom */}
-                    <button title={t("carbon.rename", "Rename")} onClick={() => { setEditIdx(idx); setEditName(l.name || ""); }} style={rowIcon(th)}><Pencil size={13} /></button>
+                    <button title={t("carbon.rename", "Rename")} onClick={() => { setEditIdx(idx); setEditName(l.name || ""); }} className="flex h-[26px] w-[26px] items-center justify-center text-icon"><Pencil size={13} /></button>
                   </>
                 )}
                 {duping && model.duplicateProgress && (
@@ -152,7 +152,7 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
       </aside>
 
       {/* Canvas + binding drawer */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+      <div className="carbon-feature-content">
         {/* Layout picker strip (only when multiple layouts) */}
         {model.layouts.length > 1 && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 24px", borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
