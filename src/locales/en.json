@@ -659,7 +659,11 @@
       "rfNoRpc": "The link is on 2.4G, which has no Studio RPC. Switch to USB or Bluetooth above, then come back.",
       "rfLocked": "The keyboard is locked, so it refuses to hand out a pairing key. Unlock it with its own gesture first.",
       "rfRejected": "The keyboard refused the pairing request — 2.4G pairing only runs while the link is on USB.",
-      "twoG4": "2.4G"
+      "twoG4": "2.4G",
+      "monitor": {
+        "demoTitle": "Demo receiver",
+        "demoNote": "Simulated data: cycles through activity, idle and disconnection. No serial port or receiver hardware is used."
+      }
     },
     "device": {
       "refresh": "Refresh",

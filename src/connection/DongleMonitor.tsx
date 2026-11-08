@@ -5,8 +5,8 @@ import type { Translate } from "../misc/format";
 import type { DongleController } from "./useDongle";
 
 type Sample = { at: number; rx: number; rate?: number };
-export function DongleMonitor({ th, t, dongle }: { th: CarbonTheme; t: Translate; dongle: DongleController }) {
-  const [active, setActive] = useState(false);
+export function DongleMonitor({ th, t, dongle, autoStart = false }: { th: CarbonTheme; t: Translate; dongle: Pick<DongleController, "phase" | "busy" | "status" | "queryStatus">; autoStart?: boolean }) {
+  const [active, setActive] = useState(autoStart);
   const [samples, setSamples] = useState<Sample[]>([]);
   const [failed, setFailed] = useState(false);
   const latest = useRef(dongle);

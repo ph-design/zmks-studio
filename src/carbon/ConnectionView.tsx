@@ -1,5 +1,5 @@
 // Connection management and 2.4G pairing.
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Transport } from "@zmkfirmware/zmk-studio-ts-client/connection";
 
 import type { CarbonTheme } from "./theme";
@@ -9,6 +9,8 @@ import { LinkCard } from "../connection/LinkCard";
 import { Pair2g4Panel } from "../connection/Pair2g4Panel";
 import type { Translate } from "../misc/format";
 import { useConnectionActions, useConnectionSnapshot } from "../connection/useConnectionState";
+import { ConnectionContext } from "../rpc/ConnectionContext";
+import { DemoDonglePanel } from "../demo/DemoDonglePanel";
 import { useDongle } from "../connection/useDongle";
 
 export interface ConnectionViewProps {
@@ -20,6 +22,7 @@ export interface ConnectionViewProps {
 }
 
 export function ConnectionView({ th, t, onDisconnect, connectionType }: ConnectionViewProps) {
+  const isDemo = useContext(ConnectionContext).conn?.label === "Demo";
   const snapshot = useConnectionSnapshot();
   const actions = useConnectionActions();
   const dongle = useDongle(t);
@@ -116,11 +119,11 @@ export function ConnectionView({ th, t, onDisconnect, connectionType }: Connecti
           )
         )}
 
-        <DonglePanel
+        {isDemo ? <DemoDonglePanel th={th} t={t} /> : <DonglePanel
           th={th} t={t} dongle={dongle}
           firmwareHasConnection={snapshot.support === "ready"}
           showAdvanced={showAdvanced}
-        />
+        />}
 
         {showAdvanced && state && (
           <Pair2g4Panel th={th} t={t} disabled={snapshot.support !== "ready"} endpoint={state.endpoint} />
