@@ -662,7 +662,14 @@
       "twoG4": "2.4G",
       "monitor": {
         "demoTitle": "Demo receiver",
-        "demoNote": "Simulated data: cycles through activity, idle and disconnection. No serial port or receiver hardware is used."
+        "demoNote": "Simulated data: cycles through activity, idle and disconnection. No serial port or receiver hardware is used.",
+        "scenario": "Demo scenario",
+        "scenario_cycle": "Activity and periodic disconnection",
+        "scenario_idle": "Idle keepalive",
+        "scenario_disconnect": "Intermittent disconnection",
+        "scenario_errors": "Decryption errors",
+        "scenario_reset": "Counter reset",
+        "scenario_readFailure": "Management query failure"
       }
     },
     "device": {
