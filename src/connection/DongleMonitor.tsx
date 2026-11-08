@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CarbonTheme } from "../carbon/theme";
-import { Facts, ActionButton } from "../carbon/CarbonChrome";
+import { Facts, ActionButton, Select } from "../carbon/CarbonChrome";
 import type { Translate } from "../misc/format";
 import type { DongleController } from "./useDongle";
 
@@ -68,21 +68,23 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
   };
   const eventLabel = (event: string) => label(event, ({ readFailed: "Read failed", counterReset: "Counters reset", reconnected: "Link restored", disconnected: "Link disconnected" } as Record<string, string>)[event] ?? event);
   return <section style={{ marginBottom: 20, minWidth: 0 }}>
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-      <strong>{label("title", "Receiver activity")}</strong>
-      <ActionButton th={th} label={active ? label("pause", "Pause monitoring") : label("start", "Start monitoring")} onClick={() => { setFailed(false); setActive(!active); }} />
-    </div>
+    {!management && <div className="mb-4 text-sm font-semibold text-base-content">{label("title", "Receiver activity")}</div>}
     <Facts th={th} rows={[
       { label: label("channel", "Current channel"), value: management ?? String(dongle.status?.rfChannel ?? "—") },
       { label: label("link", "Keyboard link"), value: dongle.status?.link === "CONNECTED" ? label("connected", "Connected") : dongle.status?.link === "LOST" ? label("lost", "Disconnected") : "—" },
       { label: label("rate", "Receive rate (packets/s)"), value: active && !failed && rate !== undefined ? rate.toFixed(management ? 0 : 1) : "—" },
       { label: label("rx", "Received packets / decryption failures"), value: `${dongle.status?.rx ?? "—"} / ${dongle.status?.rxDecryptFail ?? "—"}` },
     ]} />
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
-      <label>{label("range", "Time range")} <select value={range} onChange={e => setRange(Number(e.target.value))} style={{ background: th.bg, color: th.textSecondary }}>
-        <option value={60}>{label("minute", "1 minute")}</option><option value={300}>{label("fiveMinutes", "5 minutes")}</option><option value={0}>{label("session", "Session (up to 3600 samples)")}</option>
-      </select></label>
-      <ActionButton th={th} label={label("export", "Export CSV")} onClick={exportCsv} disabled={!samples.length} />
+    <div className="my-6 flex flex-wrap items-end gap-4" data-monitor-toolbar>
+      <div className="flex min-w-0 flex-col gap-2" style={{ flex: "1 1 240px", maxWidth: 420 }}>
+        <span className="text-xs text-secondary-content">{label("range", "Time range")}</span>
+        <Select th={th} label={label("range", "Time range")} value={String(range)} onChange={value => setRange(Number(value))}
+          opts={[{ id: "60", label: label("minute", "1 minute") }, { id: "300", label: label("fiveMinutes", "5 minutes") }, { id: "0", label: label("session", "Session (up to 3600 samples)") }]} />
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <ActionButton th={th} label={active ? label("pause", "Pause monitoring") : label("start", "Start monitoring")} onClick={() => { setFailed(false); setActive(!active); }} />
+        <ActionButton th={th} label={label("export", "Export CSV")} onClick={exportCsv} disabled={!samples.length} />
+      </div>
     </div>
     {([
       ["rate", label("rate", "Receive rate (packets/s)")],
