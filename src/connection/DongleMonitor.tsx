@@ -38,7 +38,7 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
           at, rx: valid ? result.rx : undefined, failures: result.rxDecryptFail,
           latency: valid ? performance.now() - started : undefined,
           link: valid ? result.link : undefined,
-          rate: continuous ? (result.rx! - last.rx!) * 1000 / (at - last.at) : undefined,
+          rate: management ? (valid ? result.link === "CONNECTED" ? 1 : result.link === "LOST" ? 0 : undefined : undefined) : continuous ? (result.rx! - last.rx!) * 1000 / (at - last.at) : undefined,
           delta: continuous && result.rxDecryptFail !== undefined && last.failures !== undefined ? result.rxDecryptFail - last.failures : undefined,
           event: !valid ? "readFailed" : reset ? "counterReset" : last && last.link !== result.link ? (result.link === "CONNECTED" ? "reconnected" : "disconnected") : undefined,
         };
@@ -53,7 +53,7 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
   }, [active]);
   if (dongle.phase !== "open") return null;
   const label = (key: string, fallback: string) => {
-    const copy: Record<string, string> = { title: "Studio management channel", channel: "Connection", link: "RPC response state", connected: "Responding", lost: "Query failed", rate: "Successful queries/s", rx: "Successful queries / failed queries", errors: "Failed queries per sample", latency: "RPC round-trip time (ms)", linkTimeline: "Response state: 1 success / 0 failure", note: "Management queries are not keyboard reports. Query time includes transport, firmware and host processing; it is not key latency. RSSI, radio retries and packet loss are unavailable.", reconnected: "Queries resumed", disconnected: "Query failed" };
+    const copy: Record<string, string> = { title: "Studio management channel", channel: "Connection", link: "RPC response state", connected: "Responding", lost: "Query failed", rate: "Successful queries per sample", rx: "Successful queries / failed queries", errors: "Failed queries per sample", latency: "RPC round-trip time (ms)", linkTimeline: "Query response history", note: "Management queries are not keyboard reports. Query time includes transport, firmware and host processing; it is not key latency. RSSI, radio retries and packet loss are unavailable.", reconnected: "Queries resumed", disconnected: "Query failed" };
     return management && copy[key] ? t(`carbon.conn.management.${key}`, copy[key]) : t(`carbon.conn.monitor.${key}`, fallback);
   };
   const rate = samples[samples.length - 1]?.rate;
@@ -62,7 +62,7 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
   const start = range ? end - range * 1000 : visible[0]?.at ?? end - 1000;
   const chosen = samples.find(s => s.at === selected);
   const exportCsv = () => {
-    const rows = [management ? "timestamp,successful_queries,successful_queries_per_second,failed_queries,failure_delta,rpc_round_trip_ms,response_state,event" : "timestamp,rx,receive_packets_per_second,decrypt_failures,decrypt_delta,management_query_ms,link,event", ...samples.map(s => [new Date(s.at).toISOString(), s.rx, s.rate, s.failures, s.delta, s.latency, s.link, s.event].join(","))];
+    const rows = [management ? "timestamp,successful_queries,successful_queries_per_sample,failed_queries,failure_delta,rpc_round_trip_ms,response_state,event" : "timestamp,rx,receive_packets_per_second,decrypt_failures,decrypt_delta,management_query_ms,link,event", ...samples.map(s => [new Date(s.at).toISOString(), s.rx, s.rate, s.failures, s.delta, s.latency, s.link, s.event].join(","))];
     const url = URL.createObjectURL(new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = "receiver-analysis.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
@@ -75,7 +75,7 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
     <Facts th={th} rows={[
       { label: label("channel", "Current channel"), value: management ?? String(dongle.status?.rfChannel ?? "—") },
       { label: label("link", "Keyboard link"), value: dongle.status?.link === "CONNECTED" ? label("connected", "Connected") : dongle.status?.link === "LOST" ? label("lost", "Disconnected") : "—" },
-      { label: label("rate", "Receive rate (packets/s)"), value: active && !failed && rate !== undefined ? rate.toFixed(1) : "—" },
+      { label: label("rate", "Receive rate (packets/s)"), value: active && !failed && rate !== undefined ? rate.toFixed(management ? 0 : 1) : "—" },
       { label: label("rx", "Received packets / decryption failures"), value: `${dongle.status?.rx ?? "—"} / ${dongle.status?.rxDecryptFail ?? "—"}` },
     ]} />
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
@@ -91,7 +91,9 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
       ["link", label("linkTimeline", "Link state: 1 connected / 0 disconnected")],
     ] as const).map(([key, title]) => {
       const value = (s: Sample) => key === "link" ? s.link === "CONNECTED" ? 1 : s.link === "LOST" ? 0 : undefined : s[key];
-      const max = Math.max(1, ...visible.map(s => value(s) ?? 0));
+      const discrete = key === "delta" || (key === "rate" && !!management);
+      const rawMax = Math.max(1, ...visible.map(s => value(s) ?? 0));
+      const max = discrete ? Math.ceil(rawMax) : rawMax;
       const color = { rate: th.linkPrimary, delta: th.error, latency: th.warning, link: th.success }[key];
       const x = (at: number) => 44 + (at - start) / Math.max(1000, end - start) * 540;
       const y = (v: number) => 116 - v / max * 88;
@@ -110,22 +112,36 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
         <figcaption style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: `1px solid ${th.border}`, fontSize: 12, color: th.textPrimary }}>
           <span aria-hidden="true" style={{ width: 16, height: 2, background: color, flexShrink: 0 }} />
           <span style={{ flex: 1 }}>{title}</span>
-          <span style={{ fontFamily: "var(--font-mono)", color }}>{currentValue === undefined ? "—" : currentValue.toFixed(key === "link" || key === "delta" ? 0 : 1)}</span>
+          <span style={{ fontFamily: "var(--font-mono)", color }}>{currentValue === undefined ? "—" : key === "link" ? currentValue === 1 ? label("connected", "Connected") : label("lost", "Disconnected") : currentValue.toFixed(discrete ? 0 : 1)}</span>
         </figcaption>
         <svg role="img" aria-label={title} viewBox="0 0 600 148" style={{ display: "block", width: "100%", height: "auto", minHeight: 120, color: th.textHelper }}
           onMouseMove={event => { const box = event.currentTarget.getBoundingClientRect(); const at = start + ((event.clientX - box.left) / box.width * 600 - 44) / 540 * (end - start); const nearest = visible.reduce<Sample | undefined>((best, s) => !best || Math.abs(s.at - at) < Math.abs(best.at - at) ? s : best, undefined); if (nearest) setSelected(nearest.at); }}>
-          {[0, 0.5, 1].map(f => <g key={f}>
+          {key === "link" ? <>
+            <rect x="44" y="50" width="540" height="28" fill={th.bg} stroke={th.border} />
+            {visible.map((s, i) => {
+              const v = value(s); if (v === undefined) return null;
+              const next = visible[i + 1];
+              const until = Math.min(end, next?.at ?? s.at + 1000, s.at + 1500);
+              const text = v === 1 ? label("connected", "Connected") : label("lost", "Disconnected");
+              return <rect key={s.at} x={x(s.at)} y="50" width={Math.max(2, x(until) - x(s.at))} height="28" fill={v === 1 ? th.success : th.error}><title>{new Date(s.at).toLocaleTimeString()} — {text}</title></rect>;
+            })}
+            <text x="44" y="103" fill={th.success} fontSize="10">● {label("connected", "Connected")}</text>
+            <text x="240" y="103" fill={th.error} fontSize="10">● {label("lost", "Disconnected")}</text>
+            <text x="584" y="103" textAnchor="end" fill="currentColor" fontSize="10">{label("gap", "Gap: no sample")}</text>
+          </> : <>
+          {(discrete && max === 1 ? [0, 1] : [0, 0.5, 1]).map(f => <g key={f}>
             <line x1="44" y1={y(max * f)} x2="584" y2={y(max * f)} stroke={th.border} strokeDasharray={f === 0 ? undefined : "3 4"} />
-            <text x="36" y={y(max * f) + 3} textAnchor="end" fill="currentColor" fontSize="10">{(max * f).toFixed(max < 10 ? 1 : 0)}</text>
+            <text x="36" y={y(max * f) + 3} textAnchor="end" fill="currentColor" fontSize="10">{(max * f).toFixed(discrete && Number.isInteger(max * f) ? 0 : max < 10 ? 1 : 0)}</text>
           </g>)}
           <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-          {visible.map(s => { const v = value(s); return v === undefined ? null : <circle key={s.at} cx={x(s.at)} cy={y(v)} r={s.at === selected ? 3.5 : visible.length < 90 ? 1.8 : 0} fill={color}><title>{new Date(s.at).toLocaleTimeString()} — {v.toFixed(1)}</title></circle>; })}
+          {visible.map(s => { const v = value(s); return v === undefined ? null : <circle key={s.at} cx={x(s.at)} cy={y(v)} r={s.at === selected ? 3.5 : visible.length < 90 ? 1.8 : 0} fill={color}><title>{new Date(s.at).toLocaleTimeString()} — {v.toFixed(discrete ? 0 : 1)}</title></circle>; })}
+          </>}
           {chosen && chosen.at >= start && chosen.at <= end && <line x1={x(chosen.at)} x2={x(chosen.at)} y1="20" y2="116" stroke={th.borderStrong} strokeDasharray="3 3" />}
           <text x="44" y="138" fill="currentColor" fontSize="10">{new Date(start).toLocaleTimeString()}</text><text x="584" y="138" textAnchor="end" fill="currentColor" fontSize="10">{new Date(end).toLocaleTimeString()}</text>
         </svg>
       </figure>;
     })}
-    {chosen && <p style={{ fontSize: 12 }}>{new Date(chosen.at).toLocaleTimeString()} · {chosen.rate?.toFixed(1) ?? "—"} pkt/s · {chosen.latency?.toFixed(1) ?? "—"} ms · {chosen.link ?? "—"}</p>}
+    {chosen && <p style={{ fontSize: 12 }}>{new Date(chosen.at).toLocaleTimeString()} · {chosen.rate?.toFixed(management ? 0 : 1) ?? "—"} {management ? label("queries", "queries/sample") : "pkt/s"} · {chosen.latency?.toFixed(1) ?? "—"} ms · {chosen.link ?? "—"}</p>}
     <details><summary>{label("events", "Events")}</summary><div style={{ maxHeight: 180, overflow: "auto" }}>
       {samples.filter(s => s.event).slice(-100).reverse().map(s => <div key={s.at}><button type="button" onClick={() => { setSelected(s.at); setRange(0); }} style={{ color: th.textSecondary }}>{new Date(s.at).toLocaleTimeString()} · {eventLabel(s.event!)}</button></div>)}
       {!samples.some(s => s.event) && label("noEvents", "No events recorded.")}
