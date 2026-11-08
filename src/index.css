@@ -54,7 +54,10 @@
 :root {
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
-  --font-size: 14px;
+  /* Tailwind rem utilities use the browser's 16px baseline. Keep the
+     compact 14px body text separate so h-12 = 48px and text-sm = 14px,
+     matching the pixel-based Carbon controls. */
+  --font-size: 16px;
 
   /* Light theme tokens */
   --background: 0 0% 100%;
@@ -147,6 +150,7 @@ body {
   width: 100vw;
   height: 100vh;
   font-family: var(--font-sans);
+  font-size: 14px;
   background-color: hsl(var(--background));
   color: hsl(var(--base-content));
   -webkit-font-smoothing: antialiased;
@@ -437,6 +441,7 @@ html.panel-resizing .keyboard-scale {
   flex-direction: column;
 }
 .carbon-feature-content {
+  container: feature / inline-size;
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -444,6 +449,7 @@ html.panel-resizing .keyboard-scale {
   flex-direction: column;
 }
 .carbon-editor-scroll {
+  container: editor / inline-size;
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -471,7 +477,7 @@ html.panel-resizing .keyboard-scale {
   grid-column: 1 / -1;
 }
 
-@media (min-width: 1024px) {
+@container editor (min-width: 960px) {
   .carbon-editor-main {
     grid-column: span 8;
   }
@@ -480,7 +486,7 @@ html.panel-resizing .keyboard-scale {
   }
 }
 
-@media (min-width: 1280px) {
+@container feature (min-width: 800px) {
   .carbon-settings-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -492,6 +498,7 @@ html.panel-resizing .keyboard-scale {
     flex-basis: 192px;
   }
   .carbon-editor-scroll {
+  container: editor / inline-size;
     padding: 16px;
   }
 }
@@ -502,9 +509,42 @@ html.panel-resizing .keyboard-scale {
     flex-basis: 160px;
   }
   .carbon-editor-scroll {
+  container: editor / inline-size;
     padding: 12px;
   }
   .carbon-editor-grid {
     gap: 12px;
   }
+}
+
+/* Shared rails collapse above the editor on narrow browser windows. */
+.feature-rail-body { display:flex; flex-direction:column; flex:1; min-height:0; overflow:auto; }
+.feature-rail-toggle { display:none; }
+.binding-picker { container: binding / inline-size; }
+.binding-grid { display:grid; height:100%; min-height:0; grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); }
+.binding-rail { display:none; }
+.binding-selectors { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:8px 12px; border-bottom:1px solid hsl(var(--base-300)); }
+.binding-value { container: binding-value / inline-size; }
+@container binding (min-width: 1040px) {
+  .binding-grid { grid-template-columns:168px 200px minmax(0,1fr); grid-template-rows:minmax(0,1fr); }
+  .binding-selectors { display:none; }
+  .binding-rail { display:flex; }
+}
+@container binding-value (max-width: 640px) {
+  .hid-picker { flex-direction:column; overflow:auto; }
+  .hid-main { flex:none; min-height:240px; }
+  .hid-main > div:first-child > div:first-child { flex-wrap:nowrap; overflow-x:auto; max-width:100%; }
+  .hid-modifiers { width:100%; border-left:0; border-top:1px solid hsl(var(--base-300)); overflow:visible; }
+  .hid-modifier-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+}
+.motion-test-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:12px; }
+.motion-test-history { grid-column:1 / -1; max-height:112px; overflow:auto; }
+@media (max-width:767px) {
+  .carbon-feature-page { flex-direction:column; }
+  .carbon-feature-rail { width:100%; flex:0 0 auto; max-height:40%; border-right:0; border-bottom:1px solid hsl(var(--base-300)); }
+  .feature-rail-toggle { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 16px; width:100%; flex-shrink:0; font-size:14px; }
+  .feature-rail-body { display:none; }
+  /* On mobile, the rail body owns scrolling; its inline-styled sections retain their natural height. */
+  .feature-rail-body > div { flex:0 0 auto !important; overflow-y:visible !important; }
+  .carbon-feature-rail[data-open="true"] .feature-rail-body { display:flex; }
 }

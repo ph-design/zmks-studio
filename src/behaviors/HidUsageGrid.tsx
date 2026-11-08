@@ -362,8 +362,8 @@ export const HidUsageGrid = ({
   );
 
   return (
-    <div className="flex min-h-0 flex-1">
-      <div className="flex-1 flex flex-col min-w-0 p-3">
+    <div className="hid-picker flex min-h-0 flex-1">
+      <div className="hid-main flex-1 flex flex-col min-w-0 p-3">
         <div className="flex items-center gap-2 mb-2 flex-wrap flex-shrink-0">
           {!isSearching && (
             <div className="flex gap-1 flex-wrap">
@@ -472,13 +472,13 @@ export const HidUsageGrid = ({
         })()}
       </div>
 
-      <div className="flex-shrink-0 w-44 border-l border-base-300 p-3 overflow-y-auto custom-scrollbar">
+      <div className="hid-modifiers flex-shrink-0 w-44 border-l border-base-300 p-3 overflow-y-auto custom-scrollbar">
         <div className="text-sm text-base-content/60 mb-2 font-medium">
           {t("hid.general.modifiersTitle")}
         </div>
         <CheckboxGroup
           aria-label={t("hid.general.implicitModifiers")}
-          className="grid grid-cols-2 gap-1.5"
+          className="hid-modifier-grid grid grid-cols-2 gap-1.5"
           value={mods}
           onChange={modifiersChanged}
         >

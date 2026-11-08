@@ -1,3 +1,4 @@
+import { FeatureRail } from "./FeatureRail";
 import { useEffect, useRef, useState } from "react";
 import { Hand, Waves, Footprints, Moon, Smartphone, Sunrise, Info } from "lucide-react";
 
@@ -48,13 +49,13 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
     },
     {
       id: "stillWake",
-      label: t("motion.stillWake.title", "Settle wake"),
+      label: t("motion.stillWake.title", "Stationary wake"),
       icon: <Sunrise size={16} />,
       has: !!capabilities?.supportsStillWake && !!stillWakeConfig,
     },
     {
       id: "tap",
-      label: t("motion.tap.title", "Case tap"),
+      label: t("motion.tap.title", "Tap detection"),
       icon: <Hand size={16} />,
       has: !!capabilities?.supportsTap && !!tapConfig,
     },
@@ -96,7 +97,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
   return (
     <div className="carbon-feature-page">
       {/* Capability rail */}
-      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <FeatureRail title={t("carbon.nav.motion", "Motion")} style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Waves size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.motion", "Motion")}</span>
@@ -116,9 +117,10 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
         {/* Carry status is shared by both sections, so it lives in the rail. */}
         <CarryStateCard th={th} t={t} live={motion.live} />
         <div style={{ padding: "10px 14px", borderTop: `1px solid ${th.border}`, fontSize: 11, color: th.textHelper, fontFamily: "var(--font-mono)" }}>
-          {capabilities.sensor}
+          <span className="font-sans">{t("motion.sensorModel", "Sensor model")}: </span>
+          {capabilities.sensor || t("motion.sensorUnknown", "Not reported")}
         </div>
-      </aside>
+      </FeatureRail>
 
       {/* Live canvas + config drawer */}
       <div className="carbon-feature-content">
@@ -140,7 +142,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
             <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, height: 40, padding: "0 16px", borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
                 <span style={{ flex: 1, fontSize: 13, color: th.textPrimary, fontWeight: 500 }}>
-                  {t("motion.tap.bindingTitle", "Action triggered by this tap slot")}
+                  {t("motion.tap.bindingTitle", "Tap action binding")}
                 </span>
                 <button onClick={() => setEditing(null)}
                   style={{ padding: "5px 12px", fontSize: 12, background: "transparent", color: th.textSecondary, border: `1px solid ${th.border}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
@@ -231,14 +233,14 @@ function CarryStateCard({ th, t, live }: {
         </span>
         <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>
           {live.carryActive
-            ? t("motion.carry.active", "Carrying — going to sleep")
-            : t("motion.carry.idle", "Settled — awake")}
+            ? t("motion.carry.active", "Sustained motion — sleep pending")
+            : t("motion.carry.idle", "Stationary — awake")}
         </span>
       </div>
       <div style={{ fontSize: 12, color: th.textHelper, lineHeight: 1.45, marginTop: 4 }}>
         {live.carryActive
-          ? t("motion.carry.activeHint", "Still moving — the keyboard will sleep now; set it down to wake it")
-          : t("motion.carry.idleHint", "Resting — carry it around and it will sleep on its own")}
+          ? t("motion.carry.activeHint", "The keyboard enters sleep when sustained motion meets the configured conditions.")
+          : t("motion.carry.idleHint", "Sustained motion is evaluated against the configured threshold and duration.")}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: th.textSecondary, marginTop: 8 }}>
         <Smartphone size={14} style={{ color: th.iconSecondary, flexShrink: 0 }} />
@@ -349,8 +351,8 @@ function LiveMeter({ th, t, motion, section, thresholdDraft }: {
           </div>
           <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: th.textHelper, lineHeight: 1.5 }}>
             {section === "carry"
-              ? t("motion.carry.calibrateHint", "Pick the keyboard up and walk a few steps to see the range the signal settles into, then set the motion threshold from the bottom of that range.")
-              : t("motion.stillWake.meterHint", "The settle window only watches whether motion has fallen silent, so no threshold marker applies here.")}
+              ? t("motion.carry.calibrateHint", "Move the keyboard and observe the stable motion range. Use the lower end of that range as a starting threshold.")
+              : t("motion.stillWake.meterHint", "Stationary confirmation uses motion state rather than a threshold marker.")}
           </div>
         </div>
       </div>
@@ -396,12 +398,12 @@ function TapTestPanel({ th, t, live, tapConfig }: {
     side === "left" ? t("motion.tap.side.left", "Left") : t("motion.tap.side.right", "Right");
 
   return (
-    <div style={{ flexShrink: 0, borderBottom: `1px solid ${th.border}`, padding: "12px 24px 14px" }}>
+    <div className="motion-test-panel custom-scrollbar" style={{ flexShrink: 0, maxHeight: "45%", overflowY: "auto", borderBottom: `1px solid ${th.border}`, padding: "12px 24px 14px" }}>
       {!tapConfig.enabled && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 10, background: th.fieldBg, border: `1px solid ${th.warning}` }}>
           <Info size={16} style={{ color: th.warning, flexShrink: 0 }} />
           <span style={{ fontSize: 12, color: th.textPrimary }}>
-            {t("motion.tap.test.disabled", "Tap recognition is off — enable Case tap below, then the chip events will show up here")}
+            {t("motion.tap.test.disabled", "Tap detection is disabled. Enable it to inspect sensor events.")}
           </span>
         </div>
       )}
@@ -411,24 +413,24 @@ function TapTestPanel({ th, t, live, tapConfig }: {
           {t("motion.tap.test.title", "Tap test")}
         </span>
         <span style={{ fontSize: 12, color: th.textHelper }}>
-          {t("motion.tap.test.hint", "Tap the case; each recognition shows up here while you tune")}
+          {t("motion.tap.test.hint", "Tap the case to inspect detection results and calibrate parameters.")}
         </span>
         {events.length > 0 && (
           <button
             onClick={clear}
             style={{ marginLeft: "auto", padding: "3px 10px", fontSize: 11, background: "transparent", color: th.textSecondary, border: `1px solid ${th.border}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}
           >
-            {t("motion.tap.test.clear", "Clear")}
+            {t("motion.tap.test.clear", "Clear history")}
           </button>
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "stretch", gap: 16 }}>
+      <div className="motion-test-grid">
         {/* Latest recognition, big and immediate */}
         <div
           key={last?.at}
           style={{
-            minWidth: 170, padding: "10px 16px", display: "flex", flexDirection: "column", justifyContent: "center",
+            minWidth: 0, padding: "10px 16px", display: "flex", flexDirection: "column", justifyContent: "center",
             background: last ? th.selectedLayer : th.fieldBg, border: `1px solid ${last ? th.interactive : th.border}`,
           }}
         >
@@ -436,7 +438,7 @@ function TapTestPanel({ th, t, live, tapConfig }: {
             <>
               <span style={{ fontSize: 20, fontWeight: 600, color: th.textPrimary, fontFamily: "var(--font-sans)" }}>
                 {sideLabel(last.side)} ·{" "}
-                {last.taps === 2 ? t("motion.tap.test.double", "double tap") : t("motion.tap.test.single", "single tap")}
+                {last.taps === 2 ? t("motion.tap.test.double", "Double tap") : t("motion.tap.test.single", "Single tap")}
               </span>
               <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: th.textHelper, marginTop: 2 }}>
                 CLICK_SRC 0x{last.src.toString(16).padStart(2, "0")} · {last.axes}
@@ -444,33 +446,35 @@ function TapTestPanel({ th, t, live, tapConfig }: {
             </>
           ) : (
             <span style={{ fontSize: 13, color: th.textHelper }}>
-              {t("motion.tap.test.waiting", "Waiting for a tap…")}
+              {t("motion.tap.test.waiting", "Waiting for a tap event…")}
             </span>
           )}
         </div>
 
         {/* Session counters for quick accuracy checks */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "center", minWidth: 150 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "center", minWidth: 0 }}>
           <span style={{ fontSize: 12, color: th.textHelper }}>
-            {t("motion.tap.test.count", "Recognized")}: <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{events.length}</span>
+            {t("motion.tap.test.count", "Detected events")}: <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{events.length}</span>
           </span>
           <span style={{ fontSize: 12, color: th.textHelper }}>
             {t("motion.tap.side.left", "Left")}/{t("motion.tap.side.right", "Right")}:{" "}
             <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{leftCount}/{events.length - leftCount}</span>
           </span>
           <span style={{ fontSize: 12, color: th.textHelper }}>
-            {t("motion.tap.test.single", "single tap")}/{t("motion.tap.test.double", "double tap")}:{" "}
+            {t("motion.tap.test.single", "Single tap")}/{t("motion.tap.test.double", "Double tap")}:{" "}
             <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{singleCount}/{events.length - singleCount}</span>
-            <span style={{ color: th.textHelper }}> ({t("motion.tap.test.eventCount", "chip events — one double-tap gesture logs both")})</span>
+            <span style={{ color: th.textHelper }}> ({t("motion.tap.test.eventCount", "sensor event count; a double tap may include single- and double-tap events")})</span>
           </span>
           <span style={{ fontSize: 12, color: missed > 0 ? th.warning : th.textHelper }}>
-            {t("motion.tap.test.missed", "Above threshold, not recognized")}:{" "}
+            {t("motion.tap.test.missed", "Above-threshold detections missed")}:{" "}
             <span style={{ fontFamily: "var(--font-mono)" }}>{missed}</span>
           </span>
         </div>
 
         {/* History: newest first */}
-        <div style={{ flex: 1, minWidth: 0, fontFamily: "var(--font-mono)", fontSize: 11, color: th.textSecondary, overflow: "hidden" }}>
+        <div className="motion-test-history custom-scrollbar" style={{ minWidth: 0, fontFamily: "var(--font-mono)", fontSize: 11, color: th.textSecondary }}>
+          <div className="mb-1 font-sans font-medium">{t("motion.tap.test.history", "Recent events")}</div>
+          {events.length === 0 && <span>{t("motion.tap.test.noEvents", "No events recorded")}</span>}
           {events.slice(0, 6).map((e) => (
             <div key={e.at} style={{ display: "flex", gap: 12, whiteSpace: "nowrap" }}>
               <span style={{ color: th.textHelper }}>
@@ -485,12 +489,10 @@ function TapTestPanel({ th, t, live, tapConfig }: {
         </div>
       </div>
 
-      <div style={{ fontSize: 11, color: th.textHelper, marginTop: 8 }}>
-        {t(
-          "motion.tap.test.sideNote",
-          "Side follows the sensor Sign bit as the firmware reads it; if left/right are swapped on your board, build with CONFIG_ZMK_MOTION_TAP_SIDE_INVERT."
-        )}
-      </div>
+      <details style={{ fontSize: 11, color: th.textHelper, marginTop: 8 }}>
+        <summary>{t("motion.tap.test.details", "Detection details")}</summary>
+        {t("motion.tap.test.sideNote", "Side detection follows the sensor direction signal. The physical direction depends on sensor mounting and firmware configuration.")}
+      </details>
     </div>
   );
 }
@@ -665,7 +667,7 @@ function LayerChips({ th, t, layers, mask, onChange }: {
       <span style={{ fontSize: 11, color: th.textHelper }}>
         {mask === ALL_LAYERS_MASK
           ? t("motion.tap.allLayers", "All layers")
-          : t("motion.tap.allLayersOff", "Leave all off for every layer")}
+          : t("motion.tap.allLayersOff", "No selection enables all layers")}
       </span>
     </div>
   );
@@ -687,15 +689,15 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <EnableBar th={th}
-        title={t("motion.tap.title", "Case tap")}
-        desc={t("motion.tap.desc", "Tap the case to trigger actions, one binding per side and tap style")}
+        title={t("motion.tap.title", "Tap detection")}
+        desc={t("motion.tap.desc", "Trigger actions by tapping the case. Configure single and double taps separately for each side.")}
         enabled={config.enabled}
         onChange={(v) => set({ enabled: v })} />
 
       <div className="custom-scrollbar"
         style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 24px 24px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
         <SettingsList>
-          <GroupHeading th={th}>{t("motion.tap.bindingsGroup", "Bindings")}</GroupHeading>
+          <GroupHeading th={th}>{t("motion.tap.bindingsGroup", "Action bindings")}</GroupHeading>
           {TAP_SLOTS.map(({ slot, side, taps }) => (
             <Field key={slot} th={th}
               label={t(`motion.tap.${side}${taps === 1 ? "Single" : "Double"}`,
@@ -719,19 +721,19 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
             value={`${config.timeLimitMs} ms`} height={24}>
             <Slider th={th} value={config.timeLimitMs} min={20} max={200} step={5} onCommit={(v) => set({ timeLimitMs: v })} />
           </Field>
-          <Field th={th} label={t("motion.tap.latency", "Dead time after trigger")} tag="TIME_LATENCY"
+          <Field th={th} label={t("motion.tap.latency", "Post-trigger suppression")} tag="TIME_LATENCY"
             value={`${config.latencyMs} ms`} height={24}>
             <Slider th={th} value={config.latencyMs} min={10} max={400} step={10} onCommit={(v) => set({ latencyMs: v })} />
           </Field>
-          <Field th={th} label={t("motion.tap.window", "Second-tap window")} tag="TIME_WINDOW"
+          <Field th={th} label={t("motion.tap.window", "Double-tap window")} tag="TIME_WINDOW"
             value={`${config.windowMs} ms`} height={24}
-            hint={t("motion.tap.windowHint", "When a single and a double share a side, the single fires this long late so the double can win")}>
+            hint={t("motion.tap.windowHint", "When both actions are configured on the same side, the single-tap action waits until this window ends so a double tap can take priority.")}>
             <Slider th={th} value={config.windowMs} min={50} max={800} step={10} onCommit={(v) => set({ windowMs: v })} />
           </Field>
 
           <GroupHeading th={th}>{t("motion.tap.layersGroup", "Active layers")}</GroupHeading>
           <Field th={th} label={t("motion.tap.layers", "Layers")}
-            hint={t("motion.tap.layersHint", "Taps only fire while one of these layers is active; leave all off for every layer")}>
+            hint={t("motion.tap.layersHint", "Respond to taps only on the selected active layers. No selection enables all layers.")}>
             <LayerChips th={th} t={t} layers={layers} mask={config.layerMask}
               onChange={(m) => set({ layerMask: m })} />
           </Field>
@@ -759,7 +761,7 @@ function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThreshol
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <EnableBar th={th}
         title={t("motion.carry.title", "Carry sleep")}
-        desc={t("motion.carry.desc", "Sleeps the keyboard after sustained walking, so it isn't awake and firing in a bag")}
+        desc={t("motion.carry.desc", "Enters sleep after sustained motion to reduce unintended input during transport.")}
         enabled={config.enabled}
         onChange={(v) => set({ enabled: v })} />
       <div className="custom-scrollbar"
@@ -773,7 +775,7 @@ function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThreshol
           </Field>
           <Field th={th} label={t("motion.carry.motionDuration", "Sustained movement")} tag="STREAK"
             value={`${Math.round(config.motionDurationMs / 1000)} s`} height={24}
-            hint={t("motion.carry.motionDurationHint", "Movement must be this sustained before sleeping — a single jolt won't do it; a key press always cancels")}>
+            hint={t("motion.carry.motionDurationHint", "Motion must persist for the configured duration before sleep. Brief vibration does not trigger sleep; key input cancels the pending transition.")}>
             <Slider th={th} value={config.motionDurationMs} min={1000} max={30000} step={1000}
               onCommit={(v) => set({ motionDurationMs: v })} />
           </Field>
@@ -795,8 +797,8 @@ function StillWakeSettings({ th, t, config, onChange }: {
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <EnableBar th={th}
-        title={t("motion.stillWake.title", "Settle wake")}
-        desc={t("motion.stillWake.desc", "Stays awake once the keyboard has been set down still")}
+        title={t("motion.stillWake.title", "Stationary wake")}
+        desc={t("motion.stillWake.desc", "After a motion wake event, confirm that the device is stationary before keeping it awake.")}
         enabled={config.enabled}
         onChange={(v) => set({ enabled: v })} />
 
@@ -805,7 +807,7 @@ function StillWakeSettings({ th, t, config, onChange }: {
         <SettingsList>
           <Field th={th} label={t("motion.stillWake.settleDuration", "Settle time")} tag="SETTLE"
             value={`${Math.round(config.settleDurationMs / 1000)} s`} height={24}
-            hint={t("motion.stillWake.settleDurationHint", "After a motion wake-up the keyboard must stay this still, or it goes straight back to sleep — a bag keeps moving, a desk doesn't")}>
+            hint={t("motion.stillWake.settleDurationHint", "After a motion wake event, the keyboard must remain stationary for this duration; otherwise it returns to sleep.")}>
             <Slider th={th} value={config.settleDurationMs} min={1000} max={30000} step={1000}
               onCommit={(v) => set({ settleDurationMs: v })} />
           </Field>

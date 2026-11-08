@@ -39,7 +39,7 @@ export function ConnectionView({ th, t, onDisconnect, connectionType }: Connecti
               {t("carbon.conn.title", "Connection")}
             </h2>
             <p className="m-0 text-xs leading-relaxed text-helper">
-              {t("carbon.conn.subtitle", "Check the current link and pair the keyboard with a 2.4G dongle in a few clicks.")}
+              {t("carbon.conn.subtitle", "View connection status and manage pairing between the keyboard and a 2.4G dongle.")}
             </p>
           </div>
           <ActionButton

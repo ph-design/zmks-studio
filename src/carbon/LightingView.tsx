@@ -1,3 +1,4 @@
+import { FeatureRail } from "./FeatureRail";
 import { useEffect } from "react";
 import { Sun, Lightbulb, Lock, Wifi, Layers } from "lucide-react";
 
@@ -46,18 +47,18 @@ export function LightingView({ model, th, t }: LightingViewProps) {
     return (
       <NotSupportedHint th={th}
         icon={<Lightbulb size={40} />}
-        title={t("lighting.emptyTitle", "灯光不可用")}
-        desc={t("lighting.emptyHint", "基于 ph-design/zmks 分支，添加 led_strip 节点并启用 CONFIG_ZMK_RGB_UNDERGLOW")}
+        title={t("lighting.emptyTitle", "Lighting unavailable")}
+        desc={t("lighting.emptyHint", "This device does not expose lighting controls. Check the hardware configuration and firmware support.")}
       />
     );
   }
 
-  const previewScale = model.keymapScale === "auto" ? 0.8 : model.keymapScale;
+  const previewScale = model.keymapScale;
 
   return (
     <div className="carbon-feature-page">
       {/* Left source rail */}
-      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <FeatureRail title={t("carbon.nav.lighting", "Lighting")} style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Lightbulb size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.lighting", "Lighting")}</span>
@@ -74,7 +75,7 @@ export function LightingView({ model, th, t }: LightingViewProps) {
             );
           })}
         </div>
-      </aside>
+      </FeatureRail>
 
       {/* Main: LED canvas + control drawer */}
       <div className="carbon-feature-content">

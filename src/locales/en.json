@@ -89,7 +89,7 @@
   },
   "demo": {
     "title": "Demo mode",
-    "collapsedHint": "No keyboard? Try a simulated device",
+    "collapsedHint": "Explore with a simulated device",
     "desc": "Try ZMK Studio against a simulated device.",
     "capabilities": "Simulated features",
     "launching": "Starting…",
@@ -104,7 +104,7 @@
       "sideKey": "Frame button",
       "sideKeyDesc": "An extra per-layer key on the case edge",
       "motion": "Motion",
-      "motionDesc": "Carry sleep, settle wake & case tap",
+      "motionDesc": "Carry sleep, stationary wake and tap detection",
       "unlockCombo": "Reserved unlock combo",
       "unlockComboDesc": "Firmware-protected unlock slot (not shipping yet)"
     }
@@ -139,7 +139,8 @@
     "modeDefault": "Default",
     "category": "Category",
     "behavior": "Behavior",
-    "noParametersRequired": "No parameters required"
+    "noParametersRequired": "No parameters required",
+    "selectBehavior": "Select behavior"
   },
   "selectBehaviorHint": "Hover over a behavior on the left to see its description",
   "behaviorDesc": {
@@ -226,7 +227,17 @@
       "clear": "Clear"
     },
     "noLed": "No LED behind this key",
-    "noLedShort": "no led"
+    "noLedShort": "no led",
+    "emptyTitle": "Lighting unavailable",
+    "emptyHint": "This device does not expose lighting controls. Check the hardware configuration and firmware support.",
+    "block": {
+      "effect": "Lighting effect",
+      "color": "Color"
+    },
+    "preview": {
+      "clickToTrigger": "Click a key to preview the effect"
+    },
+    "effectNumber": "Effect {{index}}"
   },
   "behavior": {
     "category": {
@@ -374,7 +385,8 @@
       "motion": "Motion",
       "device": "Device",
       "preferences": "Preferences",
-      "connection": "Connection"
+      "connection": "Connection",
+      "tapHold": "Tap-Hold"
     },
     "config": "CONFIGURATION",
     "searchPlaceholder": "Search keycodes…",
@@ -447,7 +459,7 @@
     "layersUnit": "layers",
     "lockedPress": "Press",
     "lockedToUnlock": "to unlock",
-    "lockedCustomHint": "If you changed the unlock shortcut, use your own instead. Studio can't unlock the keyboard for you — that's the point.",
+    "lockedCustomHint": "If the unlock shortcut has been changed, use the configured shortcut. Studio cannot unlock the device remotely.",
     "resetConfirm": "Click again to erase everything",
     "resetConfirmHint": "Your keymap, combos and lighting all go back to how the firmware shipped. This can't be undone from Studio.",
     "resetWorking": "Restoring…",
@@ -455,7 +467,7 @@
     "resetDone": "Settings restored",
     "conn": {
       "title": "Connection",
-      "subtitle": "Check the current link and pair the keyboard with a 2.4G dongle in a few clicks.",
+      "subtitle": "View connection status and manage pairing between the keyboard and a 2.4G dongle.",
       "advanced": "Advanced",
       "advancedHide": "Hide advanced",
       "loading": "Reading the connection state…",
@@ -564,7 +576,7 @@
       "rfClearConfirm": "Click again to clear",
       "rfClearHint": "Drops the stored key and address on the keyboard. A paired dongle stops hearing it until both ends are paired again.",
       "rfNewKey": "New key (16 bytes)",
-      "rfNewKeyNote": "This is the secret, shown once. Copy it or send it to the dongle now.",
+      "rfNewKeyNote": "This pairing key is displayed once. Copy it or send it to the dongle.",
       "rfAtCommandNote": "Paste this into the dongle's serial port at 115200 baud, or use «Pair both ends at once» below when the dongle is connected here.",
       "rfNotSupportedTitle": "No pairing subsystem",
       "rfNotSupported": "This firmware has no zmk.pairing subsystem, so pairing cannot be generated from here. Rebuild with the pairing handler enabled, or pair with the keyboard's own 2.4G binding.",
@@ -646,7 +658,8 @@
       "rfNoRpcTitle": "2.4G cannot carry Studio",
       "rfNoRpc": "The link is on 2.4G, which has no Studio RPC. Switch to USB or Bluetooth above, then come back.",
       "rfLocked": "The keyboard is locked, so it refuses to hand out a pairing key. Unlock it with its own gesture first.",
-      "rfRejected": "The keyboard refused the pairing request — 2.4G pairing only runs while the link is on USB."
+      "rfRejected": "The keyboard refused the pairing request — 2.4G pairing only runs while the link is on USB.",
+      "twoG4": "2.4G"
     },
     "device": {
       "refresh": "Refresh",
@@ -733,7 +746,14 @@
         "notEnabled": "Not enabled",
         "rpcDropped": "RPC frames dropped"
       }
-    }
+    },
+    "switchDevice": "Switch device",
+    "statusBle": "BLE",
+    "statusUsb": "USB",
+    "deviceRefresh": "Refresh information",
+    "deviceCopyAll": "Copy all",
+    "resetFailed": "Reset failed",
+    "resetSettings": "Factory reset"
   },
   "combos": {
     "loading": "Loading…",
@@ -781,22 +801,22 @@
     "live": "Live magnitude",
     "carry": {
       "title": "Carry sleep",
-      "desc": "Sleeps on its own while it's being carried, and wakes when it's set down",
-      "active": "Carrying — going to sleep",
-      "idle": "Settled — awake",
-      "activeHint": "Still moving — the keyboard will sleep now; set it down to wake it",
-      "idleHint": "Resting — carry it around and it will sleep on its own",
+      "desc": "Enters sleep after sustained motion to reduce unintended input during transport.",
+      "active": "Sustained motion — sleep pending",
+      "idle": "Stationary — awake",
+      "activeHint": "The keyboard enters sleep when sustained motion meets the configured conditions.",
+      "idleHint": "Sustained motion is evaluated against the configured threshold and duration.",
       "motionThreshold": "Motion threshold",
       "motionDuration": "Sustained movement",
-      "motionDurationHint": "Movement must be this sustained before sleeping — a single jolt won't do it; a key press always cancels",
-      "calibrateHint": "Pick the keyboard up and walk a few steps to see the range the signal settles into, then set the motion threshold from the bottom of that range."
+      "motionDurationHint": "Motion must persist for the configured duration before sleep. Brief vibration does not trigger sleep; key input cancels the pending transition.",
+      "calibrateHint": "Move the keyboard and observe the stable motion range. Use the lower end of that range as a starting threshold."
     },
     "stillWake": {
-      "title": "Settle wake",
-      "desc": "Stays awake once the keyboard has been set down still",
+      "title": "Stationary wake",
+      "desc": "After a motion wake event, confirm that the device is stationary before keeping it awake.",
       "settleDuration": "Settle time",
-      "settleDurationHint": "After a motion wake-up the keyboard must stay this still, or it goes straight back to sleep — a bag keeps moving, a desk doesn't",
-      "meterHint": "The settle window only watches whether motion has fallen silent, so no threshold marker applies here."
+      "settleDurationHint": "After a motion wake event, the keyboard must remain stationary for this duration; otherwise it returns to sleep.",
+      "meterHint": "Stationary confirmation uses motion state rather than a threshold marker."
     },
     "orientation": {
       "unknown": "Unknown",
@@ -805,10 +825,10 @@
       "tilted": "Tilted / moving"
     },
     "tap": {
-      "title": "Case tap",
-      "desc": "Tap the case to trigger actions, one binding per side and tap style",
-      "bindingTitle": "Action triggered by this tap slot",
-      "bindingsGroup": "Bindings",
+      "title": "Tap detection",
+      "desc": "Trigger actions by tapping the case. Configure single and double taps separately for each side.",
+      "bindingTitle": "Tap action binding",
+      "bindingsGroup": "Action bindings",
       "leftSingle": "Left single tap",
       "leftDouble": "Left double tap",
       "rightSingle": "Right single tap",
@@ -818,17 +838,39 @@
       "timingGroup": "Detection",
       "threshold": "Trigger threshold",
       "timeLimit": "Max tap length",
-      "latency": "Dead time after trigger",
-      "window": "Second-tap window",
-      "windowHint": "When a single and a double share a side, the single fires this long late so the double can win",
+      "latency": "Post-trigger suppression",
+      "window": "Double-tap window",
+      "windowHint": "When both actions are configured on the same side, the single-tap action waits until this window ends so a double tap can take priority.",
       "layersGroup": "Active layers",
       "layers": "Layers",
-      "layersHint": "Taps only fire while one of these layers is active; leave all off for every layer",
+      "layersHint": "Respond to taps only on the selected active layers. No selection enables all layers.",
       "allLayers": "All layers",
-      "allLayersOff": "Leave all off for every layer",
-      "calibrateHint": "Tap the case and read the peak marker it leaves behind, then set the threshold just below it — too low and typing vibration will trigger it."
+      "allLayersOff": "No selection enables all layers",
+      "calibrateHint": "Tap the case and observe the peak magnitude. Set the threshold slightly below valid tap peaks while remaining above normal typing vibration.",
+      "side": {
+        "left": "Left",
+        "right": "Right"
+      },
+      "test": {
+        "title": "Tap test",
+        "hint": "Tap the case to inspect detection results and calibrate parameters.",
+        "disabled": "Tap detection is disabled. Enable it to inspect sensor events.",
+        "clear": "Clear history",
+        "single": "Single tap",
+        "double": "Double tap",
+        "waiting": "Waiting for a tap event…",
+        "count": "Detected events",
+        "eventCount": "sensor event count; a double tap may include single- and double-tap events",
+        "missed": "Above-threshold detections missed",
+        "history": "Recent events",
+        "noEvents": "No events recorded",
+        "details": "Detection details",
+        "sideNote": "Side detection follows the sensor direction signal. The physical direction depends on sensor mounting and firmware configuration."
+      }
     },
-    "peak": "Peak"
+    "peak": "Peak",
+    "sensorModel": "Sensor model",
+    "sensorUnknown": "Not reported"
   },
   "unlockPanel": {
     "title": "Unlock shortcut",

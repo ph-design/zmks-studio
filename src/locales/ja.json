@@ -139,7 +139,8 @@
     "modeDefault": "デフォルト",
     "category": "カテゴリ",
     "behavior": "動作",
-    "noParametersRequired": "パラメーター不要"
+    "noParametersRequired": "パラメーター不要",
+    "selectBehavior": "動作を選択"
   },
   "selectBehaviorHint": "左側の動作にカーソルを合わせると説明が表示されます",
   "behaviorDesc": {
@@ -825,7 +826,9 @@
       "scopeSoftOff": "ソフトオフ",
       "calibrateHint": "キーボードを持って数歩歩き、強度が収まる範囲を確認します。ロックしきい値はその下限、静止しきい値は机上のノイズ上限にします。"
     },
-    "peak": "ピーク"
+    "peak": "ピーク",
+    "sensorModel": "センサーモデル",
+    "sensorUnknown": "未提供"
   },
   "unlockPanel": {
     "title": "ロック解除ショートカット",

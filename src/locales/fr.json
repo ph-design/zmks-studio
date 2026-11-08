@@ -139,7 +139,8 @@
     "modeDefault": "Par défaut",
     "category": "Catégorie",
     "behavior": "Comportement",
-    "noParametersRequired": "Aucun paramètre requis"
+    "noParametersRequired": "Aucun paramètre requis",
+    "selectBehavior": "Choisir une action"
   },
   "selectBehaviorHint": "Survolez un comportement à gauche pour voir sa description",
   "behaviorDesc": {
@@ -825,7 +826,9 @@
       "scopeSoftOff": "Extinction douce",
       "calibrateHint": "Prenez le clavier et marchez quelques pas pour voir la plage atteinte ; prenez le seuil de verrouillage au bas de cette plage et le seuil d'immobilité au niveau du bruit sur un bureau."
     },
-    "peak": "Pic"
+    "peak": "Pic",
+    "sensorModel": "Modèle du capteur",
+    "sensorUnknown": "Non renseigné"
   },
   "unlockPanel": {
     "title": "Raccourci de déverrouillage",

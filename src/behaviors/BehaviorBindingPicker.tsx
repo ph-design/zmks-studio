@@ -405,9 +405,28 @@ export const BehaviorBindingPicker = ({
   const hoveredBehavior = categoryBehaviors.find((b) => b.id === hoveredBehaviorId);
 
   return (
-    <div className="grid h-full w-full flex-1 min-h-0" style={{ gridTemplateColumns: "168px 200px minmax(0,1fr)" }}>
+    <div className="binding-picker h-full w-full flex-1 min-h-0">
+    <div className="binding-grid">
+      <div className="binding-selectors">
+        <label className="min-w-0 text-xs text-helper">
+          {t("binding.category", "Category")}
+          <select className="mt-1 h-8 w-full min-w-0 border-b border-strong bg-field px-2 text-sm text-base-content"
+            value={selectedCategoryId} onChange={e => handleCategorySelect(e.target.value)}>
+            {availableCategories.map(cat => <option key={cat.id} value={cat.id}>{t(`behavior.category.${cat.id}`)}</option>)}
+          </select>
+        </label>
+        <label className="min-w-0 text-xs text-helper">
+          {t("binding.behavior", "Behavior")}
+          <select className="mt-1 h-8 w-full min-w-0 border-b border-strong bg-field px-2 text-sm text-base-content"
+            value={!browsing && categoryBehaviors.some(b => b.id === anchorId) ? anchorId : ""}
+            onChange={e => handleBehaviorSelect(Number(e.target.value))}>
+            <option value="" disabled>{t("binding.selectBehavior", "Select behavior")}</option>
+            {categoryBehaviors.map(b => <option key={b.id} value={b.id}>{DISPLAY_NAME_OVERRIDES[b.displayName] ?? b.displayName}</option>)}
+          </select>
+        </label>
+      </div>
       {/* Category rail — mirrors the app's primary nav (left-accent + layer bg) */}
-      <div className="flex flex-col min-h-0 overflow-y-auto border-r border-base-300 custom-scrollbar">
+      <div className="binding-rail flex flex-col min-h-0 overflow-y-auto border-r border-base-300 custom-scrollbar">
         <div className="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-base-content/50">
           {t("binding.category", "Category")}
         </div>
@@ -424,7 +443,7 @@ export const BehaviorBindingPicker = ({
       {/* Behavior list — Carbon list rows */}
       {/* No fade on category change: the list is the thing being navigated, so it
           should be readable the instant it changes. */}
-      <div className="flex flex-col min-h-0 overflow-y-auto border-r border-base-300 custom-scrollbar"
+      <div className="binding-rail flex flex-col min-h-0 overflow-y-auto border-r border-base-300 custom-scrollbar"
         onMouseLeave={() => setHoveredBehaviorId(null)}
       >
         <div className="px-3 pt-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-base-content/50">
@@ -448,7 +467,7 @@ export const BehaviorBindingPicker = ({
       {/* Parameter / keycode picker. No cell padding so the HID picker fills
           edge-to-edge and its modifier divider reaches the drawer top/bottom;
           inline pickers get their own padded scroll area instead. */}
-      <div className="min-h-0 min-w-0 flex flex-col overflow-hidden">
+      <div className="binding-value min-h-0 min-w-0 flex flex-col overflow-hidden">
         {!isBehaviorInCategory ? (
           <div className="flex items-center justify-center h-full px-6">
             <div className="flex flex-col items-center gap-2 text-center max-w-md">
@@ -533,6 +552,7 @@ export const BehaviorBindingPicker = ({
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 };
@@ -687,7 +707,7 @@ const DualHidPicker = ({
 
   return (
     <div className="flex flex-col gap-2 h-full min-h-0">
-      <div className="flex gap-2 items-center px-3 pt-3">
+      <div className="flex flex-wrap gap-2 items-center px-3 pt-3">
         <SlotButton
           caption={t("binding.hold")}
           value={slot1Label}
@@ -751,7 +771,7 @@ const LayerHidDualPicker = ({
 
   return (
     <div className="flex flex-col gap-2 h-full min-h-0">
-      <div className="flex gap-2 items-center px-3 pt-3">
+      <div className="flex flex-wrap gap-2 items-center px-3 pt-3">
         <SlotButton
           caption={t("binding.hold")}
           value={holdLabel}

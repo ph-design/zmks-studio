@@ -394,7 +394,7 @@ function LockedNotice({ t }: { th: CarbonTheme; t: (k: string, d: string) => str
         <span>{t("carbon.lockedToUnlock", "to unlock")}</span>
       </div>
       <div className="max-w-[360px] text-xs leading-relaxed text-helper">
-        {t("carbon.lockedCustomHint", "If you changed the unlock shortcut, use your own instead. Studio can't unlock the keyboard for you — that's the point.")}
+        {t("carbon.lockedCustomHint", "If the unlock shortcut has been changed, use the configured shortcut. Studio cannot unlock the device remotely.")}
       </div>
     </div>
   );
