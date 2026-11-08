@@ -113,7 +113,7 @@ export function DongleMonitor({ th, t, dongle, autoStart = false }: { th: Carbon
           onMouseMove={event => { const box = event.currentTarget.getBoundingClientRect(); const at = start + ((event.clientX - box.left) / box.width * 600 - 44) / 540 * (end - start); const nearest = visible.reduce<Sample | undefined>((best, s) => !best || Math.abs(s.at - at) < Math.abs(best.at - at) ? s : best, undefined); if (nearest) setSelected(nearest.at); }}>
           {[0, 0.5, 1].map(f => <g key={f}>
             <line x1="44" y1={y(max * f)} x2="584" y2={y(max * f)} stroke={th.border} strokeDasharray={f === 0 ? undefined : "3 4"} />
-            <text x="36" y={y(max * f) + 3} textAnchor="end" fill="currentColor" fontSize="10">{(max * f).toFixed(key === "link" ? 1 : 0)}</text>
+            <text x="36" y={y(max * f) + 3} textAnchor="end" fill="currentColor" fontSize="10">{(max * f).toFixed(max < 10 ? 1 : 0)}</text>
           </g>)}
           <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           {visible.map(s => { const v = value(s); return v === undefined ? null : <circle key={s.at} cx={x(s.at)} cy={y(v)} r={s.at === selected ? 3.5 : visible.length < 90 ? 1.8 : 0} fill={color}><title>{new Date(s.at).toLocaleTimeString()} — {v.toFixed(1)}</title></circle>; })}
