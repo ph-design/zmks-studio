@@ -11,6 +11,7 @@ import type { Translate } from "../misc/format";
 import { useConnectionActions, useConnectionSnapshot } from "../connection/useConnectionState";
 import { ConnectionContext } from "../rpc/ConnectionContext";
 import { DemoDonglePanel } from "../demo/DemoDonglePanel";
+import { ManagementMonitor } from "../connection/ManagementMonitor";
 import { useDongle } from "../connection/useDongle";
 
 export interface ConnectionViewProps {
@@ -118,6 +119,8 @@ export function ConnectionView({ th, t, onDisconnect, connectionType }: Connecti
             </SettingsBlock>
           )
         )}
+
+        <ManagementMonitor th={th} t={t} connectionType={connectionType} />
 
         {isDemo ? <DemoDonglePanel th={th} t={t} /> : <DonglePanel
           th={th} t={t} dongle={dongle}

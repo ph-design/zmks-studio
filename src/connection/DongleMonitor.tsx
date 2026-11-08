@@ -5,7 +5,7 @@ import type { Translate } from "../misc/format";
 import type { DongleController } from "./useDongle";
 
 type Sample = { at: number; rx?: number; rate?: number; failures?: number; delta?: number; latency?: number; link?: string; event?: string };
-export function DongleMonitor({ th, t, dongle, autoStart = false }: { th: CarbonTheme; t: Translate; dongle: Pick<DongleController, "phase" | "busy" | "status" | "queryStatus">; autoStart?: boolean }) {
+export function DongleMonitor({ th, t, dongle, autoStart = false, management }: { th: CarbonTheme; t: Translate; dongle: Pick<DongleController, "phase" | "busy" | "status" | "queryStatus">; autoStart?: boolean; management?: string }) {
   const [active, setActive] = useState(autoStart);
   const [samples, setSamples] = useState<Sample[]>([]);
   const [range, setRange] = useState(60);
@@ -52,14 +52,17 @@ export function DongleMonitor({ th, t, dongle, autoStart = false }: { th: Carbon
     return () => { cancelled = true; clearTimeout(timer); };
   }, [active]);
   if (dongle.phase !== "open") return null;
-  const label = (key: string, fallback: string) => t(`carbon.conn.monitor.${key}`, fallback);
+  const label = (key: string, fallback: string) => {
+    const copy: Record<string, string> = { title: "Studio management channel", channel: "Connection", link: "RPC response state", connected: "Responding", lost: "Query failed", rate: "Successful queries/s", rx: "Successful queries / failed queries", errors: "Failed queries per sample", latency: "RPC round-trip time (ms)", linkTimeline: "Response state: 1 success / 0 failure", note: "Management queries are not keyboard reports. Query time includes transport, firmware and host processing; it is not key latency. RSSI, radio retries and packet loss are unavailable.", reconnected: "Queries resumed", disconnected: "Query failed" };
+    return management && copy[key] ? t(`carbon.conn.management.${key}`, copy[key]) : t(`carbon.conn.monitor.${key}`, fallback);
+  };
   const rate = samples[samples.length - 1]?.rate;
   const end = samples[samples.length - 1]?.at ?? Date.now();
   const visible = samples.filter(s => !range || s.at >= end - range * 1000);
   const start = range ? end - range * 1000 : visible[0]?.at ?? end - 1000;
   const chosen = samples.find(s => s.at === selected);
   const exportCsv = () => {
-    const rows = ["timestamp,rx,receive_packets_per_second,decrypt_failures,decrypt_delta,management_query_ms,link,event", ...samples.map(s => [new Date(s.at).toISOString(), s.rx, s.rate, s.failures, s.delta, s.latency, s.link, s.event].join(","))];
+    const rows = [management ? "timestamp,successful_queries,successful_queries_per_second,failed_queries,failure_delta,rpc_round_trip_ms,response_state,event" : "timestamp,rx,receive_packets_per_second,decrypt_failures,decrypt_delta,management_query_ms,link,event", ...samples.map(s => [new Date(s.at).toISOString(), s.rx, s.rate, s.failures, s.delta, s.latency, s.link, s.event].join(","))];
     const url = URL.createObjectURL(new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = "receiver-analysis.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
@@ -70,7 +73,7 @@ export function DongleMonitor({ th, t, dongle, autoStart = false }: { th: Carbon
       <ActionButton th={th} label={active ? label("pause", "Pause monitoring") : label("start", "Start monitoring")} onClick={() => { setFailed(false); setActive(!active); }} />
     </div>
     <Facts th={th} rows={[
-      { label: label("channel", "Current channel"), value: String(dongle.status?.rfChannel ?? "—") },
+      { label: label("channel", "Current channel"), value: management ?? String(dongle.status?.rfChannel ?? "—") },
       { label: label("link", "Keyboard link"), value: dongle.status?.link === "CONNECTED" ? label("connected", "Connected") : dongle.status?.link === "LOST" ? label("lost", "Disconnected") : "—" },
       { label: label("rate", "Receive rate (packets/s)"), value: active && !failed && rate !== undefined ? rate.toFixed(1) : "—" },
       { label: label("rx", "Received packets / decryption failures"), value: `${dongle.status?.rx ?? "—"} / ${dongle.status?.rxDecryptFail ?? "—"}` },
