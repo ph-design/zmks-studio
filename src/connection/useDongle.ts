@@ -271,7 +271,7 @@ export function useDongle(t: Translate): DongleController {
 
   const queryStatus = async (): Promise<DongleStatus> => {
     const result = await send("AT+2G4?");
-    const parsed = result ? parseDongleStatus(result.raw) : {};
+    const parsed = result?.ok ? parseDongleStatus(result.raw) : {};
     if (result?.ok) setStatus(parsed);
     return parsed;
   };
