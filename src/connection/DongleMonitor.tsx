@@ -111,25 +111,25 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
       const current = chosen && visible.includes(chosen) ? chosen : visible[visible.length - 1];
       const currentValue = current && value(current);
       return <figure key={key} style={{ margin: "12px 0", border: `1px solid ${th.border}`, background: th.layer1 }}>
-        <figcaption style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: `1px solid ${th.border}`, fontSize: 12, color: th.textPrimary }}>
+        <figcaption style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, padding: "12px 16px", borderBottom: `1px solid ${th.border}`, fontSize: 12, color: th.textPrimary }}>
           <span aria-hidden="true" style={{ width: 16, height: 2, background: color, flexShrink: 0 }} />
           <span style={{ flex: 1 }}>{title}</span>
+          {key === "link" && <span style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 11, color: th.textHelper }}>
+            {[[th.success, label("connected", "Connected")], [th.error, label("lost", "Disconnected")], [th.bg, label("gap", "Gap: no sample")]].map(([swatch, text]) => <span key={text} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span aria-hidden="true" style={{ width: 6, height: 6, background: swatch, border: `1px solid ${th.borderStrong}` }} />{text}</span>)}
+          </span>}
           <span style={{ fontFamily: "var(--font-mono)", color }}>{currentValue === undefined ? "—" : key === "link" ? currentValue === 1 ? label("connected", "Connected") : label("lost", "Disconnected") : currentValue.toFixed(discrete ? 0 : 1)}</span>
         </figcaption>
-        <svg role="img" aria-label={title} viewBox="0 0 600 148" style={{ display: "block", width: "100%", height: "auto", minHeight: 120, color: th.textHelper }}
+        <svg role="img" aria-label={title} viewBox={key === "link" ? "0 0 600 66" : "0 0 600 148"} style={{ display: "block", width: "100%", height: "auto", minHeight: 0, color: th.textHelper }}
           onMouseMove={event => { const box = event.currentTarget.getBoundingClientRect(); const at = start + ((event.clientX - box.left) / box.width * 600 - 44) / 540 * (end - start); const nearest = visible.reduce<Sample | undefined>((best, s) => !best || Math.abs(s.at - at) < Math.abs(best.at - at) ? s : best, undefined); if (nearest) setSelected(nearest.at); }}>
           {key === "link" ? <>
-            <rect x="44" y="50" width="540" height="28" fill={th.bg} stroke={th.border} />
+            <rect x="44" y="20" width="540" height="14" fill={th.bg} stroke={th.border} />
             {visible.map((s, i) => {
               const v = value(s); if (v === undefined) return null;
               const next = visible[i + 1];
               const until = Math.min(end, next?.at ?? s.at + 1000, s.at + 1500);
               const text = v === 1 ? label("connected", "Connected") : label("lost", "Disconnected");
-              return <rect key={s.at} x={x(s.at)} y="50" width={Math.max(2, x(until) - x(s.at))} height="28" fill={v === 1 ? th.success : th.error}><title>{new Date(s.at).toLocaleTimeString()} — {text}</title></rect>;
+              return <rect key={s.at} x={Math.min(583, x(s.at))} y="20" width={Math.min(584 - Math.min(583, x(s.at)), Math.max(1, x(until) - x(s.at)))} height="14" fill={v === 1 ? th.success : th.error}><title>{new Date(s.at).toLocaleTimeString()} — {text}</title></rect>;
             })}
-            <text x="44" y="103" fill={th.success} fontSize="10">● {label("connected", "Connected")}</text>
-            <text x="240" y="103" fill={th.error} fontSize="10">● {label("lost", "Disconnected")}</text>
-            <text x="584" y="103" textAnchor="end" fill="currentColor" fontSize="10">{label("gap", "Gap: no sample")}</text>
           </> : <>
           {(discrete && max === 1 ? [0, 1] : [0, 0.5, 1]).map(f => <g key={f}>
             <line x1="44" y1={y(max * f)} x2="584" y2={y(max * f)} stroke={th.border} strokeDasharray={f === 0 ? undefined : "3 4"} />
@@ -138,8 +138,8 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
           <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           {visible.map(s => { const v = value(s); return v === undefined ? null : <circle key={s.at} cx={x(s.at)} cy={y(v)} r={s.at === selected ? 3.5 : visible.length < 90 ? 1.8 : 0} fill={color}><title>{new Date(s.at).toLocaleTimeString()} — {v.toFixed(discrete ? 0 : 1)}</title></circle>; })}
           </>}
-          {chosen && chosen.at >= start && chosen.at <= end && <line x1={x(chosen.at)} x2={x(chosen.at)} y1="20" y2="116" stroke={th.borderStrong} strokeDasharray="3 3" />}
-          <text x="44" y="138" fill="currentColor" fontSize="10">{new Date(start).toLocaleTimeString()}</text><text x="584" y="138" textAnchor="end" fill="currentColor" fontSize="10">{new Date(end).toLocaleTimeString()}</text>
+          {chosen && chosen.at >= start && chosen.at <= end && <line x1={x(chosen.at)} x2={x(chosen.at)} y1={key === "link" ? 14 : 20} y2={key === "link" ? 40 : 116} stroke={th.borderStrong} strokeDasharray="3 3" />}
+          <text x="44" y={key === "link" ? 56 : 138} fill="currentColor" fontSize="10">{new Date(start).toLocaleTimeString()}</text><text x="584" y={key === "link" ? 56 : 138} textAnchor="end" fill="currentColor" fontSize="10">{new Date(end).toLocaleTimeString()}</text>
         </svg>
       </figure>;
     })}
