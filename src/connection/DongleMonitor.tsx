@@ -89,15 +89,36 @@ export function DongleMonitor({ th, t, dongle, autoStart = false }: { th: Carbon
     ] as const).map(([key, title]) => {
       const value = (s: Sample) => key === "link" ? s.link === "CONNECTED" ? 1 : s.link === "LOST" ? 0 : undefined : s[key];
       const max = Math.max(1, ...visible.map(s => value(s) ?? 0));
-      return <figure key={key} style={{ margin: "12px 0" }}>
-        <figcaption style={{ fontSize: 12 }}>{title}</figcaption>
-        <svg role="img" aria-label={title} viewBox="0 0 600 100" style={{ width: "100%", height: 100, background: th.bg, color: th.textSecondary }}>
-          <line x1="0" y1="80" x2="600" y2="80" stroke="currentColor" opacity="0.2" />
-          <text x="598" y="12" textAnchor="end" fill="currentColor" fontSize="10">{max.toFixed(1)}</text>
-          {visible.map(s => { const v = value(s); const x = (s.at - start) / Math.max(1000, end - start) * 592;
-            return v === undefined ? null : <rect key={s.at} x={x} y={80 - v / max * 60} width={Math.max(1, Math.min(8, 590 / Math.max(60, visible.length)))} height={Math.max(2, v / max * 60)} fill={s.at === selected ? "#0f62fe" : "currentColor"} onMouseEnter={() => setSelected(s.at)}><title>{new Date(s.at).toLocaleTimeString()} — {v.toFixed(1)}</title></rect>;
-          })}
-          <text x="0" y="97" fill="currentColor" fontSize="10">{new Date(start).toLocaleTimeString()}</text><text x="598" y="97" textAnchor="end" fill="currentColor" fontSize="10">{new Date(end).toLocaleTimeString()}</text>
+      const color = { rate: th.linkPrimary, delta: th.error, latency: th.warning, link: th.success }[key];
+      const x = (at: number) => 44 + (at - start) / Math.max(1000, end - start) * 540;
+      const y = (v: number) => 116 - v / max * 88;
+      let previous: Sample | undefined;
+      const path = visible.map(s => {
+        const v = value(s);
+        if (v === undefined) { previous = undefined; return ""; }
+        const connected = previous && s.at - previous.at < 4000;
+        const segment = connected ? key === "link" ? `H${x(s.at)}V${y(v)}` : `L${x(s.at)},${y(v)}` : `M${x(s.at)},${y(v)}`;
+        previous = s;
+        return segment;
+      }).join(" ");
+      const current = chosen && visible.includes(chosen) ? chosen : visible[visible.length - 1];
+      const currentValue = current && value(current);
+      return <figure key={key} style={{ margin: "12px 0", border: `1px solid ${th.border}`, background: th.layer1 }}>
+        <figcaption style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", borderBottom: `1px solid ${th.border}`, fontSize: 12, color: th.textPrimary }}>
+          <span aria-hidden="true" style={{ width: 16, height: 2, background: color, flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>{title}</span>
+          <span style={{ fontFamily: "var(--font-mono)", color }}>{currentValue === undefined ? "—" : currentValue.toFixed(key === "link" || key === "delta" ? 0 : 1)}</span>
+        </figcaption>
+        <svg role="img" aria-label={title} viewBox="0 0 600 148" style={{ display: "block", width: "100%", height: "auto", minHeight: 120, color: th.textHelper }}
+          onMouseMove={event => { const box = event.currentTarget.getBoundingClientRect(); const at = start + ((event.clientX - box.left) / box.width * 600 - 44) / 540 * (end - start); const nearest = visible.reduce<Sample | undefined>((best, s) => !best || Math.abs(s.at - at) < Math.abs(best.at - at) ? s : best, undefined); if (nearest) setSelected(nearest.at); }}>
+          {[0, 0.5, 1].map(f => <g key={f}>
+            <line x1="44" y1={y(max * f)} x2="584" y2={y(max * f)} stroke={th.border} strokeDasharray={f === 0 ? undefined : "3 4"} />
+            <text x="36" y={y(max * f) + 3} textAnchor="end" fill="currentColor" fontSize="10">{(max * f).toFixed(key === "link" ? 1 : 0)}</text>
+          </g>)}
+          <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          {visible.map(s => { const v = value(s); return v === undefined ? null : <circle key={s.at} cx={x(s.at)} cy={y(v)} r={s.at === selected ? 3.5 : visible.length < 90 ? 1.8 : 0} fill={color}><title>{new Date(s.at).toLocaleTimeString()} — {v.toFixed(1)}</title></circle>; })}
+          {chosen && chosen.at >= start && chosen.at <= end && <line x1={x(chosen.at)} x2={x(chosen.at)} y1="20" y2="116" stroke={th.borderStrong} strokeDasharray="3 3" />}
+          <text x="44" y="138" fill="currentColor" fontSize="10">{new Date(start).toLocaleTimeString()}</text><text x="584" y="138" textAnchor="end" fill="currentColor" fontSize="10">{new Date(end).toLocaleTimeString()}</text>
         </svg>
       </figure>;
     })}
