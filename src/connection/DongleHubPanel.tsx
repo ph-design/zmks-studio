@@ -17,7 +17,7 @@ export function DongleHubPanel({ th, t, dongle }: { th: CarbonTheme; t: Translat
     const poll = async () => {
       if (stopped) return;
       if (Date.now() >= watchUntil) { setWatchUntil(0); return; }
-      if (!dongleRef.current.busy) await dongleRef.current.queryStatus();
+      if (!dongleRef.current.busy) await dongleRef.current.queryStatus(true);
       if (!stopped) timer = setTimeout(() => void poll(), 750);
     };
     timer = setTimeout(() => void poll(), 400);

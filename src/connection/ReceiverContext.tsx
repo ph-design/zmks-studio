@@ -14,7 +14,7 @@ export function ReceiverProvider({ children }: { children: ReactNode }) {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
-      try { if (!document.hidden && !latest.current.busy) await latest.current.queryStatus(); }
+      try { if (!document.hidden && !latest.current.busy) await latest.current.queryStatus(true); }
       catch { /* The controller retains the actionable connection error. */ }
       finally { if (!stopped) timer = setTimeout(() => void poll(), 1500); }
     };

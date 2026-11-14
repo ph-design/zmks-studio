@@ -30,7 +30,7 @@ export interface DongleController {
   refresh: () => Promise<void>;
   send: (command: string) => Promise<AtResult | undefined>;
   pair: (keyHex: string, rfAddrHex: string, channel: number) => Promise<AtResult>;
-  queryStatus: () => Promise<DongleStatus>;
+  queryStatus: (background?: boolean) => Promise<DongleStatus>;
   clear: () => Promise<AtResult | undefined>;
   reset: () => Promise<AtResult | undefined>;
   bootloader: () => Promise<AtResult | undefined>;
@@ -233,7 +233,7 @@ export function useDongle(t: Translate): DongleController {
     push("rx", "— port closed —");
   };
 
-  const send = async (command: string): Promise<AtResult | undefined> => {
+  const send = async (command: string, background = false): Promise<AtResult | undefined> => {
     const commandLine = command.trim();
     if (!commandLine) return undefined;
 
@@ -243,7 +243,7 @@ export function useDongle(t: Translate): DongleController {
     }
 
     push("tx", commandLine.replace(/^(AT\+(?:PEERPAIR=[01],|PAIR=))[a-f0-9]{32},/i, "$1<redacted>,"));
-    setBusy(true);
+    if (!background) setBusy(true);
     try {
       const result = await client.send(commandLine, AT_TIMEOUT_MS);
       setError(atFailureText(tRef.current, result));
@@ -251,7 +251,7 @@ export function useDongle(t: Translate): DongleController {
       // Keep the parsed state in step with whatever the terminal asked.
       if (/^AT\+?(INFO|2G4\?)/i.test(commandLine)) {
         const parsed = parseDongleStatus(result.raw);
-        if (Object.keys(parsed).length > 0) setStatus(parsed);
+        if (result.ok && Object.keys(parsed).length > 0) setStatus(previous => JSON.stringify(previous) === JSON.stringify(parsed) ? previous : parsed);
       }
       if (/^AT\+GMR/i.test(commandLine)) {
         const version = parseDongleVersion(result.raw);
@@ -263,7 +263,7 @@ export function useDongle(t: Translate): DongleController {
       setError(dongleErrorText(tRef.current, thrown));
       return undefined;
     } finally {
-      setBusy(false);
+      if (!background) setBusy(false);
     }
   };
 
@@ -272,10 +272,10 @@ export function useDongle(t: Translate): DongleController {
     return client.pair(keyHex, rfAddrHex, channel);
   };
 
-  const queryStatus = async (): Promise<DongleStatus> => {
-    const result = await send("AT+2G4?");
+  const queryStatus = async (background = false): Promise<DongleStatus> => {
+    const result = await send("AT+2G4?", background);
     const parsed = result?.ok ? parseDongleStatus(result.raw) : {};
-    if (result?.ok) setStatus(parsed);
+    if (result?.ok) setStatus(previous => JSON.stringify(previous) === JSON.stringify(parsed) ? previous : parsed);
     return parsed;
   };
 

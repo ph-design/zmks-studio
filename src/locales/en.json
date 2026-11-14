@@ -957,7 +957,7 @@
     "sensorModel": "Sensor model",
     "sensorUnknown": "Not reported",
     "guard": {
-      "title": "Carry protection",
+      "title": "Lift lock",
       "desc": "Lock input during carrying and resume after stable placement.",
       "detected": "Motion Guard is recognized. Legacy motion-sleep parameters do not apply to this policy.",
       "unconfirmed": "The firmware policy has not been identified. The basic switch remains available. Compatible receiver telemetry enables automatic detection; legacy parameters are hidden by default.",
@@ -971,7 +971,28 @@
       "firstKey": "New presses during placement confirmation are buffered and sent in order after confirmation. This may delay the first output.",
       "showLegacy": "Show legacy motion-sleep parameters (legacy firmware only)",
       "hideLegacy": "Hide legacy parameters",
-      "meterHint": "Relative motion amplitude for observation; it does not set the placement threshold."
+      "meterHint": "Relative motion amplitude for observation; it does not set the placement threshold.",
+      "settings": {
+        "title": "Detection settings",
+        "hint": "Apply changes, then use the header Save action to retain them after restart. Recommended values match the tested policy.",
+        "carriedSettleMs": "After extended movement",
+        "briefSettleMs": "After a brief lift",
+        "stableSpanMg": "Stable placement tolerance",
+        "departureMg": "Lift detection threshold",
+        "verifyMs": "Lift confirmation time",
+        "carriedSettleMsHint": "Longer confirmation rejects brief flat poses during continued movement.",
+        "briefSettleMsHint": "Shorter confirmation resumes input sooner after a brief lift, with greater risk of premature unlock.",
+        "stableSpanMgHint": "Maximum per-axis span during confirmation. Lower values are stricter and may prevent unlocking on vibrating surfaces.",
+        "departureMgHint": "Acceleration change from the desk baseline. Lower values detect lifting sooner but may react to typing vibration. Clear sideways or inverted poses still lock immediately.",
+        "verifyMsHint": "Duration required for ambiguous motion. Lower values react sooner; higher values reject short vibration. This is not a delay added to each normal keypress.",
+        "invalid": "Enter integers within the listed ranges. Extended-movement confirmation cannot be shorter than brief-lift confirmation.",
+        "defaults": "Restore recommended values",
+        "apply": "Apply settings",
+        "applying": "Applying…",
+        "applied": "Applied. Use the header Save action to retain settings after restart.",
+        "failed": "The keyboard rejected the settings. Previous values were restored."
+      },
+      "upgradeSettings": "Adjustable settings require keyboard firmware preview.5 or later. Existing firmware keeps its original policy."
     }
   },
   "unlockPanel": {

@@ -1,13 +1,14 @@
 // Stream routing follows the MIT-licensed zmk-studio-ts-client implementation.
-// Extend pairing.set_channel (field 4), with bounded requests and independent response/notification cancellation.
+// Additive pairing / Motion Guard extensions, bounded requests, and independent stream cancellation.
 import {Request,Response,type RpcConnection} from "@zmkfirmware/zmk-studio-ts-client";
 import {get_encoder,get_decoder} from "@zmkfirmware/zmk-studio-ts-client/framing";
 import type {RpcTransport} from "@zmkfirmware/zmk-studio-ts-client/transport/index";
 import {Writer} from "protobufjs/minimal";
+import { encodeGuardRequest, decodeGuardResponse } from "../motion/guardProtocol";
 export type ExtendedRequest=Omit<Request,"pairing"> & {pairing?: NonNullable<Request["pairing"]> & {setChannel?:{channel:number}}};
 export function encodeRequest(req:ExtendedRequest):Uint8Array {
   const channel=req.pairing?.setChannel?.channel;
-  if(channel===undefined)return Request.encode(req).finish();
+  if(channel===undefined)return encodeGuardRequest(req) ?? Request.encode(req).finish();
   if(!Number.isInteger(channel) || channel<0 || channel>100 || [2,26,80].includes(channel))throw Error("Invalid radio channel");
   const base=Request.encode({...req,pairing:undefined}).finish();
   const body=Writer.create().uint32(8).uint32(channel).finish();
@@ -52,7 +53,7 @@ export function create_rpc_connection(transport:RpcTransport,opts?:{signal?:Abor
   const closed=requests.readable.pipeThrough(new TransformStream(get_encoder()),{signal}).pipeTo(transport.writable,{signal});
   void closed.then(()=>transport.abortController.abort(),reason=>transport.abortController.abort(reason));
   const decoded=transport.readable.pipeThrough(new TransformStream(get_decoder()),{signal})
-    .pipeThrough(new TransformStream<Uint8Array,Response>({transform(bytes,c){const response=Response.decode(bytes);
+    .pipeThrough(new TransformStream<Uint8Array,Response>({transform(bytes,c){const response=decodeGuardResponse(bytes);
       if(response.requestResponse?.requestId===pendingId){clearTimeout(timer);pendingId=undefined;}
       c.enqueue(response);}}),{signal});
   const decodedReader=decoded.getReader();

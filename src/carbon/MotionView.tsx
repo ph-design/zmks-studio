@@ -1,3 +1,5 @@
+import { GuardSettingsPanel } from "../motion/GuardSettingsPanel";
+import { validGuardSettings } from "../motion/guardProtocol";
 import { ConnectionContext } from "../rpc/ConnectionContext";
 import { useReceiver } from "../connection/ReceiverContext";
 import { hasMotionGuard } from "../connection/receiverState";
@@ -46,7 +48,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
   const { dongle, selectedSlot } = useReceiver();
   const [guardConfirmed, setGuardConfirmed] = useState(false);
   const [legacySettings, setLegacySettings] = useState(false);
-  const reportedGuard = conn?.label === "Demo" || (!!conn?.label.startsWith("2.4G") && hasMotionGuard(dongle.status, selectedSlot));
+  const reportedGuard = capabilities?.guardVersion === 1 || conn?.label === "Demo" || (!!conn?.label.startsWith("2.4G") && hasMotionGuard(dongle.status, selectedSlot));
   useEffect(() => { setGuardConfirmed(false); setLegacySettings(false); }, [conn]);
   useEffect(() => { if (reportedGuard) { setGuardConfirmed(true); setLegacySettings(false); } }, [reportedGuard, conn]);
 
@@ -202,6 +204,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
               th={th} t={t}
               config={carryConfig}
               guardConfirmed={guardConfirmed}
+              configurable={capabilities.guardVersion === 1}
               legacySettings={legacySettings}
               onLegacySettings={setLegacySettings}
               thresholdMax={capabilities.thresholdMax}
@@ -760,18 +763,19 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
   );
 }
 
-function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThresholdDraft, onChange, guardConfirmed, legacySettings, onLegacySettings }: {
+function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThresholdDraft, onChange, guardConfirmed, configurable, legacySettings, onLegacySettings }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   config: CarryConfig;
   thresholdMax: number;
   guardConfirmed: boolean;
+  configurable: boolean;
   legacySettings: boolean;
   onLegacySettings: (v: boolean) => void;
   /** Uncommitted slider value, shared with the live meter's marker. */
   thresholdDraft: number | null;
   onThresholdDraft: (v: number | null) => void;
-  onChange: (c: CarryConfig) => void;
+  onChange: (c: CarryConfig) => Promise<boolean>;
 }) {
   const set = (patch: Partial<CarryConfig>) => onChange({ ...config, ...patch });
   const dim = config.enabled ? 1 : 0.45;
@@ -783,6 +787,7 @@ function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThreshol
       enabled={config.enabled} onChange={v => set({ enabled: v })} />
     <div className="custom-scrollbar overflow-y-auto px-6 py-4 text-sm leading-relaxed">
       <p className="text-helper">{t(guardConfirmed ? "motion.guard.detected" : "motion.guard.unconfirmed", "Firmware controls this policy.")}</p>
+      {configurable && validGuardSettings(config) ? <GuardSettingsPanel config={config} onChange={onChange} t={t} /> : <>
       <dl className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3">
         <dt>{t("motion.guard.input", "Normal input")}</dt><dd>{t("motion.guard.direct", "Direct processing")}</dd>
         <dt>{t("motion.guard.placement", "After sustained carrying")}</dt><dd>180 ms</dd>
@@ -790,6 +795,8 @@ function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThreshol
         <dt>{t("motion.guard.window", "Stable-window range")}</dt><dd>≤ 60 mg</dd>
       </dl>
       <p className="mt-4 text-xs text-helper">{t("motion.guard.fixed", "Values describe Motion Guard defaults and are read-only. They are not reported configuration values for legacy firmware.")}</p>
+      <p className="mt-3 text-xs text-helper">{t("motion.guard.upgradeSettings", "Adjustable settings require keyboard firmware preview.5 or later. Current defaults remain in use.")}</p>
+      </>}
       <p className="mt-3 text-xs text-helper">{t("motion.guard.sleep", "Idle power management remains active. With a healthy IMU and protection enabled, automatic System OFF is suspended; manual power-off remains available.")}</p>
       <p className="mt-3 text-xs text-helper">{t("motion.guard.firstKey", "New presses during placement confirmation are buffered. Confirmation can delay output; this is not zero-latency placement.")}</p>
       {!guardConfirmed && <label className="mt-5 flex items-start gap-2 text-xs"><input type="checkbox" checked={legacySettings} onChange={e => onLegacySettings(e.target.checked)} />{t("motion.guard.showLegacy", "Show legacy motion-sleep parameters")}</label>}

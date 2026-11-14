@@ -1,3 +1,4 @@
+import { GUARD_DEFAULTS, validGuardSettings } from "../motion/guardProtocol";
 import {
   Orientation,
   type CarryConfig,
@@ -21,6 +22,7 @@ const CAPABILITIES: MotionCapabilities = {
   supportsStillWake: false,
   supportsSleepWake: false,
   thresholdMax: 127,
+  guardVersion: 1,
 };
 
 function defaultTapConfig(): TapConfig {
@@ -44,6 +46,7 @@ function defaultCarryConfig(): CarryConfig {
     enabled: true,
     motionThreshold: 32,
     motionDurationMs: 2000,
+    ...GUARD_DEFAULTS,
   };
 }
 
@@ -80,6 +83,7 @@ class DemoMotionFirmware implements MotionBackend {
     return { ...this.carry };
   }
   async setCarryConfig(config: CarryConfig) {
+    if (!validGuardSettings(config)) return false;
     this.carry = { ...config };
     return true;
   }
@@ -132,7 +136,7 @@ class DemoMotionFirmware implements MotionBackend {
     // Qualitative demo at 100ms ticks: retain lock for two ticks after motion.
     if (walking) this.aboveSince = elapsed;
     this.carryActive = this.carry.enabled && (walking ||
-      (this.aboveSince !== undefined && elapsed - this.aboveSince < 180));
+      (this.aboveSince !== undefined && elapsed - this.aboveSince < (this.carry.carriedSettleMs ?? 180)));
 
     // A tap lands only while still and only when the swing clears the click
     // threshold — same gate the firmware applies. Sign bit set = left side.
