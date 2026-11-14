@@ -8,6 +8,7 @@ import { ActionButton, ConfirmAction, Facts, InlineError, Notice, SettingsBlock,
 import { errorText } from "../misc/errors";
 import { channelToMhz, DASH, format2g4Address, type Translate } from "../misc/format";
 import { clearKeyboardPairing, runOneClickPair, type ConsistencyRow, type PairOutcome, type PairStepId } from "./useConnectionState";
+import { DongleMonitor } from "./DongleMonitor";
 import type { DongleController } from "./useDongle";
 
 interface DonglePanelProps {
@@ -127,6 +128,7 @@ export function DonglePanel({ th, t, dongle, firmwareHasConnection, showAdvanced
             </div>
           )}
 
+          <DongleMonitor th={th} t={t} dongle={dongle} />
           <DongleStatusFacts th={th} t={t} dongle={dongle} showAdvanced={showAdvanced} />
           <PairingBlock th={th} t={t} dongle={dongle} firmwareHasConnection={firmwareHasConnection} />
           {showAdvanced && <TerminalBlock th={th} t={t} dongle={dongle} />}

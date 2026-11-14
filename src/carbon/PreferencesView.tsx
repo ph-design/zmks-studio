@@ -59,7 +59,7 @@ export function PreferencesView({ th, t, setting, setSetting, accent, setAccent,
       </SettingsBlock>
 
       <SettingsBlock th={th} label={t("carbon.language", "Language")}>
-        <ContentSwitcher th={th}
+        <Select th={th}
           label={t("carbon.language", "Language")}
           value={normalizeLang(lang)}
           opts={SUPPORTED_LANGUAGES}

@@ -300,8 +300,8 @@ export default function LightingControl({
       return rgbState.effectNames;
     }
     const count = rgbState.effectCount ?? 0;
-    return Array.from({ length: count }, (_, i) => `Effect ${i}`);
-  }, [rgbState]);
+    return Array.from({ length: count }, (_, i) => t("lighting.effectNumber", { index: i, defaultValue: "Effect {{index}}" }));
+  }, [rgbState, t]);
 
   const isRgbSelected = selectedSource === "rgb" && hasRgb;
   const isBlSelected = selectedSource === "backlight" && hasBacklight;

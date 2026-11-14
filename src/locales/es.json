@@ -139,7 +139,8 @@
     "modeDefault": "Predeterminado",
     "category": "Categoría",
     "behavior": "Comportamiento",
-    "noParametersRequired": "No se requieren parámetros"
+    "noParametersRequired": "No se requieren parámetros",
+    "selectBehavior": "Seleccionar acción"
   },
   "selectBehaviorHint": "Pasa el cursor sobre un comportamiento a la izquierda para ver su descripción",
   "behaviorDesc": {
@@ -825,7 +826,9 @@
       "scopeSoftOff": "Apagado suave",
       "calibrateHint": "Coge el teclado y camina unos pasos para ver en qué rango se estabiliza; toma el umbral de bloqueo del extremo inferior y el de quietud del ruido sobre la mesa."
     },
-    "peak": "Pico"
+    "peak": "Pico",
+    "sensorModel": "Modelo del sensor",
+    "sensorUnknown": "No disponible"
   },
   "unlockPanel": {
     "title": "Atajo de desbloqueo",

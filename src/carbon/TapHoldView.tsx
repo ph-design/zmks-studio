@@ -1,3 +1,4 @@
+import { FeatureRail } from "./FeatureRail";
 import { useContext, useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Zap } from "lucide-react";
@@ -83,7 +84,7 @@ export const TapHoldView = ({ behaviors, th, getConfig, applyConfig }: TapHoldVi
 
   return (
     <div className="carbon-feature-page">
-      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <FeatureRail title={t("carbon.nav.tapHold", "Tap-Hold")} style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{
           padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`,
           display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
@@ -140,7 +141,7 @@ export const TapHoldView = ({ behaviors, th, getConfig, applyConfig }: TapHoldVi
             );
           })}
         </div>
-      </aside>
+      </FeatureRail>
 
       {/* ── Right content — editor ── */}
       <div className="carbon-editor-scroll custom-scrollbar">

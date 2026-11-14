@@ -1,3 +1,4 @@
+import { FeatureRail } from "./FeatureRail";
 import { useEffect, useState } from "react";
 import {
   ChevronUp, ChevronDown, Keyboard as KeyboardIcon, Layers,
@@ -72,7 +73,7 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
   return (
     <div className="carbon-feature-page">
       {/* Secondary sidebar: layer list */}
-      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <FeatureRail title={t("carbon.nav.layers", "Layers")} style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Layers size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.layers", "Layers")}</span>
@@ -149,7 +150,7 @@ export function LayersView({ model, th, t, deviceName }: LayersViewProps) {
             {bottomAction(<Trash2 size={13} />, t("carbon.deleteLayer", "Delete layer"), () => model.removeLayer(), { color: th.error, disabled: km.layers.length <= 1 })}
           </div>
         )}
-      </aside>
+      </FeatureRail>
 
       {/* Canvas + binding drawer */}
       <div className="carbon-feature-content">

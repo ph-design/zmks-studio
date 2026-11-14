@@ -174,13 +174,13 @@ export function ZoomControl({ t, scale, setScale }: ChromeProps & {
   const numeric = typeof scale === "number" ? scale : 1;
   const change = (delta: number) => setScale(Math.min(2, Math.max(0.4, Math.round((numeric + delta) * 10) / 10)));
   const label = scale === "auto" ? t("carbon.zoomFit", "Fit") : `${Math.round(numeric * 100)}%`;
-  const btn = "flex h-7 w-7 items-center justify-center border border-base-300 bg-layer1 text-secondary-content";
+  const btn = "flex h-7 items-center justify-center border border-base-300 bg-layer1 text-secondary-content";
   return (
     <div className="absolute bottom-4 right-4 flex items-center shadow-[0_1px_4px_rgba(0,0,0,0.2)]">
-      <button title={t("carbon.zoomOut", "Zoom out")} onClick={() => change(-0.1)} className={btn}><Minus size={14} /></button>
+      <button title={t("carbon.zoomOut", "Zoom out")} onClick={() => change(-0.1)} className={`${btn} w-7`}><Minus size={14} /></button>
       <button title={t("carbon.zoomFit", "Fit")} onClick={() => setScale("auto")}
-        className={`${btn} min-w-[52px] border-x-0 px-2 font-mono text-xs text-base-content`}>{label}</button>
-      <button title={t("carbon.zoomIn", "Zoom in")} onClick={() => change(0.1)} className={btn}><Plus size={14} /></button>
+        className={`${btn} w-auto min-w-[52px] whitespace-nowrap border-x-0 px-2 font-mono text-xs text-base-content`}>{label}</button>
+      <button title={t("carbon.zoomIn", "Zoom in")} onClick={() => change(0.1)} className={`${btn} w-7`}><Plus size={14} /></button>
     </div>
   );
 }
@@ -278,7 +278,7 @@ function FactCopy({ t, value }: { t?: Translate; value: string }) {
   );
 }
 
-const secondaryButton = "inline-flex items-center gap-1.5 whitespace-nowrap border bg-transparent px-3.5 py-2 font-sans text-sm";
+const secondaryButton = "inline-flex items-center gap-1.5 whitespace-nowrap border px-3.5 py-2 font-sans text-sm";
 
 export function ActionButton({ label, icon, onClick, disabled, primary }: ChromeProps & {
   label: string;
@@ -292,10 +292,10 @@ export function ActionButton({ label, icon, onClick, disabled, primary }: Chrome
       onClick={onClick}
       disabled={disabled}
       className={`${secondaryButton} ${disabled
-        ? "cursor-default border-disabled text-disabled"
+        ? "cursor-default border-disabled bg-transparent text-disabled"
         : primary
           ? "border-primary bg-primary text-primary-content"
-          : "border-secondary-content text-secondary-content"}`}
+          : "border-secondary-content bg-transparent text-secondary-content"}`}
     >
       {icon}
       {label}
@@ -375,10 +375,10 @@ export function ConfirmAction({ t, label, confirmLabel, hint, icon, tone = "prim
       disabled={disabled}
       title={title}
       className={`${secondaryButton} ${disabled
-        ? "cursor-default border-disabled text-disabled"
+        ? "cursor-default border-disabled bg-transparent text-disabled"
         : danger
-          ? "border-error text-error"
-          : "border-secondary-content text-secondary-content"}`}
+          ? "border-error bg-transparent text-error"
+          : "border-secondary-content bg-transparent text-secondary-content"}`}
     >
       {icon}
       {label}

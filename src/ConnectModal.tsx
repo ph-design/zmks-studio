@@ -823,7 +823,7 @@ function DemoModeCard({
     { key: "holdTap", label: t("demo.feature.holdTap", "Tap-Hold"), desc: t("demo.feature.holdTapDesc", "Runtime hold-tap timing configs") },
     { key: "lighting", label: t("demo.feature.lighting", "Lighting"), desc: t("demo.feature.lightingDesc", "RGB underglow & backlight") },
     { key: "sideKey", label: t("demo.feature.sideKey", "Frame button"), desc: t("demo.feature.sideKeyDesc", "An extra per-layer key on the case edge") },
-    { key: "motion", label: t("demo.feature.motion", "Motion"), desc: t("demo.feature.motionDesc", "IMU case-tap action & walk-detect lock") },
+    { key: "motion", label: t("demo.feature.motion", "Motion"), desc: t("demo.feature.motionDesc", "Carry sleep, stationary wake and tap detection") },
     { key: "unlockCombo", label: t("demo.feature.unlockCombo", "Reserved unlock combo"), desc: t("demo.feature.unlockComboDesc", "Firmware-protected unlock slot (not shipping yet)") },
   ];
 
@@ -846,7 +846,7 @@ function DemoModeCard({
       >
         <Play className="size-4 text-primary" />
         <span className="flex-1">{t("demo.title", "Demo mode")}</span>
-        <span className="text-xs opacity-60">{t("demo.collapsedHint", "No keyboard? Try a simulated device")}</span>
+        <span className="text-xs opacity-60">{t("demo.collapsedHint", "Explore with a simulated device")}</span>
         <ChevronDown className="size-4 opacity-60" />
       </button>
     );

@@ -1,3 +1,4 @@
+import { FeatureRail } from "../carbon/FeatureRail";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link2, Eraser } from "lucide-react";
@@ -144,7 +145,7 @@ export const ComboPanel = ({ combos, reservedCount = 0, loaded, behaviors, behav
   return (
     <div className="carbon-feature-page">
       {/* Left rail — combo slots */}
-      <aside className="carbon-feature-rail" style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
+      <FeatureRail title={t("carbon.nav.combos", "Combos")} style={{ background: th.railBg, borderRight: `1px solid ${th.border}` }}>
         <div style={{ padding: "12px 16px", background: th.layer1, borderBottom: `1px solid ${th.border}`, display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Link2 size={16} style={{ color: th.interactive }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>{t("carbon.nav.combos", "Combos")}</span>
@@ -200,7 +201,7 @@ export const ComboPanel = ({ combos, reservedCount = 0, loaded, behaviors, behav
             </button>
           </div>
         )}
-      </aside>
+      </FeatureRail>
 
       {/* Right content — editor */}
       <div className="carbon-editor-scroll custom-scrollbar">
@@ -465,8 +466,8 @@ const MsField = ({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-3">
-        <span className="text-base text-base-content/60 min-w-[7rem] shrink-0 whitespace-nowrap">{label}</span>
+      <div className="grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-3">
+        <span className="col-span-2 text-sm text-base-content/60">{label}</span>
         <input
           type="range"
           aria-label={label}
@@ -475,7 +476,7 @@ const MsField = ({
           step={step}
           value={clamped}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="flex-1 accent-primary"
+          className="min-w-0 w-full accent-primary"
         />
         <input
           type="number"
