@@ -1,5 +1,7 @@
 // React state and AT transport for USB dongles.
 import { useEffect, useRef, useState } from "react";
+import { nativeReceiverApi, isDesktop, type ReceiverPort } from "./nativeReceiver";
+import type { MotionLockState } from "./receiverState";
 
 import { errorText } from "../misc/errors";
 import { sleep, type Translate } from "../misc/format";
@@ -22,12 +24,13 @@ export interface DongleController {
   error?: string;
   busy: boolean;
   transcript: TranscriptEntry[];
-  connect: (anyPort?: boolean) => Promise<void>;
+  connect: (anyPort?: boolean, port?: SerialPort) => Promise<void>;
+  managementPort?: SerialPort;
   disconnect: () => Promise<void>;
   refresh: () => Promise<void>;
   send: (command: string) => Promise<AtResult | undefined>;
   pair: (keyHex: string, rfAddrHex: string, channel: number) => Promise<AtResult>;
-  queryStatus: () => Promise<DongleStatus>;
+  queryStatus: (background?: boolean) => Promise<DongleStatus>;
   clear: () => Promise<AtResult | undefined>;
   reset: () => Promise<AtResult | undefined>;
   bootloader: () => Promise<AtResult | undefined>;
@@ -154,7 +157,7 @@ export function useDongle(t: Translate): DongleController {
     }
   };
 
-  const connect = async (anyPort = false) => {
+  const connect = async (anyPort = false, selectedPort?: SerialPort) => {
     const generation = ++connectState.state.generation;
     setError(undefined);
     setFirmware(undefined);
@@ -163,7 +166,7 @@ export function useDongle(t: Translate): DongleController {
     push("tx", anyPort ? "opening any serial port" : "opening 5048:FF11");
 
     try {
-      const candidates = anyPort ? [await requestAnySerialPort()] : await requestDonglePorts();
+      const candidates = selectedPort ? [selectedPort] : anyPort ? [await requestAnySerialPort()] : await requestDonglePorts();
       if (generation !== connectState.state.generation) return;
 
       const attempt = async () => {
@@ -230,7 +233,7 @@ export function useDongle(t: Translate): DongleController {
     push("rx", "— port closed —");
   };
 
-  const send = async (command: string): Promise<AtResult | undefined> => {
+  const send = async (command: string, background = false): Promise<AtResult | undefined> => {
     const commandLine = command.trim();
     if (!commandLine) return undefined;
 
@@ -239,8 +242,8 @@ export function useDongle(t: Translate): DongleController {
       return undefined;
     }
 
-    push("tx", commandLine);
-    setBusy(true);
+    push("tx", commandLine.replace(/^(AT\+(?:PEERPAIR=[01],|PAIR=))[a-f0-9]{32},/i, "$1<redacted>,"));
+    if (!background) setBusy(true);
     try {
       const result = await client.send(commandLine, AT_TIMEOUT_MS);
       setError(atFailureText(tRef.current, result));
@@ -248,7 +251,7 @@ export function useDongle(t: Translate): DongleController {
       // Keep the parsed state in step with whatever the terminal asked.
       if (/^AT\+?(INFO|2G4\?)/i.test(commandLine)) {
         const parsed = parseDongleStatus(result.raw);
-        if (Object.keys(parsed).length > 0) setStatus(parsed);
+        if (result.ok && Object.keys(parsed).length > 0) setStatus(previous => JSON.stringify(previous) === JSON.stringify(parsed) ? previous : parsed);
       }
       if (/^AT\+GMR/i.test(commandLine)) {
         const version = parseDongleVersion(result.raw);
@@ -260,24 +263,25 @@ export function useDongle(t: Translate): DongleController {
       setError(dongleErrorText(tRef.current, thrown));
       return undefined;
     } finally {
-      setBusy(false);
+      if (!background) setBusy(false);
     }
   };
 
   const pair = async (keyHex: string, rfAddrHex: string, channel: number): Promise<AtResult> => {
-    push("tx", `AT+PAIR=${keyHex},${rfAddrHex},${channel.toString(16).toUpperCase().padStart(2, "0")}`);
+    push("tx", `AT+PAIR=<redacted>,${rfAddrHex},${channel.toString(16).toUpperCase().padStart(2, "0")}`);
     return client.pair(keyHex, rfAddrHex, channel);
   };
 
-  const queryStatus = async (): Promise<DongleStatus> => {
-    const result = await send("AT+2G4?");
+  const queryStatus = async (background = false): Promise<DongleStatus> => {
+    const result = await send("AT+2G4?", background);
     const parsed = result?.ok ? parseDongleStatus(result.raw) : {};
-    if (result?.ok) setStatus(parsed);
+    if (result?.ok) setStatus(previous => JSON.stringify(previous) === JSON.stringify(parsed) ? previous : parsed);
     return parsed;
   };
 
   return {
     supported: dongleSupported(),
+    managementPort: client.selectedPort,
     phase,
     port,
     firmware,
@@ -351,6 +355,26 @@ export interface DongleStatus {
   link?: string;
   rx?: number;
   rxDecryptFail?: number;
+  batteryPercent?: number;
+  ledCaps?: number;
+  ledMode?: "AUTO" | "ON" | "OFF";
+  ledBrightness?: number;
+  ledLowPct?: number;
+  ledPeriodMs?: number;
+  ledDirty?: boolean;
+  hubCapacity?: number;
+  hubTarget?: number;
+  hubStudioOpen?: boolean;
+  motionStates?: Partial<Record<number, MotionLockState>>;
+  hubPeers?: {motionState?: MotionLockState;slot:number;enabled:boolean;paired:boolean;connected:boolean;batteryPercent?:number;keyId:string;rfAddr:string;rfChannel:number;rx:number;decryptFail:number;queueDrop:number}[];
+  studio2g4?: boolean;
+  studioActive?: boolean;
+  bleMouse?: boolean;
+  bleState?: "READY" | "CONNECTING" | "SCANNING" | "IDLE";
+  bleRx?: number;
+  bleError?: number;
+  bleDevices?: { index: number; rssi: number; name: string }[];
+
 }
 
 interface Pending {
@@ -362,6 +386,7 @@ interface Pending {
 }
 
 export function serialApi(): Serial | undefined {
+  if (isDesktop()) return nativeReceiverApi();
   if (typeof navigator === "undefined") return undefined;
   return (navigator as unknown as { serial?: Serial }).serial;
 }
@@ -375,6 +400,7 @@ export function isDonglePortInfo(info: SerialPortInfo): boolean {
 }
 
 export function portLabel(port: SerialPort): string {
+  if ((port as ReceiverPort).device) return (port as ReceiverPort).device!.label;
   const info = port.getInfo();
   if (info.usbVendorId === undefined) return "serial";
   const vid = info.usbVendorId.toString(16).padStart(4, "0").toUpperCase();
@@ -446,6 +472,77 @@ export function parseDongleStatus(raw: string): DongleStatus {
     const value = line.slice(eq + 1).trim();
 
     switch (key) {
+      case "HUB_PEERS": if(value === "2") status.hubCapacity=2; break;
+      case "HUB_TARGET": if(value === "0" || value === "1") status.hubTarget=Number(value); break;
+      case "HUB_STUDIO_OPEN": if(value === "0" || value === "1") status.hubStudioOpen=value === "1"; break;
+      case "HUB_MOTION": {
+        const m = /^([01]),(READY|LOCKED|UNKNOWN)$/.exec(value);
+        if (m) status.motionStates = { ...status.motionStates, [Number(m[1])]: m[2] as MotionLockState };
+        break;
+      }
+      case "HUB_PEER": {
+        const v=value.split(",");
+        if(v.length!==11 || !/^[01]$/.test(v[0]) || !v.slice(1,4).every(x=>/^[01]$/.test(x)) ||
+           !/^-?\d+$/.test(v[4]) || Number(v[4]) < -1 || Number(v[4]) > 100 || !/^[a-f0-9]{8}$/i.test(v[5]) ||
+           !/^[a-f0-9]{10}$/i.test(v[6]) || !v.slice(7).every(x=>/^\d+$/.test(x) && Number.isSafeInteger(Number(x))) || Number(v[7])>100)break;
+        const p={slot:Number(v[0]),enabled:v[1]==="1",paired:v[2]==="1",connected:v[3]==="1",batteryPercent:Number(v[4])<0?undefined:Number(v[4]),
+          keyId:v[5].toUpperCase(),rfAddr:v[6].toUpperCase(),rfChannel:Number(v[7]),rx:Number(v[8]),decryptFail:Number(v[9]),queueDrop:Number(v[10])};
+        status.hubPeers=[...(status.hubPeers??[]).filter(x=>x.slot!==p.slot),p]; break;
+      }
+
+      case "STUDIO_2G4":
+      case "STUDIO_ACTIVE":
+      case "BLE_MOUSE":
+        if (value === "0" || value === "1") {
+          if (key === "STUDIO_2G4") status.studio2g4 = value === "1";
+          else if (key === "STUDIO_ACTIVE") status.studioActive = value === "1";
+          else status.bleMouse = value === "1";
+        }
+        break;
+      case "BLE_STATE":
+        if (value === "READY" || value === "CONNECTING" || value === "SCANNING" || value === "IDLE") status.bleState = value;
+        break;
+      case "BLE_RX":
+        if (/^\d+$/.test(value) && Number.isSafeInteger(Number(value))) status.bleRx = Number(value);
+        break;
+      case "BLE_ERROR":
+        if (/^-?\d+$/.test(value) && Number.isSafeInteger(Number(value))) status.bleError = Number(value);
+        break;
+      case "BLE_DEVICE": {
+        const m = /^(\d+),(-?\d+),(.{1,64})$/.exec(value);
+        if (m && Number(m[1]) < 8 && Number(m[2]) >= -127 && Number(m[2]) <= 20) {
+          const device = {index:Number(m[1]),rssi:Number(m[2]),name:m[3]};
+          status.bleDevices = [...(status.bleDevices ?? []).filter(d => d.index !== device.index), device];
+        }
+        break;
+      }
+
+      case "BATTERY_PCT": {
+        const n = Number(value);
+        if (/^\d+$/.test(value) && Number.isInteger(n) && n >= 0 && n <= 100) status.batteryPercent = n;
+        break;
+      }
+      case "LED_CAPS":
+        if (value === "1") status.ledCaps = 1;
+        break;
+      case "LED_MODE":
+        if (value === "AUTO" || value === "ON" || value === "OFF") status.ledMode = value;
+        break;
+      case "LED_BRIGHTNESS":
+      case "LED_LOW_PCT":
+      case "LED_PERIOD_MS": {
+        const n = Number(value);
+        const [min,max] = key === "LED_BRIGHTNESS" ? [0,100] : key === "LED_LOW_PCT" ? [5,50] : [500,5000];
+        if (/^\d+$/.test(value) && Number.isInteger(n) && n >= min && n <= max) {
+          if (key === "LED_BRIGHTNESS") status.ledBrightness = n;
+          else if (key === "LED_LOW_PCT") status.ledLowPct = n;
+          else status.ledPeriodMs = n;
+        }
+        break;
+      }
+      case "LED_DIRTY":
+        if (value === "0" || value === "1") status.ledDirty = value === "1";
+        break;
       case "PAIR_STATE":
         status.pairState = value.toUpperCase();
         break;
@@ -478,6 +575,7 @@ export function parseDongleStatus(raw: string): DongleStatus {
     }
   }
 
+  if (status.hubPeers) status.hubPeers = status.hubPeers.map(p => ({ ...p, motionState: p.connected ? status.motionStates?.[p.slot] ?? "UNKNOWN" : "UNKNOWN" }));
   return status;
 }
 
@@ -500,6 +598,8 @@ export class DongleSerial {
   onLine?: (line: string) => void;
   onLost?: (reason: string) => void;
 
+  get selectedPort(): SerialPort | undefined { return this.port ?? undefined; }
+
   get isOpen(): boolean {
     return !!this.port && !this.lostReason;
   }
@@ -513,6 +613,7 @@ export class DongleSerial {
 
     try {
       await port.open({ baudRate: DONGLE_BAUD_RATE });
+      if (port.setSignals) await port.setSignals({ dataTerminalReady: true });
     } catch (error) {
       throw new DongleError("open-failed", describe(error));
     }
@@ -645,7 +746,7 @@ export class DongleSerial {
     }
   }
 
-  private exec(command: string, timeoutMs: number): Promise<AtResult> {
+  private async exec(command: string, timeoutMs: number): Promise<AtResult> {
     const port = this.port;
     if (!port || this.lostReason || !port.writable) {
       return Promise.reject(new DongleError("not-open", "dongle serial port is not open"));
@@ -661,19 +762,27 @@ export class DongleSerial {
       };
     });
 
-    const writer = port.writable.getWriter();
-    void writer
-      .write(new TextEncoder().encode(`${command}\r\n`))
-      .catch((error: unknown) => this.failPending(`write failed: ${describe(error)}`))
-      .finally(() => {
-        try {
-          writer.releaseLock();
-        } catch {
-          // nothing to release if the stream errored out
-        }
-      });
-
-    return result;
+    let writer: WritableStreamDefaultWriter<Uint8Array> | undefined;
+    try {
+      writer = port.writable.getWriter();
+      const written = writer.write(new TextEncoder().encode(`${command}\r\n`));
+      // A reply may arrive before Web Serial resolves write(). Keep the queue
+      // occupied until the write lock is released, including errors/timeouts.
+      void written.catch((error: unknown) => this.failPending(`write failed: ${describe(error)}`));
+      const reply = await result;
+      if (reply.timedOut) {
+        this.markLost("AT response timed out; reconnect the management port");
+        return reply;
+      }
+      await withTimeout(written, timeoutMs, "AT write timed out");
+      return reply;
+    } catch (error) {
+      this.failPending(`write failed: ${describe(error)}`);
+      this.markLost(describe(error));
+      return await result;
+    } finally {
+      try { writer?.releaseLock(); } catch { /* device may have disconnected */ }
+    }
   }
 
   private finish(ok: boolean, timedOut = false): void {

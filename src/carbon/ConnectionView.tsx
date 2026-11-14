@@ -12,13 +12,12 @@ import { useConnectionActions, useConnectionSnapshot } from "../connection/useCo
 import { ConnectionContext } from "../rpc/ConnectionContext";
 import { DemoDonglePanel } from "../demo/DemoDonglePanel";
 import { ManagementMonitor } from "../connection/ManagementMonitor";
-import { useDongle } from "../connection/useDongle";
+import { useReceiver } from "../connection/ReceiverContext";
 
 export interface ConnectionViewProps {
   th: CarbonTheme;
   t: Translate;
   onDisconnect: () => void;
-  // no 2g4 for now
   connectionType?: string;
 }
 
@@ -26,7 +25,7 @@ export function ConnectionView({ th, t, onDisconnect, connectionType }: Connecti
   const isDemo = useContext(ConnectionContext).conn?.label === "Demo";
   const snapshot = useConnectionSnapshot();
   const actions = useConnectionActions();
-  const dongle = useDongle(t);
+  const { dongle } = useReceiver();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const state = snapshot.support === "ready" ? snapshot.state : undefined;

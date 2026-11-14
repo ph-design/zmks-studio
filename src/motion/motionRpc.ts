@@ -2,8 +2,8 @@ import type { RpcConnection } from "@zmkfirmware/zmk-studio-ts-client";
 import type { BehaviorBinding } from "@zmkfirmware/zmk-studio-ts-client/keymap";
 import {
   Orientation,
-  type Capabilities,
-  type CarryConfig,
+  type Capabilities as BaseCapabilities,
+  type CarryConfig as BaseCarryConfig,
   type LiveState,
   type Request as MotionRequest,
   type Response as MotionResponse,
@@ -14,11 +14,12 @@ import {
 import { call_rpc } from "../rpc/logging";
 import { DEMO_LABEL, getDemoMotionBackend } from "../demo/motionBackend";
 
+import type { GuardSettings } from "./guardProtocol";
+export type CarryConfig = BaseCarryConfig & Partial<GuardSettings>;
+export type MotionCapabilities = BaseCapabilities & { guardVersion?: number };
 // Generated codec types, re-exported so the app imports motion types from here.
 export { Orientation };
 export type {
-  Capabilities as MotionCapabilities,
-  CarryConfig,
   LiveState as MotionLiveState,
   StillWakeConfig,
   TapConfig,
@@ -38,7 +39,7 @@ export const TAP_SLOTS: { slot: TapSlot; side: "left" | "right"; taps: 1 | 2 }[]
 ];
 
 export interface MotionBackend {
-  getCapabilities(): Promise<Capabilities | null>;
+  getCapabilities(): Promise<MotionCapabilities | null>;
   getTapConfig(): Promise<TapConfig | null>;
   setTapConfig(config: TapConfig): Promise<boolean>;
   getCarryConfig(): Promise<CarryConfig | null>;
