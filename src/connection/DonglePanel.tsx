@@ -11,6 +11,7 @@ import { clearKeyboardPairing, runOneClickPair, type ConsistencyRow, type PairOu
 import { HubKeyboardsPanel } from "./HubKeyboardsPanel";
 import { DongleHubPanel } from "./DongleHubPanel";
 import { DongleLedPanel } from "./DongleLedPanel";
+import { ReceiverPortHelp } from "./ReceiverAccess";
 import { DongleMonitor } from "./DongleMonitor";
 import type { DongleController } from "./useDongle";
 
@@ -76,6 +77,7 @@ export function DonglePanel({ th, t, dongle, firmwareHasConnection, showAdvanced
         )
       }
     >
+      <div className="mb-3"><ReceiverPortHelp /></div>
       {!dongle.supported ? (
         <Notice
           th={th}

@@ -169,3 +169,9 @@ fields. `clientSupportsMotion()` in `src/motion/motionRpc.ts` round-trips a
 probe request through the codec and switches from the in-memory demo backend to
 real RPC automatically once the regenerated client is installed. No frontend
 change is needed at that point beyond the version bump.
+
+## Motion Guard compatibility (2026-11-15)
+
+Legacy carry thresholds and stationary-wake fields do not describe the new Motion Guard policy. The UI keeps their controls hidden by default and offers an explicit legacy opt-in when the strategy cannot be identified. Fresh READY/LOCKED telemetry for the selected online receiver peer confirms Motion Guard for that keyboard session; UNKNOWN or receiver firmware version alone does not.
+
+Motion Guard defaults are presented as read-only documentation: a 180 ms stable window after sustained carrying, 60 ms after a brief lock, and at most 60 mg span per axis. Placement confirmation can defer buffered new presses. Normal input follows the direct path. Idle power management remains separate, and automatic System OFF is suspended while the healthy IMU guard is enabled. The basic carry enable switch remains mapped to the existing RPC; these policy constants are not written through legacy threshold fields.

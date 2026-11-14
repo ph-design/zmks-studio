@@ -34,6 +34,7 @@ import { valueAfter } from "./misc/async";
 import { AboutModal } from "./AboutModal";
 import { LicenseNoticeModal } from "./misc/LicenseNoticeModal";
 import { CarbonShell } from "./carbon/CarbonShell";
+import { ReceiverProvider } from "./connection/ReceiverContext";
 import { saveMotionState } from "./motion/useMotion";
 import { useCarbonTheme } from "./carbon/theme";
 
@@ -513,6 +514,7 @@ function App() {
 
   return (
     <I18nextProvider i18n={i18n}>
+      <ReceiverProvider>
       <ConnectionContext.Provider value={conn}>
         <LockStateContext.Provider value={lockState}>
           <UndoRedoContext.Provider value={doIt}>
@@ -562,6 +564,7 @@ function App() {
           </UndoRedoContext.Provider>
         </LockStateContext.Provider>
       </ConnectionContext.Provider>
+      </ReceiverProvider>
     </I18nextProvider>
   );
 }

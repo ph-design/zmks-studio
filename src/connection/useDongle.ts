@@ -1,5 +1,7 @@
 // React state and AT transport for USB dongles.
 import { useEffect, useRef, useState } from "react";
+import { nativeReceiverApi, isDesktop, type ReceiverPort } from "./nativeReceiver";
+import type { MotionLockState } from "./receiverState";
 
 import { errorText } from "../misc/errors";
 import { sleep, type Translate } from "../misc/format";
@@ -22,7 +24,8 @@ export interface DongleController {
   error?: string;
   busy: boolean;
   transcript: TranscriptEntry[];
-  connect: (anyPort?: boolean) => Promise<void>;
+  connect: (anyPort?: boolean, port?: SerialPort) => Promise<void>;
+  managementPort?: SerialPort;
   disconnect: () => Promise<void>;
   refresh: () => Promise<void>;
   send: (command: string) => Promise<AtResult | undefined>;
@@ -154,7 +157,7 @@ export function useDongle(t: Translate): DongleController {
     }
   };
 
-  const connect = async (anyPort = false) => {
+  const connect = async (anyPort = false, selectedPort?: SerialPort) => {
     const generation = ++connectState.state.generation;
     setError(undefined);
     setFirmware(undefined);
@@ -163,7 +166,7 @@ export function useDongle(t: Translate): DongleController {
     push("tx", anyPort ? "opening any serial port" : "opening 5048:FF11");
 
     try {
-      const candidates = anyPort ? [await requestAnySerialPort()] : await requestDonglePorts();
+      const candidates = selectedPort ? [selectedPort] : anyPort ? [await requestAnySerialPort()] : await requestDonglePorts();
       if (generation !== connectState.state.generation) return;
 
       const attempt = async () => {
@@ -278,6 +281,7 @@ export function useDongle(t: Translate): DongleController {
 
   return {
     supported: dongleSupported(),
+    managementPort: client.selectedPort,
     phase,
     port,
     firmware,
@@ -361,7 +365,8 @@ export interface DongleStatus {
   hubCapacity?: number;
   hubTarget?: number;
   hubStudioOpen?: boolean;
-  hubPeers?: {slot:number;enabled:boolean;paired:boolean;connected:boolean;batteryPercent?:number;keyId:string;rfAddr:string;rfChannel:number;rx:number;decryptFail:number;queueDrop:number}[];
+  motionStates?: Partial<Record<number, MotionLockState>>;
+  hubPeers?: {motionState?: MotionLockState;slot:number;enabled:boolean;paired:boolean;connected:boolean;batteryPercent?:number;keyId:string;rfAddr:string;rfChannel:number;rx:number;decryptFail:number;queueDrop:number}[];
   studio2g4?: boolean;
   studioActive?: boolean;
   bleMouse?: boolean;
@@ -381,6 +386,7 @@ interface Pending {
 }
 
 export function serialApi(): Serial | undefined {
+  if (isDesktop()) return nativeReceiverApi();
   if (typeof navigator === "undefined") return undefined;
   return (navigator as unknown as { serial?: Serial }).serial;
 }
@@ -394,6 +400,7 @@ export function isDonglePortInfo(info: SerialPortInfo): boolean {
 }
 
 export function portLabel(port: SerialPort): string {
+  if ((port as ReceiverPort).device) return (port as ReceiverPort).device!.label;
   const info = port.getInfo();
   if (info.usbVendorId === undefined) return "serial";
   const vid = info.usbVendorId.toString(16).padStart(4, "0").toUpperCase();
@@ -468,6 +475,11 @@ export function parseDongleStatus(raw: string): DongleStatus {
       case "HUB_PEERS": if(value === "2") status.hubCapacity=2; break;
       case "HUB_TARGET": if(value === "0" || value === "1") status.hubTarget=Number(value); break;
       case "HUB_STUDIO_OPEN": if(value === "0" || value === "1") status.hubStudioOpen=value === "1"; break;
+      case "HUB_MOTION": {
+        const m = /^([01]),(READY|LOCKED|UNKNOWN)$/.exec(value);
+        if (m) status.motionStates = { ...status.motionStates, [Number(m[1])]: m[2] as MotionLockState };
+        break;
+      }
       case "HUB_PEER": {
         const v=value.split(",");
         if(v.length!==11 || !/^[01]$/.test(v[0]) || !v.slice(1,4).every(x=>/^[01]$/.test(x)) ||
@@ -563,6 +575,7 @@ export function parseDongleStatus(raw: string): DongleStatus {
     }
   }
 
+  if (status.hubPeers) status.hubPeers = status.hubPeers.map(p => ({ ...p, motionState: p.connected ? status.motionStates?.[p.slot] ?? "UNKNOWN" : "UNKNOWN" }));
   return status;
 }
 
@@ -585,6 +598,8 @@ export class DongleSerial {
   onLine?: (line: string) => void;
   onLost?: (reason: string) => void;
 
+  get selectedPort(): SerialPort | undefined { return this.port ?? undefined; }
+
   get isOpen(): boolean {
     return !!this.port && !this.lostReason;
   }
@@ -598,6 +613,7 @@ export class DongleSerial {
 
     try {
       await port.open({ baudRate: DONGLE_BAUD_RATE });
+      if (port.setSignals) await port.setSignals({ dataTerminalReady: true });
     } catch (error) {
       throw new DongleError("open-failed", describe(error));
     }

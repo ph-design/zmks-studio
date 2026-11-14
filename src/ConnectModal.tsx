@@ -17,6 +17,7 @@ import { useModalRef } from "./misc/useModalRef";
 import { ExternalLink } from "./misc/ExternalLink";
 import { GenericModal } from "./GenericModal";
 import { connect as demo_connect, DEFAULT_DEMO_FEATURES, type DemoFeatures } from "./demo/mockTransport";
+import { ReceiverAccess } from "./connection/ReceiverAccess";
 import { GestureChips } from "./unlock/GestureChips";
 import { FACTORY_UNLOCK_KEYS } from "./unlock/unlockPaths";
 import { normalizeLang, SUPPORTED_LANGUAGES } from "./i18n";
@@ -207,7 +208,6 @@ function ConnectionMethodCards({
   onSelectTransport?: (transport: TransportFactory) => void;
 }) {
   const { t } = useTranslation();
-  const [receiverSlot,setReceiverSlot] = useState<0 | 1>(0);
   const methods = [
     {
       id: "usb",
@@ -220,7 +220,7 @@ function ConnectionMethodCards({
       id: "2g4",
       label: t("welcome.receiverConnectionTitle", "2.4G receiver"),
       icon: Radio,
-      transport: transports.find(v => isReceiverTransport(v) && (v.peerSlot ?? 0) === receiverSlot),
+      transport: transports.find(isReceiverTransport),
       description: t("welcome.receiverConnectionDescription", "Remap wirelessly through the USB receiver. Keep the keyboard on battery."),
     },
     {
@@ -234,18 +234,6 @@ function ConnectionMethodCards({
 
   return (
     <div className="space-y-3">
-      {transports.some(v => v.peerSlot === 1) && <label className="flex items-center gap-3 text-sm">
-        {t("welcome.receiverTarget", "Keyboard in receiver")}
-        <select className="rounded border border-base-300 bg-base-100 p-2" value={receiverSlot} onChange={e => {
-          const slot = Number(e.target.value) as 0 | 1; setReceiverSlot(slot);
-          if(selectedTransport && isReceiverTransport(selectedTransport)) {
-            const next = transports.find(v => isReceiverTransport(v) && v.peerSlot === slot);if(next)onSelectTransport?.(next);
-          }
-        }}>
-          <option value="0">{t("welcome.receiverKeyboard1", "Keyboard 1")}</option>
-          <option value="1">{t("welcome.receiverKeyboard2", "Keyboard 2")}</option>
-        </select>
-      </label>}
     <div className="grid gap-2 sm:grid-cols-3">
       {methods.map((method) => {
         const Icon = method.icon;
@@ -552,6 +540,7 @@ function SimpleDevicePicker({
   onConnectionError?: (message: string | undefined) => void;
 }) {
   const { t } = useTranslation();
+  const [receiverSelected, setReceiverSelected] = useState(false);
   const [availableDevices, setAvailableDevices] = useState<
     AvailableDevice[] | undefined
   >(undefined);
@@ -616,9 +605,9 @@ function SimpleDevicePicker({
       <ConnectionMethodCards
         transports={transports}
         selectedTransport={selectedTransport}
-        onSelectTransport={setSelectedTransport}
+        onSelectTransport={transport => { if (isReceiverTransport(transport)) { setSelectedTransport(undefined); setReceiverSelected(true); } else { setReceiverSelected(false); setSelectedTransport(transport); } }}
       />
-      {selectedTransport && isReceiverTransport(selectedTransport) && <p className="text-sm text-helper">{t("welcome.receiverConnectionHint")}</p>}
+      {receiverSelected && <ReceiverAccess onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />}
       {selectedTransport && availableDevices && (
         <ul className="rounded-md border border-base-300 p-1">
           {availableDevices.map((d) => (
@@ -684,7 +673,7 @@ function ConnectOptions({
   onConnectionError?: (message: string | undefined) => void;
   open?: boolean;
 }) {
-  const { t } = useTranslation();
+  const [receiverSelected, setReceiverSelected] = useState(false);
   const useSimplePicker = useMemo(
     () => transports.every((t) => !t.pick_and_connect),
     [transports]
@@ -695,9 +684,9 @@ function ConnectOptions({
   return useSimplePicker
     ? <SimpleDevicePicker transports={transports} onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />
     : <div className="space-y-3">
-        <ConnectionMethodCards transports={transports} selectedTransport={selectedTransport} onSelectTransport={setSelectedTransport} />
-        {selectedTransport && isReceiverTransport(selectedTransport) && <p className="text-sm text-helper">{t("welcome.receiverConnectionHint")}</p>}
-        <DeviceList open={open || false} transports={visible} onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />
+        <ConnectionMethodCards transports={transports} selectedTransport={selectedTransport} onSelectTransport={transport => { if (isReceiverTransport(transport)) { setReceiverSelected(true); setSelectedTransport(undefined); } else { setReceiverSelected(false); setSelectedTransport(transport); } }} />
+        {receiverSelected && <ReceiverAccess onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />}
+        {!receiverSelected && selectedTransport && <DeviceList open={open || false} transports={visible} onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />}
       </div>;
 }
 

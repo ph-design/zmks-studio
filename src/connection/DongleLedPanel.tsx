@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { CarbonTheme } from "../carbon/theme";
 import { ActionButton, Facts, Notice, Select } from "../carbon/CarbonChrome";
 import type { Translate } from "../misc/format";
+import { receiverIndicator } from "./receiverState";
 import type { DongleController } from "./useDongle";
 
 export function DongleLedPanel({ th, t, dongle }: { th: CarbonTheme; t: Translate; dongle: DongleController }) {
@@ -13,23 +14,9 @@ export function DongleLedPanel({ th, t, dongle }: { th: CarbonTheme; t: Translat
   const [editing, setEditing] = useState(false);
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string>();
-  const latest = useRef(dongle);
-  latest.current = dongle;
   const label = (key: string, fallback: string) => t(`carbon.dongleLed.${key}`, fallback);
   const supported = s?.ledCaps === 1 && s.ledMode !== undefined && s.ledBrightness !== undefined && s.ledLowPct !== undefined && s.ledPeriodMs !== undefined;
   const disabled = dongle.phase !== "open" || dongle.busy || working || !supported;
-  useEffect(() => {
-    if (dongle.phase !== "open") return;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const poll = async () => {
-      const d = latest.current;
-      if (!d.busy && !document.hidden) await d.queryStatus();
-      if (!cancelled) timer = setTimeout(() => void poll(), 5000);
-    };
-    timer = setTimeout(() => void poll(), 5000);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [dongle.phase]);
   useEffect(() => {
     if (editing) return;
     setMode(s?.ledMode ?? "AUTO"); setBrightness(s?.ledBrightness ?? 100);
@@ -58,7 +45,12 @@ export function DongleLedPanel({ th, t, dongle }: { th: CarbonTheme; t: Translat
     <h3 className="mb-3 text-sm font-semibold">{label("title", "Receiver indicator")}</h3>
     {!supported ? <Notice th={th} tone="neutral">{label("upgrade", "Indicator controls need compatible receiver firmware. Connection and pairing remain available.")}</Notice> : <>
       <p className="mb-4 text-xs text-helper">{label("hint", "Controls the user indicator only. Auto mode shows connection and keyboard low battery; the separate charging lamp is unchanged.")}</p>
-      <Facts th={th} rows={[{ label: label("pending", "Unsaved receiver settings"), value: s?.ledDirty ? label("yes", "Yes") : label("no", "No") }]} />
+      <Facts th={th} rows={[{ label: label("motionSummary", "Keyboard protection summary"), value: label(`motion_${receiverIndicator(s)}`, "Unknown") }, { label: label("pending", "Unsaved receiver settings"), value: s?.ledDirty ? label("yes", "Yes") : label("no", "No") }]} />
+      <div className="my-3 rounded border border-base-300 p-3 text-xs leading-relaxed text-helper">
+        <p>{label("motionRules", "Auto: all connected keyboards locked — full breathing; some locked — shallow breathing; none locked — normal status.")}</p>
+        <p className="mt-1">{label("motionPriority", "Connection/disconnection double flashes, identification and low-battery warnings take priority. Unknown states are never treated as locked.")}</p>
+        <p className="mt-1">{label("motionFirmware", "Lock telemetry requires compatible keyboard firmware. Breathing uses a fixed 2.4 s cycle; the blink-cycle setting below controls the legacy status pattern.")}</p>
+      </div>
       <fieldset disabled={disabled} className="my-4 grid min-w-0 gap-4 sm:grid-cols-2">
         <label className="flex min-w-0 flex-col gap-2 text-xs">{label("mode", "Mode")}
           <Select th={th} label={label("mode", "Mode")} value={mode} onChange={v => { setMode(v); setEditing(true); setMessage(undefined); }} opts={[

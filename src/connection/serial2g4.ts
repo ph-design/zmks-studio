@@ -5,10 +5,12 @@ import { UserCancelledError } from "@zmkfirmware/zmk-studio-ts-client/transport/
 export const RECEIVER_USB_FILTER = { usbVendorId: 0x5048, usbProductId: 0xff11 };
 
 // Both CDC functions share a VID/PID. The picker must select Studio, not AT.
-export async function connect(slot: 0 | 1 = 0): Promise<RpcTransport> {
+export async function connect(slot: 0 | 1 = 0, managementPort?: SerialPort): Promise<RpcTransport> {
   let port: SerialPort;
   try {
-    port = await navigator.serial.requestPort({ filters: [RECEIVER_USB_FILTER] });
+    const granted = (await navigator.serial.getPorts()).filter(p => p !== managementPort && p.getInfo().usbVendorId === RECEIVER_USB_FILTER.usbVendorId && p.getInfo().usbProductId === RECEIVER_USB_FILTER.usbProductId);
+    port = granted.length === 1 ? granted[0] : await navigator.serial.requestPort({ filters: [RECEIVER_USB_FILTER] });
+    if (port === managementPort) throw new Error("Selected the receiver management interface. Select the Studio interface (usually COM62).");
   } catch (e) {
     if (e instanceof DOMException && e.name === "NotFoundError") throw new UserCancelledError("Receiver port selection cancelled", { cause: e });
     throw e;

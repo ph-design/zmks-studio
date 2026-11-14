@@ -51,6 +51,7 @@ export function HubKeyboardsPanel({th,t,dongle}:{th:CarbonTheme;t:Translate;dong
    <Facts th={th} rows={[
     {label:l("pairState","Pairing"),value:p.paired?l("yes","Paired"):l("no","Not paired")},
     {label:l("link","Link"),value:p.connected?l("online","Connected"):l("offline","Disconnected")},
+    {label:l("motion","Input protection"),value:p.connected ? l(`motion${p.motionState ?? "UNKNOWN"}`,p.motionState ?? "Unknown") : "—"},
     {label:l("battery","Battery"),value:p.connected && p.batteryPercent!==undefined?`${p.batteryPercent}%`:"—"},
     {label:l("channel","RF channel"),value:String(p.rfChannel)},
     {label:l("reports","Packets / decrypt errors / queue drops"),value:`${p.rx} / ${p.decryptFail} / ${p.queueDrop}`},

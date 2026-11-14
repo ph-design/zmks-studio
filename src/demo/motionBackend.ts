@@ -14,12 +14,12 @@ import {
 export const DEMO_LABEL = "Demo";
 
 const CAPABILITIES: MotionCapabilities = {
-  sensor: "lis2dh12",
+  sensor: "LIS2DH12 · Motion Guard Demo",
   supportsTap: true,
   supportsDoubleTap: true,
   supportsCarry: true,
-  supportsStillWake: true,
-  supportsSleepWake: true,
+  supportsStillWake: false,
+  supportsSleepWake: false,
   thresholdMax: 127,
 };
 
@@ -129,15 +129,10 @@ class DemoMotionFirmware implements MotionBackend {
     this.now += 100;
     const elapsed = this.now;
 
-    // Same streak rule as the firmware: above the threshold, sustained for
-    // motionDurationMs, resets when the signal drops back below it.
-    if (this.carry.enabled && magnitude >= this.carry.motionThreshold) {
-      if (this.aboveSince === undefined) this.aboveSince = elapsed;
-      if (elapsed - this.aboveSince >= this.carry.motionDurationMs) this.carryActive = true;
-    } else {
-      this.aboveSince = undefined;
-      this.carryActive = false;
-    }
+    // Qualitative demo at 100ms ticks: retain lock for two ticks after motion.
+    if (walking) this.aboveSince = elapsed;
+    this.carryActive = this.carry.enabled && (walking ||
+      (this.aboveSince !== undefined && elapsed - this.aboveSince < 180));
 
     // A tap lands only while still and only when the swing clears the click
     // threshold — same gate the firmware applies. Sign bit set = left side.

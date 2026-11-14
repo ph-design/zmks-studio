@@ -27,7 +27,7 @@ use winapi::um::handleapi::INVALID_HANDLE_VALUE;
 #[cfg(windows)]
 use winapi::um::setupapi::{
     SetupDiClassGuidsFromNameW, SetupDiDestroyDeviceInfoList, SetupDiEnumDeviceInfo,
-    SetupDiGetClassDevsW, SetupDiGetDevicePropertyW, SetupDiOpenDevRegKey, DICS_FLAG_GLOBAL,
+    SetupDiGetClassDevsW, SetupDiGetDevicePropertyW, SetupDiGetDeviceInstanceIdW, SetupDiOpenDevRegKey, DICS_FLAG_GLOBAL,
     DIGCF_PRESENT, DIREG_DEV, SP_DEVINFO_DATA,
 };
 #[cfg(windows)]
@@ -165,8 +165,11 @@ fn device_bus_reported_name(
     }
 }
 
+#[derive(Clone)]
+struct PortMetadata { label: String, role: Option<String>, receiver_id: Option<String> }
+
 #[cfg(windows)]
-fn windows_serial_port_labels() -> HashMap<String, String> {
+fn windows_serial_port_labels() -> HashMap<String, PortMetadata> {
     let mut labels = HashMap::new();
 
     for class_guid in port_class_guids() {
@@ -194,11 +197,19 @@ fn windows_serial_port_labels() -> HashMap<String, String> {
                 break;
             }
 
-            if let (Some(port_name), Some(label)) = (
-                device_port_name(device_info_set, &mut device_info),
-                device_bus_reported_name(device_info_set, &mut device_info),
-            ) {
-                labels.insert(port_name, label);
+            if let Some(port_name) = device_port_name(device_info_set, &mut device_info) {
+                let label = device_bus_reported_name(device_info_set, &mut device_info).unwrap_or_else(|| "USB Serial".into());
+                let mut instance = [0u16; 512];
+                let ok = unsafe { SetupDiGetDeviceInstanceIdW(device_info_set, &mut device_info,
+                    instance.as_mut_ptr(), instance.len() as DWORD, ptr::null_mut()) };
+                let instance = if ok != FALSE { from_utf16_lossy_trimmed(&instance).to_uppercase() } else { String::new() };
+                let receiver = instance.contains("VID_5048&PID_FF11");
+                let role = if receiver && instance.contains("MI_00") { Some("receiver-management".into()) }
+                    else if receiver && instance.contains("MI_02") { Some("receiver-studio".into()) } else { None };
+                // Composite CDC interfaces share this Windows instance parent.
+                let receiver_id = if receiver { instance.rsplit('\\').next()
+                    .and_then(|s| s.rsplit_once('&').map(|(parent,_)| parent.to_string())) } else { None };
+                labels.insert(port_name, PortMetadata { label, role, receiver_id });
             }
 
             member_index += 1;
@@ -211,7 +222,7 @@ fn windows_serial_port_labels() -> HashMap<String, String> {
 }
 
 #[cfg(not(windows))]
-fn windows_serial_port_labels() -> HashMap<String, String> {
+fn windows_serial_port_labels() -> HashMap<String, PortMetadata> {
     HashMap::new()
 }
 
@@ -242,10 +253,10 @@ fn serial_device_label(
     product: &Option<String>,
     vid: u16,
     pid: u16,
-    windows_labels: &HashMap<String, String>,
+    windows_labels: &HashMap<String, PortMetadata>,
 ) -> String {
     if let Some(label) = windows_labels.get(port_name) {
-        return format!("{} ({})", label, port_name);
+        return format!("{} ({})", label.label, port_name);
     }
 
     let manufacturer = manufacturer
@@ -363,6 +374,8 @@ pub async fn serial_list_devices(
                     &windows_labels,
                 );
                 Some(super::commands::AvailableDevice {
+                    serial_role: windows_labels.get(&pi.port_name).and_then(|m| m.role.clone()),
+                    receiver_id: windows_labels.get(&pi.port_name).and_then(|m| m.receiver_id.clone()),
                     id: pi.port_name,
                     label,
                 })
@@ -377,6 +390,7 @@ pub async fn serial_list_devices(
             if let Some(p) = m.args.get("serial-port") {
                 if let serde_json::Value::String(path) = &p.value {
                     candidates.push(super::commands::AvailableDevice {
+                        serial_role: None, receiver_id: None,
                         id: path.to_string(),
                         label: format!("CLI Port: {path}").to_string(),
                     })
@@ -387,4 +401,58 @@ pub async fn serial_list_devices(
     }
 
     Ok(candidates)
+}
+
+// Receiver management owns a separate port from the keyboard RPC transport.
+pub struct ReceiverHandle {
+    session: String,
+    writer: tokio::io::WriteHalf<tokio_serial::SerialStream>,
+    reader: tauri::async_runtime::JoinHandle<()>,
+}
+#[derive(Default)]
+pub struct ReceiverConnection { port: tokio::sync::Mutex<Option<ReceiverHandle>> }
+#[derive(Clone, serde::Serialize)]
+struct ReceiverData { session: String, data: Vec<u8> }
+#[derive(Clone, serde::Serialize)]
+struct ReceiverLost { session: String }
+#[command]
+pub async fn receiver_serial_open(id: String, session: String, app_handle: AppHandle,
+    state: State<'_, ReceiverConnection>) -> Result<(), String> {
+    use tauri::Emitter;
+    let valid = available_ports().map_err(|e| e.to_string())?.iter().any(|p| p.port_name == id &&
+        matches!(&p.port_type, SerialPortType::UsbPort(u) if u.vid==0x5048 && u.pid==0xff11));
+    if !valid { return Err("The selected port is not a supported receiver".into()); }
+    let mut active = state.port.lock().await;
+    if active.is_some() { return Err("Receiver management is already connected".into()); }
+    let mut port = tokio_serial::new(&id,115200).open_native_async().map_err(|e| e.to_string())?;
+    port.write_data_terminal_ready(true).map_err(|e| e.to_string())?;
+    let (mut reader,writer)=tokio::io::split(port);
+    let token=session.clone();
+    let task=tauri::async_runtime::spawn(async move {
+        let mut buffer=[0u8;1024];
+        loop {
+            match reader.read(&mut buffer).await {
+                Ok(n) if n>0 => { let _=app_handle.emit("receiver_serial_data",ReceiverData { session:token.clone(),data:buffer[..n].to_vec() }); }
+                _ => break,
+            }
+        }
+        let _=app_handle.emit("receiver_serial_lost",ReceiverLost { session:token });
+    });
+    *active=Some(ReceiverHandle { session,writer,reader:task });
+    Ok(())
+}
+#[command]
+pub async fn receiver_serial_write(session:String,data:Vec<u8>,state:State<'_,ReceiverConnection>) -> Result<(),String> {
+    let mut active=state.port.lock().await;
+    let port=active.as_mut().filter(|p|p.session==session).ok_or("Receiver session is closed")?;
+    tokio::time::timeout(std::time::Duration::from_secs(2),port.writer.write_all(&data)).await
+        .map_err(|_|"Receiver write timed out".to_string())?.map_err(|e|e.to_string())
+}
+#[command]
+pub async fn receiver_serial_close(session:String,state:State<'_,ReceiverConnection>) -> Result<(),String> {
+    let mut active=state.port.lock().await;
+    if active.as_ref().is_some_and(|p|p.session==session) {
+        if let Some(port)=active.take() { port.reader.abort(); }
+    }
+    Ok(())
 }
