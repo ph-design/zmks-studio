@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.0](https://github.com/ph-design/zmks-studio/compare/v0.4.0...v0.5.0) (2026-11-14)
+
+
+### Features
+
+* add read-only receiver activity monitoring ([94b1488](https://github.com/ph-design/zmks-studio/commit/94b148867dab72cfe10a25a3975d4a63c569e2d8))
+* add receiver analysis charts and demo scenarios ([f9b2cd2](https://github.com/ph-design/zmks-studio/commit/f9b2cd20ab51c0724ebceb23b02c887a596581fc))
+* analyze USB and BLE Studio management connections ([51fc608](https://github.com/ph-design/zmks-studio/commit/51fc6082cdd3c0cf67d4a3197d5d051e465264b4))
+* simulate receiver activity in demo mode ([018b384](https://github.com/ph-design/zmks-studio/commit/018b3840a738d2d4151f388a17bbc46a7a708f72))
+
+
+### Bug Fixes
+
+* align monitor headings and toolbar spacing ([021c087](https://github.com/ph-design/zmks-studio/commit/021c087196a5a54f9eb4bc63487ba3923ef3ba6a))
+* preserve fractional chart axis labels ([f178ce8](https://github.com/ph-design/zmks-studio/commit/f178ce82a51dc35fa51c8d1be6bbcae00fc79fba))
+* restore UI scale and refine responsive layouts and copy ([16d10c9](https://github.com/ph-design/zmks-studio/commit/16d10c9e3d905ac8bf4a4d3afee35d5435b15daf))
+* show discrete query counts and response status bands ([c519f36](https://github.com/ph-design/zmks-studio/commit/c519f3672e75e6278a6763227c2383e337e46e71))
+
 ## [0.4.0](https://github.com/ph-design/zmks-studio/compare/v0.3.0...v0.4.0) (2026-11-02)
 
 
