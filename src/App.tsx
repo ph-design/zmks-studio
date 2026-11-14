@@ -1,7 +1,7 @@
 import i18n from "./i18n";
 import { I18nextProvider, useTranslation } from "react-i18next";
 
-import { create_rpc_connection } from "@zmkfirmware/zmk-studio-ts-client";
+import { create_rpc_connection } from "./rpc/connection";
 import { call_rpc } from "./rpc/logging";
 
 import type { Notification } from "@zmkfirmware/zmk-studio-ts-client/studio";
@@ -14,6 +14,8 @@ import {
 } from "./ConnectModal";
 
 import type { RpcTransport } from "@zmkfirmware/zmk-studio-ts-client/transport/index";
+import {verifyReceiverTarget} from "./connection/verifyReceiverTarget";
+import { connect as receiver_connect } from "./connection/serial2g4";
 import { connect as gatt_connect } from "@zmkfirmware/zmk-studio-ts-client/transport/gatt";
 import { connect as serial_connect } from "@zmkfirmware/zmk-studio-ts-client/transport/serial";
 import {
@@ -42,9 +44,11 @@ declare global {
 }
 
 const TRANSPORTS: TransportFactory[] = [
-  navigator.serial && { label: "USB", connect: serial_connect },
-  ...(navigator.bluetooth && navigator.userAgent.indexOf("Linux") >= 0
-    ? [{ label: "BLE", connect: gatt_connect }]
+  !window.__TAURI_INTERNALS__ && navigator.serial && { label: "USB", connect: serial_connect },
+  !window.__TAURI_INTERNALS__ && navigator.serial && { label: "2.4G", connectionType: "2.4G" as const, peerSlot: 0 as const, connect: () => receiver_connect(0) },
+  !window.__TAURI_INTERNALS__ && navigator.serial && { label: "2.4G keyboard 2", connectionType: "2.4G" as const, peerSlot: 1 as const, connect: () => receiver_connect(1) },
+  ...(!window.__TAURI_INTERNALS__ && navigator.bluetooth && navigator.userAgent.indexOf("Linux") >= 0
+    ? [{ label: "BLE", isWireless: true, connect: gatt_connect }]
     : []),
   ...(window.__TAURI_INTERNALS__
     ? [
@@ -58,6 +62,12 @@ const TRANSPORTS: TransportFactory[] = [
       ]
     : []),
   ...(window.__TAURI_INTERNALS__
+    ? ([0,1] as const).map(peerSlot => ({ label: `2.4G keyboard ${peerSlot+1}`, connectionType: "2.4G" as const, peerSlot, pick_and_connect: {
+        list: () => serial_list_devices(true),
+        connect: async (dev: Parameters<typeof tauri_serial_connect>[0]) => verifyReceiverTarget(await tauri_serial_connect(dev, true, peerSlot ? 230400 : 115200), peerSlot),
+      } }))
+    : []),
+  ...(window.__TAURI_INTERNALS__
     ? [
         {
           label: "BLE",
@@ -69,7 +79,7 @@ const TRANSPORTS: TransportFactory[] = [
         },
       ]
     : []),
-].filter((t) => t !== undefined);
+].filter((t): t is Exclude<typeof t, false | undefined> => !!t);
 
 async function listen_for_notifications(
   notification_stream: ReadableStream<Notification>,
@@ -135,7 +145,8 @@ async function connect(
   setConn: Dispatch<ConnectionState>,
   setConnectedDeviceName: Dispatch<string | undefined>,
   signal: AbortSignal,
-  setConnectionError: Dispatch<string | undefined>
+  setConnectionError: Dispatch<string | undefined>,
+  connectionType?: string
 ): Promise<boolean> {
   let conn;
   try {
@@ -159,7 +170,7 @@ async function connect(
         console.error("Failed first RPC call", e);
         return undefined;
       }),
-    valueAfter(undefined, 1000),
+    valueAfter(undefined, connectionType === "2.4G" ? 10000 : 1000),
   ]);
 
   if (signal.aborted) {
@@ -167,7 +178,7 @@ async function connect(
   }
 
   if (!details) {
-    setConnectionError(i18n.t("errors.failedToConnect"));
+    setConnectionError(i18n.t(connectionType === "2.4G" ? "welcome.receiverConnectionFailed" : "errors.failedToConnect"));
     return false;
   }
 
@@ -446,8 +457,9 @@ function App() {
   }, [connectionPhase, keyboardReady, disconnect]);
 
   const onConnect = useCallback(
-    (t: RpcTransport, meta?: { isWireless?: boolean }) => {
-      setConnectionType(meta?.isWireless ? "BLE" : "USB");
+    (t: RpcTransport, meta?: { isWireless?: boolean; connectionType?: "USB" | "BLE" | "2.4G" }) => {
+      const type = meta?.connectionType ?? (meta?.isWireless ? "BLE" : "USB");
+      setConnectionType(type);
       const ac = new AbortController();
       connectionAbortRef.current = ac;
       setConnectionAbort(ac);
@@ -456,12 +468,13 @@ function App() {
       setLockState(undefined);
       setHasUnsavedLightingChanges(false);
       setConnectionPhase("connecting");
-      connect(t, setConn, setConnectedDeviceName, ac.signal, setConnectionError)
+      connect(t, setConn, setConnectedDeviceName, ac.signal, setConnectionError, type)
         .then((connected) => {
           if (ac.signal.aborted) {
             return;
           }
 
+          if (!connected) ac.abort("Connection handshake failed");
           setConnectionPhase(connected ? "connected" : "idle");
         })
         .catch((e) => {

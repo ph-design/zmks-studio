@@ -18,7 +18,6 @@ export interface ConnectionViewProps {
   th: CarbonTheme;
   t: Translate;
   onDisconnect: () => void;
-  // no 2g4 for now
   connectionType?: string;
 }
 

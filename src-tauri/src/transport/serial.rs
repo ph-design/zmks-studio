@@ -4,7 +4,7 @@ use futures::StreamExt;
 use std::collections::HashMap;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio_serial::{available_ports, SerialPortBuilderExt, SerialPortType};
+use tokio_serial::{available_ports, SerialPort, SerialPortBuilderExt, SerialPortType};
 
 use tauri::{command, AppHandle, State};
 use tauri_plugin_cli::CliExt;
@@ -281,11 +281,17 @@ fn serial_device_label(
 #[command]
 pub async fn serial_connect(
     id: String,
+    dtr: Option<bool>,
+    baud_rate: Option<u32>,
     app_handle: AppHandle,
     state: State<'_, super::commands::ActiveConnection<'_>>,
 ) -> Result<bool, String> {
-    match tokio_serial::new(id, 9600).open_native_async() {
+    match tokio_serial::new(id, baud_rate.unwrap_or(9600)).open_native_async() {
         Ok(mut port) => {
+            if dtr.unwrap_or(false) {
+                port.write_data_terminal_ready(true)
+                    .map_err(|e| format!("Failed to open receiver Studio session: {e}"))?;
+            }
             #[cfg(unix)]
             port.set_exclusive(false)
                 .expect("Unable to set serial port exclusive to false");
@@ -335,6 +341,7 @@ pub async fn serial_connect(
 
 #[command]
 pub async fn serial_list_devices(
+    dongle_only: Option<bool>,
     app_handle: AppHandle,
 ) -> Result<Vec<super::commands::AvailableDevice>, ()> {
     let ports = unblock(|| available_ports()).await.unwrap();
@@ -344,6 +351,9 @@ pub async fn serial_list_devices(
         .into_iter()
         .filter_map(|pi| {
             if let SerialPortType::UsbPort(u) = pi.port_type {
+                if dongle_only.unwrap_or(false) && (u.vid != 0x5048 || u.pid != 0xff11) {
+                    return None;
+                }
                 let label = serial_device_label(
                     &pi.port_name,
                     &u.manufacturer,

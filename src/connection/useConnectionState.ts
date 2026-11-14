@@ -189,7 +189,7 @@ export function linkBadge(
   value: ConnectionSnapshot,
   connectionType?: string
 ): { label?: string; tone: LinkTone } {
-  const fallbackTone: LinkTone = connectionType === "BLE" ? "ble" : "usb";
+  const fallbackTone: LinkTone = connectionType === "2.4G" ? "2g4" : connectionType === "BLE" ? "ble" : "usb";
   const state = value.support === "ready" ? value.state : undefined;
   if (!state) return { tone: fallbackTone };
 

@@ -136,7 +136,8 @@ export function CarbonShell(props: CarbonShellProps) {
 
   const [keymapUnsaved, setKeymapUnsaved] = useConnectedDeviceData<boolean>(
     { keymap: { checkUnsavedChanges: true } },
-    (r) => r.keymap?.checkUnsavedChanges
+    (r) => r.keymap?.checkUnsavedChanges,
+    true
   );
   useSub("rpc_notification.keymap.unsavedChangesStatusChanged", (u) => setKeymapUnsaved(u));
   const unsaved = !!keymapUnsaved || props.extraSaveEnabled;
