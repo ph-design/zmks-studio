@@ -1,3 +1,4 @@
+import {KeyboardBootloader} from "../connection/KeyboardBootloader";
 // Connection management and 2.4G pairing.
 import { useContext, useState } from "react";
 import { Transport } from "@zmkfirmware/zmk-studio-ts-client/connection";
@@ -12,13 +13,12 @@ import { useConnectionActions, useConnectionSnapshot } from "../connection/useCo
 import { ConnectionContext } from "../rpc/ConnectionContext";
 import { DemoDonglePanel } from "../demo/DemoDonglePanel";
 import { ManagementMonitor } from "../connection/ManagementMonitor";
-import { useDongle } from "../connection/useDongle";
+import { useReceiver } from "../connection/ReceiverContext";
 
 export interface ConnectionViewProps {
   th: CarbonTheme;
   t: Translate;
   onDisconnect: () => void;
-  // no 2g4 for now
   connectionType?: string;
 }
 
@@ -26,7 +26,7 @@ export function ConnectionView({ th, t, onDisconnect, connectionType }: Connecti
   const isDemo = useContext(ConnectionContext).conn?.label === "Demo";
   const snapshot = useConnectionSnapshot();
   const actions = useConnectionActions();
-  const dongle = useDongle(t);
+  const { dongle } = useReceiver();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const state = snapshot.support === "ready" ? snapshot.state : undefined;
@@ -54,6 +54,8 @@ export function ConnectionView({ th, t, onDisconnect, connectionType }: Connecti
             onClick={() => setShowAdvanced((value) => !value)}
           />
         </div>
+
+        <KeyboardBootloader th={th} t={t} connectionType={connectionType} />
 
         {snapshot.support === "loading" && (
           <Notice th={th} tone="neutral">

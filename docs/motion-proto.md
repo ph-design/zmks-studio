@@ -169,3 +169,61 @@ fields. `clientSupportsMotion()` in `src/motion/motionRpc.ts` round-trips a
 probe request through the codec and switches from the in-memory demo backend to
 real RPC automatically once the regenerated client is installed. No frontend
 change is needed at that point beyond the version bump.
+
+## Motion Guard compatibility (2026-11-15)
+
+Legacy carry thresholds and stationary-wake fields do not describe the new Motion Guard policy. The UI keeps their controls hidden by default and offers an explicit legacy opt-in when the strategy cannot be identified. Fresh READY/LOCKED telemetry for the selected online receiver peer confirms Motion Guard for that keyboard session; UNKNOWN or receiver firmware version alone does not.
+
+Motion Guard defaults are presented as read-only documentation: a 180 ms stable window after sustained carrying, 60 ms after a brief lock, and at most 60 mg span per axis. Placement confirmation can defer buffered new presses. Normal input follows the direct path. Idle power management remains separate, and automatic System OFF is suspended while the healthy IMU guard is enabled. The basic carry enable switch remains mapped to the existing RPC; these policy constants are not written through legacy threshold fields.
+
+## Adjustable lift lock / Motion Guard v1 (preview.5)
+
+This is an additive wire extension, implemented in the app-owned `guardProtocol.ts` adapter until the generated client includes it. `Capabilities.guard_version` is uint32 field 8. Version 1 plus a complete, valid config is required to enable the editor. Ordinary requests and all existing field meanings are unchanged. Unknown versions and old firmware keep read-only defaults; telemetry alone never enables parameter writes.
+
+`CarryConfig` adds uint32 fields 4–8: `carried_settle_ms` (100–600, default 180), `brief_settle_ms` (40–200, default 60), `stable_span_mg` (20–100, default 60), `departure_mg` (120–350, default 200), and `verify_ms` (20–60, default 30). Long confirmation must be at least brief confirmation. Firmware and UI reject the entire extended update if invalid or partial. An old client sending no extension retains the current guard parameters while the existing enable switch still works.
+
+The UI stages edits locally, applies the whole set once, and uses the standard Save action for persistence. Firmware snapshots requested values under a short spinlock; only the existing policy workqueue changes the state machine. No sensor I/O or flash write is added to normal key processing. `motion_guard/v1` stores a validated, versioned record independently of legacy motion blobs; missing/corrupt/unsupported records use defaults, and motion reset resets the new record too. Saving or reboot readback on physical hardware remains to be tested.
+
+## Power settings v1 (preview.6)
+
+Capabilities fields 9/10 advertise powerVersion=1 and the built light mask (RGB=1, backlight=2). Motion Request adds getPowerConfig=12 (bool), setPowerConfig=13 (PowerConfig); Response adds powerConfig=12 and setPowerConfig=13 (bool). Config fields 1–4 are idleTimeoutMs, rgbOffMs, backlightOffMs, deepSleepMs; fields 5/6 are onUsb/offWhenLocked. No legacy or guard fields are reinterpreted. The application-owned powerProtocol adapter handles these fields until the generated client includes them.
+
+Timers are zero (disabled) or whole-second milliseconds from 1000 to 86400000; enabled deep sleep is at least 60000 and no earlier than other timers. Defaults: idle 120000, lights 30000 each, deep 0, USB bypass, immediate off while lift-locked. UI edits are local until Apply, and standard motion save persists power/v1 independently. Deep sleep may consume its wake key; standby retains the sensor and connection. The Device page exposes only the built light channels. Firmware reads do not reset timers; held positions protect activity, and lighting suppression never changes saved user light settings.
+
+## Tap detection and driver corrections (preview.7)
+
+LIS2DH normal 10-bit samples previously used an approximate full-scale conversion: nominal 1 g decoded to approximately 0.976 g. Conversion now uses the datasheet nominal sensitivity for each range and 8/10/12-bit mode, explicit signed little-endian decoding and 64-bit intermediate arithmetic. BDU prevents mixed high/low bytes. Tests execute the actual patched fetch/conversion/channel getters. Register order is X/Y/Z; physical PCB-to-case axis orientation has not been measured, so no speculative X/Y swap is applied. Studio shows sensor-axis values in mg for this measurement. Real sensor tolerances still apply.
+
+Enabled tapping selects 400 Hz hardware ODR; disabling restores 100 Hz. The guard consumes frames at its existing approximately 100 Hz cadence. I2C remains on the sampler thread. The hardware click engine selects single OR double detection, rather than arming both bits on the same axis. Default mode is one case-wide gesture, all sensor axes, 120 ms typing quiet interval. Left/right-by-polarity remains an explicit experimental option and is not reliable physical localization. Existing right-side bindings are preserved while hidden in unified mode.
+
+Double-only bindings use hardware double-click. When both single and double actions are assigned, hardware single events feed bounded software arbitration; single actions wait for the second-tap interval. Physical key processing gains no new delay. Tap dispatch waits 12 ms to allow a coincident physical key to veto it, and rejects held/recent keys, lift-lock transitions, stale configurations and queue overflow. Carry transitions clear pending gestures.
+
+Studio provides a 60-second no-action test, GPIO/recognition/gesture/action/suppression counters, actual register snapshot and a bounded 32-frame waveform with actual timestamps. Test events remain non-executing even if processed after test expiry. Snapshot reads do not reread the self-clearing CLICK_SRC register. Test sampling is best-effort and is not an oscilloscope or guaranteed 400 Hz host recording.
+
+Wire extension: Capabilities uint32 tap_version=11 is 1. TapConfig fields 11/12/13 are axes_mask (1..7), split_sides (bool), typing_quiet_ms (0..1000). Complete extensions are validated transactionally; old clients preserve current extra options. Requests 14/15/16 get diagnostics, set test (bool), get capture; responses 14/15/16 return diagnostics, acceptance, capture. Capture bytes are at most 256 bytes: 32 little-endian frames of uint16 milliseconds and int16 X/Y/Z mg. Options persist independently as tap/v1 only on explicit Save; reset includes this record. Existing binding fields remain unchanged. The messages module must provide nanopb.proto, as the pinned module does.
+
+Validation: host policy and real-controller tests, actual driver functions across modes/ranges and fresh EVO compilation pass. Physical axis orientation, click recognition rate, false triggers, power use and real reboot persistence need user testing. No preview.7 keyboard flash was performed. The nominal scale correction slightly changes motion thresholds in physical units; repeat carrying/placement and typing checks after flashing.
+
+References: [LIS2DH12 datasheet](https://www.st.com/resource/en/datasheet/lis2dh12.pdf), [ST AN5005](https://www.st.com/resource/en/application_note/an5005-lis2dh12-ultralowpower-highperformance-3axis-nano-accelerometer-with-digital-output-stmicroelectronics.pdf).
+
+## Double-only gestures and progressive disclosure (preview.8)
+
+Capabilities.tapVersion=2 advertises hardware double-click-only behavior, including no-action test mode. All stored single actions are inert; old wire/storage fields are retained for compatibility. There is no software single/double arbitration or triple-tap feature. Version 1 keeps its decoder and diagnostic compatibility; the UI warns that old firmware must apply a tap setting to clear saved singles, then explicitly save.
+
+The page shows double bindings, relative threshold (not mg), double window and layers first, plus a battery-life notice. The final Advanced parameters and hardware test disclosure defaults closed. Its diagnostic component mounts only when expanded, so closing it stops polling and any test started there. Axes, direction split, typing quiet window and lower-level timings remain adjustable inside. The threshold conversion/defaults and carry classifier are unchanged in this revision; the reported hard-spacebar false lock remains unresolved.
+
+Validation: double-only actual-controller regression, unchanged driver/guard/power/telemetry tests and fresh EVO build pass. Physical recognition and current consumption remain user tests.
+
+## Sensorless boards and coherent pose policy (preview.9)
+
+Supported build matrix: PH60-SC_V2_EVO (IMU), PH60-SC_V2 and PH60-Multi_V2 (no IMU), all on ph_lite. Power management now builds independently of CONFIG_ZMK_MOTION. Sensorless builds use no_imu.c to pass position events directly, never start a sampler or startup lock, and report no motion capabilities. A separate secured power-only RPC implementation uses the existing motion wire subsystem for capabilities, get/set power, explicit save and reset. This keeps standby, independent lights and opt-in sleep configurable without inventing an IMU. No sensor handlers or chip driver references are linked on those boards. Studio hides Motion when all motion features are absent while keeping the Device power editor and save path.
+
+The guard now uses a three-frame per-axis median for pose/departure evidence, rejecting isolated 10 ms impulses that used to take the immediate sideways/inverted path. Fast pose locking additionally requires a gravity-sized vector (700..1300 mg). At the normal approximately 100 Hz policy cadence, a sustained sideways pose is confirmed after two changed samples (approximately 20 ms including initial sample latency). Ambiguous departure still uses the configurable confirmation interval, now with coherent pose data. Ordinary key dispatch is unchanged; typing and held keys do not disable lift detection. A single accelerometer cannot prove motion at the exact instant of pickup; coherent detection introduces this bounded sample-confirmation tradeoff. No guarantee of zero leakage before detection is claimed.
+
+Landing confirmation deliberately uses unfiltered raw per-axis stability over the complete 60/180 ms default window, so filtering cannot make a moving keyboard appear settled. Queuing, replay order, bag-held-key suppression, carry history, stale sensor lock and double-tap gates remain intact. Thresholds and saved settings are unchanged. Physical case impulses that last for several frames can still resemble actual movement and must be tested; this is an experimental mitigation, not measured proof of spacebar immunity.
+
+Validation: fresh source/SDK builds succeed for all three shields. Actual sensorless adapter tests cover immediate forwarding of 128 positions, no lock and unsupported sensor operations. The existing guard suite plus isolated sideways/inverted/overrange impulses, held-key pickup, stale history, 10000 bag cycles and 40000 vibration taps passes. Driver, tap, power, BL and encrypted telemetry regressions pass. No keyboard was flashed. Physical typing/pickup/bag behavior, power draw and persistence across a reboot remain user tests.
+
+## Pose and single-axis controller v1 (preview.10)
+
+Capabilities field12 imu_version=1 enables the pose/game editor. Requests17/18/19 get config, set config, set volatile mode; responses17/18/19 return config/acceptance/acceptance. LiveState fields6..15 carry signed mg, sample time, validity, active mode, signed axis, signed centidegree roll/pitch and endpoint support. Existing generated fields and legacy requests are unchanged. The application adapter decodes additive fields before routing RPC responses and notifications. Mode uses a3-second firmware lease with serial UI renewals and teardown compensation; it is never saved. See [imu-game.md](imu-game.md) for layout, calibration, wireless/USB reports, defaults, limits and validation.

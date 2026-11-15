@@ -15,3 +15,7 @@ The connection page also probes the current Studio RPC transport using the read-
 Demo provides USB and BLE timing profiles with stable, variable-delay and intermittent-failure scenarios, separate from the receiver simulation. CSV headers distinguish management queries from receiver packets. Browser checks passed for both profiles, eight total charts, failure events, pause/resume and 390px layout. Production build passed. Physical USB/BLE hardware has not been validated.
 
 Query success is a discrete per-probe count (0 or 1), not a timer-normalized frequency. Response/link history uses categorical success/failure bands without a fractional axis; missing sampling intervals remain blank. Chromium verified integer labels and red failure segments.
+
+## Collapsed connection charts (2026-11-15)
+
+Both Studio management and receiver activity charts default closed on page entry. Status facts remain visible. The disclosure includes chart controls, plots, events and diagnostic notes. Sampling scheduled by the chart pauses while closed; reopening resumes a previously active monitor with a fresh baseline, so hidden time is not joined as continuous data. Receiver management state polling remains independent. Chromium demo checks passed for both default disclosures, eight plots on expansion, sampling pause and collapsed state after navigation. Tests (30 / 178 assertions), TypeScript and production build pass; no hardware protocol or firmware change.

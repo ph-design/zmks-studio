@@ -5,7 +5,7 @@ import type { RpcTransport } from "@zmkfirmware/zmk-studio-ts-client/transport/i
 import { UserCancelledError } from "@zmkfirmware/zmk-studio-ts-client/transport/errors";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import type { AvailableDevice } from "./tauri/index";
-import { AlertCircle, Bluetooth, Cable, RefreshCw, Languages, Download, X, LockKeyhole, Play, Check, ChevronDown } from "lucide-react";
+import { AlertCircle, Bluetooth, Cable, Radio, RefreshCw, Languages, Download, X, LockKeyhole, Play, Check, ChevronDown } from "lucide-react";
 import {
   Key,
   ListBox,
@@ -17,6 +17,7 @@ import { useModalRef } from "./misc/useModalRef";
 import { ExternalLink } from "./misc/ExternalLink";
 import { GenericModal } from "./GenericModal";
 import { connect as demo_connect, DEFAULT_DEMO_FEATURES, type DemoFeatures } from "./demo/mockTransport";
+import { ReceiverAccess } from "./connection/ReceiverAccess";
 import { GestureChips } from "./unlock/GestureChips";
 import { FACTORY_UNLOCK_KEYS } from "./unlock/unlockPaths";
 import { normalizeLang, SUPPORTED_LANGUAGES } from "./i18n";
@@ -24,6 +25,8 @@ import { normalizeLang, SUPPORTED_LANGUAGES } from "./i18n";
 export type TransportFactory = {
   label: string;
   isWireless?: boolean;
+  connectionType?: "USB" | "BLE" | "2.4G";
+  peerSlot?: 0 | 1;
   connect?: () => Promise<RpcTransport>;
   pick_and_connect?: {
     list: () => Promise<Array<AvailableDevice>>;
@@ -36,7 +39,7 @@ export type ConnectionPhase = "idle" | "connecting" | "initializing" | "connecte
 export interface ConnectModalProps {
   open?: boolean;
   transports: TransportFactory[];
-  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean; connectionType?: "USB" | "BLE" | "2.4G" }) => void;
   connectionError?: string;
   onConnectionError?: (message: string | undefined) => void;
   connectionPhase?: ConnectionPhase;
@@ -178,9 +181,17 @@ function ConnectionErrorNotice({
   );
 }
 
+function isReceiverTransport(transport: TransportFactory) {
+  return transport.connectionType === "2.4G";
+}
+
+function transportMeta(transport: TransportFactory) {
+  return { isWireless: transport.isWireless, connectionType: transport.connectionType };
+}
+
 function isWirelessTransport(transport: TransportFactory) {
   const label = transport.label.toLowerCase();
-  return transport.isWireless || label.includes("ble") || label.includes("bluetooth");
+  return !isReceiverTransport(transport) && (transport.isWireless || label.includes("ble") || label.includes("bluetooth"));
 }
 
 function isUsbTransport(transport: TransportFactory) {
@@ -206,6 +217,13 @@ function ConnectionMethodCards({
       description: t("welcome.usbConnectionDescription"),
     },
     {
+      id: "2g4",
+      label: t("welcome.receiverConnectionTitle", "2.4G receiver"),
+      icon: Radio,
+      transport: transports.find(isReceiverTransport),
+      description: t("welcome.receiverConnectionDescription", "Remap wirelessly through the USB receiver. Keep the keyboard on battery."),
+    },
+    {
       id: "ble",
       label: "BLE",
       icon: Bluetooth,
@@ -215,7 +233,8 @@ function ConnectionMethodCards({
   ];
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="space-y-3">
+    <div className="grid gap-2 sm:grid-cols-3">
       {methods.map((method) => {
         const Icon = method.icon;
         const available = !!method.transport;
@@ -238,6 +257,7 @@ function ConnectionMethodCards({
           </Button>
         );
       })}
+    </div>
     </div>
   );
 }
@@ -358,7 +378,7 @@ function DeviceList({
 }: {
   open: boolean;
   transports: TransportFactory[];
-  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean; connectionType?: "USB" | "BLE" | "2.4G" }) => void;
   onConnectionError?: (message: string | undefined) => void;
 }) {
   const { t } = useTranslation();
@@ -441,7 +461,7 @@ function DeviceList({
       if (dev) {
         dev[0]
           .pick_and_connect!.connect(dev[1])
-          .then(onTransportCreated)
+          .then(t => onTransportCreated(t, transportMeta(dev[0])))
           .catch((e) => {
             console.error(e);
             onConnectionError?.(errorMessageFrom(e, t("errors.failedToConnect")));
@@ -484,13 +504,15 @@ function DeviceList({
               id={`${transport.label}:${device.id}`}
               aria-label={device.label}
             >
-              {isWirelessTransport(transport) ? (
+              {isReceiverTransport(transport) ? (
+                <Radio className="size-5 self-center" />
+              ) : isWirelessTransport(transport) ? (
                 <Bluetooth className="size-5 self-center" />
               ) : (
                 <Cable className="size-5 self-center" />
               )}
               <div className="min-w-0">
-                <span className="block truncate">{device.label}</span>
+                <span className="block truncate">{isReceiverTransport(transport) ? `2.4G · ${device.label}` : device.label}</span>
               </div>
             </ListBoxItem>
           )}
@@ -514,10 +536,11 @@ function SimpleDevicePicker({
   onConnectionError,
 }: {
   transports: TransportFactory[];
-  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean; connectionType?: "USB" | "BLE" | "2.4G" }) => void;
   onConnectionError?: (message: string | undefined) => void;
 }) {
   const { t } = useTranslation();
+  const [receiverSelected, setReceiverSelected] = useState(false);
   const [availableDevices, setAvailableDevices] = useState<
     AvailableDevice[] | undefined
   >(undefined);
@@ -540,7 +563,7 @@ function SimpleDevicePicker({
 
           if (!ignore) {
             if (transport) {
-              onTransportCreated(transport, { isWireless: selectedTransport?.isWireless });
+              onTransportCreated(transport, transportMeta(selectedTransport));
             }
             setSelectedTransport(undefined);
           }
@@ -582,8 +605,9 @@ function SimpleDevicePicker({
       <ConnectionMethodCards
         transports={transports}
         selectedTransport={selectedTransport}
-        onSelectTransport={setSelectedTransport}
+        onSelectTransport={transport => { if (isReceiverTransport(transport)) { setSelectedTransport(undefined); setReceiverSelected(true); } else { setReceiverSelected(false); setSelectedTransport(transport); } }}
       />
+      {receiverSelected && <ReceiverAccess onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />}
       {selectedTransport && availableDevices && (
         <ul className="rounded-md border border-base-300 p-1">
           {availableDevices.map((d) => (
@@ -593,7 +617,7 @@ function SimpleDevicePicker({
               onClick={async () => {
                 onTransportCreated(
                   await selectedTransport!.pick_and_connect!.connect(d),
-                  { isWireless: selectedTransport!.isWireless }
+                  transportMeta(selectedTransport!)
                 );
                 setSelectedTransport(undefined);
               }}
@@ -645,18 +669,25 @@ function ConnectOptions({
   open,
 }: {
   transports: TransportFactory[];
-  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean; connectionType?: "USB" | "BLE" | "2.4G" }) => void;
   onConnectionError?: (message: string | undefined) => void;
   open?: boolean;
 }) {
+  const [receiverSelected, setReceiverSelected] = useState(false);
   const useSimplePicker = useMemo(
     () => transports.every((t) => !t.pick_and_connect),
     [transports]
   );
 
+  const [selectedTransport, setSelectedTransport] = useState<TransportFactory>();
+  const visible = useMemo(() => selectedTransport ? [selectedTransport] : transports, [selectedTransport, transports]);
   return useSimplePicker
     ? <SimpleDevicePicker transports={transports} onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />
-    : <DeviceList open={open || false} transports={transports} onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />;
+    : <div className="space-y-3">
+        <ConnectionMethodCards transports={transports} selectedTransport={selectedTransport} onSelectTransport={transport => { if (isReceiverTransport(transport)) { setReceiverSelected(true); setSelectedTransport(undefined); } else { setReceiverSelected(false); setSelectedTransport(transport); } }} />
+        {receiverSelected && <ReceiverAccess onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />}
+        {!receiverSelected && selectedTransport && <DeviceList open={open || false} transports={visible} onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} />}
+      </div>;
 }
 
 function ClientRecommendation() {
@@ -808,7 +839,7 @@ export const ConnectModal = ({
 function DemoModeCard({
   onTransportCreated,
 }: {
-  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean; connectionType?: "USB" | "BLE" | "2.4G" }) => void;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
