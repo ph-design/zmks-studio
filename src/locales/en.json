@@ -54,8 +54,8 @@
     "crossPlatformApp": "cross platform application",
     "receiverConnectionTitle": "2.4G receiver",
     "receiverConnectionDescription": "Connect the receiver, then select a keyboard for wireless configuration.",
-    "receiverConnectionHint": "Reads receiver status and controls its indicator and BLE peripherals. Select this interface first; on this PC it is usually COM63.",
-    "receiverConnectionFailed": "Unable to open the keyboard configuration session. Confirm the selected keyboard is online and use the receiver Studio interface (usually COM62 on this PC).",
+    "receiverConnectionHint": "Choose PH Hub - Management (AT) for receiver status, LEDs and BLE peripherals. Legacy firmware usually uses COM63 on this PC; port numbers may change.",
+    "receiverConnectionFailed": "Could not open keyboard configuration. Check that the keyboard is online and choose PH Hub - Keyboard Config (Studio). For legacy firmware, follow the interface hints.",
     "receiverTarget": "Keyboard in receiver",
     "receiverKeyboard1": "Keyboard 1",
     "receiverKeyboard2": "Keyboard 2 (requires multi-keyboard Hub firmware)"
@@ -1080,7 +1080,7 @@
       "modeError": "Cannot enable or renew. Check the sensor and select USB or 2.4G output.",
       "flatError": "Set the keyboard flat before sampling.",
       "liftError": "Tilt is too small or repeats the previous direction. Set flat, lift the specified edge and hold still.",
-      "frontEdge": "Front · spacebar",
+      "frontEdge": "Front · orange face",
       "flatTitle": "Flat calibration",
       "flatGuide": "Place the keyboard on your desk in its normal typing position. Click below, release your hands and leave it still for about one second. Calibration applies automatically.",
       "flatButton": "Calibrate flat and apply",
@@ -1170,9 +1170,9 @@
     "noReceiver": "No receiver found. Check its USB connection and try again.",
     "managementPort": "Receiver management interface (AT)",
     "studioPort": "Keyboard configuration interface (Studio)",
-    "managementHint": "Reads receiver status and controls its indicator and BLE peripherals. Select this interface first; on this PC it is usually COM63.",
-    "studioHint": "Configures the selected keyboard through the receiver; on this PC it is usually COM62. Select Studio, not the management interface already in use.",
-    "portNumbers": "COM numbers are assigned by the OS and may change. The desktop client identifies USB interface roles; do not rely on the number alone.",
+    "managementHint": "Choose PH Hub - Management (AT) for receiver status, LEDs and BLE peripherals. Legacy firmware usually uses COM63 on this PC; port numbers may change.",
+    "studioHint": "For keyboard configuration choose PH Hub - Keyboard Config (Studio). Legacy firmware usually uses COM62 on this PC; do not choose the management interface.",
+    "portNumbers": "Hub 0.6.9 adds distinct interface names. Reconnect the receiver if old names remain. Browser pickers use Windows device names, which Studio cannot override; the desktop app identifies interface roles.",
     "keyboard": "Keyboard {{number}}",
     "online": "Online",
     "offline": "Offline",
@@ -1183,7 +1183,8 @@
       "READY": "Input available",
       "LOCKED": "Carry locked",
       "UNKNOWN": "Protection state unknown"
-    }
+    },
+    "wrongManagementPort": "This interface did not answer AT commands. Choose PH Hub - Management (AT), not Keyboard Config (Studio)."
   },
   "power": {
     "title": "Automatic sleep and lighting",

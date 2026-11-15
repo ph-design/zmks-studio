@@ -50,6 +50,8 @@ function dongleErrorText(t: Translate, error: unknown): string {
         return t("carbon.conn.dongleCancelled", "Port selection was cancelled — nothing was opened.");
       case "not-open":
         return t("carbon.conn.atNotOpen", "The dongle's serial port is not open.");
+      case "wrong-interface":
+        return t("receiverFlow.wrongManagementPort", "No AT response. Choose PH Hub - Management (AT), not Keyboard Config (Studio).");
       case "open-failed":
         return `${t("carbon.conn.dongleOpenFailed", "Could not open the serial port")}：${error.message}`;
       default:
@@ -186,7 +188,7 @@ export function useDongle(t: Translate): DongleController {
 
             if (!probe.ok) {
               lastError = new DongleError(
-                "open-failed",
+                probe.timedOut ? "wrong-interface" : "open-failed",
                 probe.note || probe.raw.trim() || "No AT response on this serial port"
               );
               await client.close();
@@ -324,7 +326,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
   ]).finally(() => clearTimeout(timer));
 }
 
-export type DongleErrorCode = "unsupported" | "cancelled" | "not-open" | "open-failed";
+export type DongleErrorCode = "unsupported" | "cancelled" | "not-open" | "open-failed" | "wrong-interface";
 
 export class DongleError extends Error {
   readonly code: DongleErrorCode;

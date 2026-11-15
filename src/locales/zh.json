@@ -54,8 +54,8 @@
     "crossPlatformApp": "跨平台应用程序",
     "receiverConnectionTitle": "2.4G 接收器",
     "receiverConnectionDescription": "先连接接收器，再选择键盘进行无线配置。",
-    "receiverConnectionHint": "用于读取连接状态、设置接收器指示灯和管理 BLE 外设。首次连接请选择此接口；本机通常为 COM63。",
-    "receiverConnectionFailed": "无法建立键盘配置会话。请确认所选键盘在线，并使用接收器的 Studio 接口（本机通常为 COM62）。",
+    "receiverConnectionHint": "请选择“PH Hub - Management (AT)”接口，用于接收器状态、指示灯及 BLE 外设管理。旧固件本机通常为 COM63；COM 编号可能变化。",
+    "receiverConnectionFailed": "无法建立键盘配置会话。请确认键盘在线，并使用“PH Hub - Keyboard Config (Studio)”接口。旧固件请参考接口用途提示。",
     "receiverTarget": "接收器中的键盘",
     "receiverKeyboard1": "键盘 1",
     "receiverKeyboard2": "键盘 2（需双键盘 Hub 固件）"
@@ -1147,7 +1147,7 @@
       "modeError": "无法开启或续期：请检查传感器与连接，输出端须为 USB 或 2.4G。",
       "flatError": "请先将键盘平放，再采样。",
       "liftError": "倾斜幅度不足或方向重复。请放平后抬起指定边缘，停稳再试。",
-      "frontEdge": "前侧 · 空格键",
+      "frontEdge": "前侧 · 橙色面",
       "flatTitle": "放平校准",
       "flatGuide": "将键盘按平时使用方向放在桌面上。点击下方按钮，松开双手并保持静止约 1 秒；完成后会自动应用。",
       "flatButton": "放平校准并应用",
@@ -1237,9 +1237,9 @@
     "noReceiver": "未发现接收器，请检查 USB 连接后重试。",
     "managementPort": "接收器管理接口（AT）",
     "studioPort": "键盘配置接口（Studio）",
-    "managementHint": "用于读取连接状态、设置接收器指示灯和管理 BLE 外设。首次连接请选择此接口；本机通常为 COM63。",
-    "studioHint": "用于通过接收器配置所选键盘；本机通常为 COM62。请选择 Studio 接口，不要选择已用于接收器管理的接口。",
-    "portNumbers": "COM 编号由系统分配，可能变化。桌面端按 USB 接口类型识别用途，请勿仅凭编号判断。",
+    "managementHint": "请选择“PH Hub - Management (AT)”接口，用于接收器状态、指示灯及 BLE 外设管理。旧固件本机通常为 COM63；COM 编号可能变化。",
+    "studioHint": "配置键盘时请选择“PH Hub - Keyboard Config (Studio)”。旧固件本机通常为 COM62；不要选择已用于管理的接口。",
+    "portNumbers": "Hub 0.6.9 起提供独立接口名称。若系统仍显示旧名称，请重新插拔接收器；浏览器的系统选择框由 Windows 显示名称，ZMKs 无法改写。桌面端按接口识别用途。",
     "keyboard": "键盘 {{number}}",
     "online": "在线",
     "offline": "离线",
@@ -1250,7 +1250,8 @@
       "READY": "输入可用",
       "LOCKED": "输入已锁定",
       "UNKNOWN": "保护状态未知"
-    }
+    },
+    "wrongManagementPort": "当前接口未响应 AT 指令。请选择“PH Hub - Management (AT)”，不要选择键盘配置（Studio）接口。"
   },
   "power": {
     "title": "自动休眠与熄灯",

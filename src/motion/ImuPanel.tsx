@@ -1,5 +1,5 @@
-import {KeyboardPose} from "./KeyboardPose";
-import {FlatCalibration,relativeAngle,type Point3} from "./poseMath";
+import { KeyboardPose } from "./KeyboardPose";
+import { FlatCalibration, relativeAngle, type Point3 } from "./poseMath";
 import { maintainImuLease } from "./imuLease";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ConnectionContext } from "../rpc/ConnectionContext";
@@ -33,8 +33,14 @@ export function ImuPanel({
     zero = useRef<number[] | null>(null),
     left = useRef<{ axis: number; flip: boolean } | null>(null);
   const [step, setStep] = useState(0);
-  const [calibrating,setCalibrating]=useState(false),[calProgress,setCalProgress]=useState(0),[calNote,setCalNote]=useState("");
-  const calibration=useRef<{sampler:FlatCalibration;started:number;config:ImuConfig}|null>(null);
+  const [calibrating, setCalibrating] = useState(false),
+    [calProgress, setCalProgress] = useState(0),
+    [calNote, setCalNote] = useState("");
+  const calibration = useRef<{
+    sampler: FlatCalibration;
+    started: number;
+    config: ImuConfig;
+  } | null>(null);
   const l = (key: string) => t("motion.imu." + key, key);
   useEffect(() => {
     if (live.sampleTime !== undefined && live.sampleTime !== 0) {
@@ -45,10 +51,14 @@ export function ImuPanel({
   useEffect(() => {
     alive.current = true;
     const current = ++epoch.current;
-    setConfig(null);setBusy(false);setError("");
+    setConfig(null);
+    setBusy(false);
+    setError("");
     setWanted(false);
     setStep(0);
-    calibration.current=null;setCalibrating(false);setCalNote("");
+    calibration.current = null;
+    setCalibrating(false);
+    setCalNote("");
     void backend
       ?.get()
       .then((c) => {
@@ -57,10 +67,12 @@ export function ImuPanel({
           setDraft(c);
         }
       })
-      .catch(() => {if(alive.current && current===epoch.current)setError(l("error"));});
+      .catch(() => {
+        if (alive.current && current === epoch.current) setError(l("error"));
+      });
     return () => {
       alive.current = false;
-      calibration.current=null;
+      calibration.current = null;
       epoch.current++;
       void backend?.mode(false).catch(() => {});
     };
@@ -136,33 +148,72 @@ export function ImuPanel({
     }
   };
   const startFlat = () => {
-    if(!backend || !valid || wanted || busy || !validImu(draft))return;
-    calibration.current={sampler:new FlatCalibration(draft),started:performance.now(),config:{...draft}};
-    setCalibrating(true);setCalProgress(0);setCalNote("");setError("");setStep(0);
+    if (!backend || !valid || wanted || busy || !validImu(draft)) return;
+    calibration.current = {
+      sampler: new FlatCalibration(draft),
+      started: performance.now(),
+      config: { ...draft },
+    };
+    setCalibrating(true);
+    setCalProgress(0);
+    setCalNote("");
+    setError("");
+    setStep(0);
   };
-  useEffect(()=>{
-    const job=calibration.current;
-    if(!job || !backend || !live.sampleTime)return;
-    if(!valid){job.sampler.reset();setCalProgress(0);return;}
-    const result=job.sampler.push(raw as Point3,live.sampleTime,performance.now());
+  useEffect(() => {
+    const job = calibration.current;
+    if (!job || !backend || !live.sampleTime) return;
+    if (!valid) {
+      job.sampler.reset();
+      setCalProgress(0);
+      return;
+    }
+    const result = job.sampler.push(
+      raw as Point3,
+      live.sampleTime,
+      performance.now(),
+    );
     setCalProgress(result.progress);
-    if(!result.center)return;
-    calibration.current=null;setCalibrating(false);setBusy(true);
-    const next={...job.config,centerRoll:result.center[0],centerPitch:result.center[1]};
-    const current=epoch.current;
-    void backend.set(next).then(ok=>{
-      if(!alive.current || current!==epoch.current)return;
-      if(ok){setConfig({...next});setDraft({...next});onChanged();setCalNote(l("flatDone"));}
-      else setError(l("error"));
-    }).catch(()=>{if(alive.current && current===epoch.current)setError(l("error"));})
-      .finally(()=>{if(alive.current && current===epoch.current)setBusy(false);});
-  },[live.sampleTime]);
-  useEffect(()=>{
-    if(!calibrating)return;
-    const timer=setInterval(()=>{const job=calibration.current;
-      if(job && performance.now()-job.started>8000){calibration.current=null;setCalibrating(false);setCalNote(l("flatRetry"));}
-    },200);return()=>clearInterval(timer);
-  },[calibrating]);
+    if (!result.center) return;
+    calibration.current = null;
+    setCalibrating(false);
+    setBusy(true);
+    const next = {
+      ...job.config,
+      centerRoll: result.center[0],
+      centerPitch: result.center[1],
+    };
+    const current = epoch.current;
+    void backend
+      .set(next)
+      .then((ok) => {
+        if (!alive.current || current !== epoch.current) return;
+        if (ok) {
+          setConfig({ ...next });
+          setDraft({ ...next });
+          onChanged();
+          setCalNote(l("flatDone"));
+        } else setError(l("error"));
+      })
+      .catch(() => {
+        if (alive.current && current === epoch.current) setError(l("error"));
+      })
+      .finally(() => {
+        if (alive.current && current === epoch.current) setBusy(false);
+      });
+  }, [live.sampleTime]);
+  useEffect(() => {
+    if (!calibrating) return;
+    const timer = setInterval(() => {
+      const job = calibration.current;
+      if (job && performance.now() - job.started > 8000) {
+        calibration.current = null;
+        setCalibrating(false);
+        setCalNote(l("flatRetry"));
+      }
+    }, 200);
+    return () => clearInterval(timer);
+  }, [calibrating]);
   const calibrate = () => {
     if (!valid) return;
     if (step === 0) {
@@ -201,7 +252,8 @@ export function ImuPanel({
         centerRoll: 0,
         centerPitch: 0,
       });
-      setStep(0);setCalNote(l("axisDone"));
+      setStep(0);
+      setCalNote(l("axisDone"));
     }
   };
   const changed = JSON.stringify(config) !== JSON.stringify(draft);
@@ -220,26 +272,78 @@ export function ImuPanel({
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="border border-base-300 p-4">
               <KeyboardPose
-                roll={relativeAngle(angles.current[0],draft.centerRoll/100)}
-                pitch={relativeAngle(angles.current[1],draft.centerPitch/100)}
+                roll={relativeAngle(angles.current[0], draft.centerRoll / 100)}
+                pitch={relativeAngle(
+                  angles.current[1],
+                  draft.centerPitch / 100,
+                )}
                 label={l("model")}
                 frontLabel={l("frontEdge")}
-                guide={step===1?"left":step===2?"rear":calibrating?"flat":undefined}
+                guide={
+                  step === 1
+                    ? "left"
+                    : step === 2
+                      ? "rear"
+                      : calibrating
+                        ? "flat"
+                        : undefined
+                }
               />
               <p className="text-xs text-helper">
                 {valid ? l("stable") : l("unstable")}
               </p>
             </div>
             <div className="space-y-4">
-              <p>{l("roll")} {relativeAngle(angles.current[0],draft.centerRoll/100).toFixed(1)}° · {l("pitch")} {relativeAngle(angles.current[1],draft.centerPitch/100).toFixed(1)}°</p>
+              <p>
+                {l("roll")}{" "}
+                {relativeAngle(
+                  angles.current[0],
+                  draft.centerRoll / 100,
+                ).toFixed(1)}
+                ° · {l("pitch")}{" "}
+                {relativeAngle(
+                  angles.current[1],
+                  draft.centerPitch / 100,
+                ).toFixed(1)}
+                °
+              </p>
               <h3 className="font-semibold">{l("flatTitle")}</h3>
-              <p className="text-xs leading-relaxed text-helper">{l("flatGuide")}</p>
-              <button className="border border-base-300 px-4 py-2 disabled:opacity-40" disabled={!valid || busy || wanted || calibrating || !validImu(draft)} onClick={startFlat}>{l("flatButton")}</button>
-              {calibrating && <div role="status" className="space-y-2">
-                <p>{l("flatCollecting")}</p><progress aria-label={l("flatTitle")} className="w-full" max={100} value={calProgress}/>
-                <button onClick={()=>{calibration.current=null;setCalibrating(false);}}>{l("cancel")}</button>
-              </div>}
-              {calNote && <p role="status" className="text-xs leading-relaxed">{calNote}</p>}
+              <p className="text-xs leading-relaxed text-helper">
+                {l("flatGuide")}
+              </p>
+              <button
+                className="border border-base-300 px-4 py-2 disabled:opacity-40"
+                disabled={
+                  !valid || busy || wanted || calibrating || !validImu(draft)
+                }
+                onClick={startFlat}
+              >
+                {l("flatButton")}
+              </button>
+              {calibrating && (
+                <div role="status" className="space-y-2">
+                  <p>{l("flatCollecting")}</p>
+                  <progress
+                    aria-label={l("flatTitle")}
+                    className="w-full"
+                    max={100}
+                    value={calProgress}
+                  />
+                  <button
+                    onClick={() => {
+                      calibration.current = null;
+                      setCalibrating(false);
+                    }}
+                  >
+                    {l("cancel")}
+                  </button>
+                </div>
+              )}
+              {calNote && (
+                <p role="status" className="text-xs leading-relaxed">
+                  {calNote}
+                </p>
+              )}
               <p className="text-xs text-helper">{l("axisOptional")}</p>
             </div>
           </div>
@@ -292,7 +396,9 @@ export function ImuPanel({
           <div className="flex flex-wrap items-center gap-3">
             <button
               className="border border-base-300 px-4 py-2 disabled:opacity-40"
-              disabled={busy || wanted || calibrating || !changed || !validImu(draft)}
+              disabled={
+                busy || wanted || calibrating || !changed || !validImu(draft)
+              }
               onClick={() => void apply()}
             >
               {l("apply")}
@@ -300,7 +406,13 @@ export function ImuPanel({
             <button
               className="border border-base-300 px-4 py-2 disabled:opacity-40"
               disabled={busy || wanted || calibrating}
-              onClick={() => setDraft({ ...IMU_DEFAULTS, swapXy: config?.swapXy ?? false, flipMask: config?.flipMask ?? 0 })}
+              onClick={() =>
+                setDraft({
+                  ...IMU_DEFAULTS,
+                  swapXy: config?.swapXy ?? false,
+                  flipMask: config?.flipMask ?? 0,
+                })
+              }
             >
               {l("defaults")}
             </button>
@@ -314,7 +426,8 @@ export function ImuPanel({
             <button
               className="border border-base-300 px-4 py-2 disabled:opacity-40"
               disabled={
-                busy || calibrating ||
+                busy ||
+                calibrating ||
                 (!wanted &&
                   (!valid ||
                     changed ||
@@ -357,18 +470,60 @@ export function ImuPanel({
               <h3 className="font-semibold">{l("axisTitle")}</h3>
               <p className="text-xs text-helper">{l("calibrationHint")}</p>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="max-w-[360px] border border-base-300 p-2"><KeyboardPose roll={step===2?20:0} pitch={step===1?20:0} label={l("guideModel")} frontLabel={l("frontEdge")} guide={step===1?"left":step===2?"rear":"flat"}/></div>
+                <div className="max-w-[360px] border border-base-300 p-2">
+                  <KeyboardPose
+                    roll={step === 2 ? 20 : 0}
+                    pitch={step === 1 ? 20 : 0}
+                    label={l("guideModel")}
+                    frontLabel={l("frontEdge")}
+                    guide={step === 1 ? "left" : step === 2 ? "rear" : "flat"}
+                  />
+                </div>
                 <div className="space-y-3 self-center">
-              <ol className="grid gap-2 text-xs" aria-label={l("axisTitle")}>
-                {["guideFlat","guideLeft","guideRear"].map((key,i)=><li key={key} aria-current={step===i?"step":undefined} className={step===i?"font-semibold text-primary":"text-helper"}>{i+1}. {l(key)}</li>)}
-              </ol>
-              <button className="border border-base-300 px-3 py-2 disabled:opacity-40" disabled={!valid || busy || wanted || calibrating} onClick={calibrate}>{l(["calibrate","leftLift","rearLift"][step])}</button>
-              {step>0 && <button className="ml-3" onClick={()=>setStep(0)}>{l("cancel")}</button>}
-              {step>0 && <p role="status" className="text-xs text-primary">{l(step===1?"guideLeft":"guideRear")}</p>}
+                  <ol
+                    className="grid gap-2 text-xs"
+                    aria-label={l("axisTitle")}
+                  >
+                    {["guideFlat", "guideLeft", "guideRear"].map((key, i) => (
+                      <li
+                        key={key}
+                        aria-current={step === i ? "step" : undefined}
+                        className={
+                          step === i
+                            ? "font-semibold text-primary"
+                            : "text-helper"
+                        }
+                      >
+                        {i + 1}. {l(key)}
+                      </li>
+                    ))}
+                  </ol>
+                  <button
+                    className="border border-base-300 px-3 py-2 disabled:opacity-40"
+                    disabled={!valid || busy || wanted || calibrating}
+                    onClick={calibrate}
+                  >
+                    {l(["calibrate", "leftLift", "rearLift"][step])}
+                  </button>
+                  {step > 0 && (
+                    <button className="ml-3" onClick={() => setStep(0)}>
+                      {l("cancel")}
+                    </button>
+                  )}
+                  {step > 0 && (
+                    <p role="status" className="text-xs text-primary">
+                      {l(step === 1 ? "guideLeft" : "guideRear")}
+                    </p>
+                  )}
                 </div>
               </div>
-              <p className="font-mono text-xs">X {raw[0]} mg · Y {raw[1]} mg · Z {raw[2]} mg</p>
-              <p className="text-xs text-helper">{l("centerValue")} {(draft.centerRoll/100).toFixed(1)}° / {(draft.centerPitch/100).toFixed(1)}°</p>
+              <p className="font-mono text-xs">
+                X {raw[0]} mg · Y {raw[1]} mg · Z {raw[2]} mg
+              </p>
+              <p className="text-xs text-helper">
+                {l("centerValue")} {(draft.centerRoll / 100).toFixed(1)}° /{" "}
+                {(draft.centerPitch / 100).toFixed(1)}°
+              </p>
             </div>
             <div className="mt-4 flex flex-wrap gap-5">
               <label>
