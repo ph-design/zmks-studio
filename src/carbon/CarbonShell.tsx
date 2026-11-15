@@ -319,7 +319,7 @@ export function CarbonShell(props: CarbonShellProps) {
               </div>
             ) : activeNav === "device" ? (
               <DeviceView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
-                onResetSettings={props.onResetSettings} powerSettings={<PowerSettingsPanel config={motion.powerConfig} lights={motion.capabilities?.powerLights ?? 0} onChange={motion.applyPowerConfig} t={t} />} />
+                onResetSettings={props.onResetSettings} powerSettings={<PowerSettingsPanel supportsCarry={!!motion.capabilities?.supportsCarry} config={motion.powerConfig} lights={motion.capabilities?.powerLights ?? 0} onChange={motion.applyPowerConfig} t={t} />} />
             ) : activeNav === "connection" ? (
               <ConnectionView th={th} t={t} onDisconnect={props.onDisconnect}
                 connectionType={props.connectionType} />

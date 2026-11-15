@@ -190,7 +190,10 @@ test("power settings survive the real framed RPC pipeline and use the existing s
   };
   const backend = getMotionBackend(create_rpc_connection(transport))!;
   try {
-    expect((await backend.getCapabilities())?.powerVersion).toBe(1);
+    const capabilities = await backend.getCapabilities();
+    expect(capabilities?.powerVersion).toBe(1);
+    expect(capabilities?.supportsTap).toBe(false);
+    expect(capabilities?.supportsCarry).toBe(false);
     expect(await backend.getPowerConfig()).toEqual(POWER_DEFAULTS);
     expect(
       await backend.setPowerConfig({

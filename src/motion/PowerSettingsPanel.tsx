@@ -8,11 +8,13 @@ import {
 export function PowerSettingsPanel({
   config,
   lights,
+  supportsCarry,
   onChange,
   t,
 }: {
   config: PowerConfig | null;
   lights: number;
+  supportsCarry: boolean;
   onChange: (config: PowerConfig) => Promise<boolean>;
   t: (key: string, fallback: string) => string;
 }) {
@@ -87,6 +89,7 @@ export function PowerSettingsPanel({
             {timer("idleTimeoutMs")}
             {!!(lights & 1) && timer("rgbOffMs")}
             {!!(lights & 2) && timer("backlightOffMs")}
+            {supportsCarry && <>
             <label className="flex items-start gap-2 text-xs">
               <input
                 type="checkbox"
@@ -95,6 +98,7 @@ export function PowerSettingsPanel({
               />
               {l("offWhenLocked")}
             </label>
+            </>}
             <label className="flex items-start gap-2 text-xs">
               <input
                 type="checkbox"

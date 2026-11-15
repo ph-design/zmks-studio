@@ -983,7 +983,7 @@
         "carriedSettleMsHint": "Longer confirmation rejects brief flat poses during continued movement.",
         "briefSettleMsHint": "Shorter confirmation resumes input sooner after a brief lift, with greater risk of premature unlock.",
         "stableSpanMgHint": "Maximum per-axis span during confirmation. Lower values are stricter and may prevent unlocking on vibrating surfaces.",
-        "departureMgHint": "Acceleration change from the desk baseline. Lower values detect lifting sooner but may react to typing vibration. Clear sideways or inverted poses still lock immediately.",
+        "departureMgHint": "Acceleration change from the desk baseline. Lower values detect lifting sooner but may react to typing vibration. Sideways or inverted poses use separate orientation detection and are not controlled by this threshold.",
         "verifyMsHint": "Duration required for ambiguous motion. Lower values react sooner; higher values reject short vibration. This is not a delay added to each normal keypress.",
         "invalid": "Enter integers within the listed ranges. Extended-movement confirmation cannot be shorter than brief-lift confirmation.",
         "defaults": "Restore recommended values",
