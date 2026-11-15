@@ -205,3 +205,11 @@ Wire extension: Capabilities uint32 tap_version=11 is 1. TapConfig fields 11/12/
 Validation: host policy and real-controller tests, actual driver functions across modes/ranges and fresh EVO compilation pass. Physical axis orientation, click recognition rate, false triggers, power use and real reboot persistence need user testing. No preview.7 keyboard flash was performed. The nominal scale correction slightly changes motion thresholds in physical units; repeat carrying/placement and typing checks after flashing.
 
 References: [LIS2DH12 datasheet](https://www.st.com/resource/en/datasheet/lis2dh12.pdf), [ST AN5005](https://www.st.com/resource/en/application_note/an5005-lis2dh12-ultralowpower-highperformance-3axis-nano-accelerometer-with-digital-output-stmicroelectronics.pdf).
+
+## Double-only gestures and progressive disclosure (preview.8)
+
+Capabilities.tapVersion=2 advertises hardware double-click-only behavior, including no-action test mode. All stored single actions are inert; old wire/storage fields are retained for compatibility. There is no software single/double arbitration or triple-tap feature. Version 1 keeps its decoder and diagnostic compatibility; the UI warns that old firmware must apply a tap setting to clear saved singles, then explicitly save.
+
+The page shows double bindings, relative threshold (not mg), double window and layers first, plus a battery-life notice. The final Advanced parameters and hardware test disclosure defaults closed. Its diagnostic component mounts only when expanded, so closing it stops polling and any test started there. Axes, direction split, typing quiet window and lower-level timings remain adjustable inside. The threshold conversion/defaults and carry classifier are unchanged in this revision; the reported hard-spacebar false lock remains unresolved.
+
+Validation: double-only actual-controller regression, unchanged driver/guard/power/telemetry tests and fresh EVO build pass. Physical recognition and current consumption remain user tests.

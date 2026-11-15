@@ -112,7 +112,7 @@ export function TapDiagnosticsPanel({
       )
       .join(" ");
   return (
-    <section className="custom-scrollbar max-h-[48%] shrink-0 overflow-y-auto border-b border-base-300 px-6 py-4 text-xs">
+    <section className="border-t border-base-300 py-4 text-xs">
       <div className="flex flex-wrap items-center gap-3">
         <h3 className="text-sm font-semibold">{l("title")}</h3>
         <button

@@ -1,5 +1,13 @@
-import { TAP_DEFAULTS, type TapDiagnostics, type TapCapture } from "../motion/tapProtocol";
-import { POWER_DEFAULTS, validPowerConfig, type PowerConfig } from "../motion/powerProtocol";
+import {
+  TAP_DEFAULTS,
+  type TapDiagnostics,
+  type TapCapture,
+} from "../motion/tapProtocol";
+import {
+  POWER_DEFAULTS,
+  validPowerConfig,
+  type PowerConfig,
+} from "../motion/powerProtocol";
 import { GUARD_DEFAULTS, validGuardSettings } from "../motion/guardProtocol";
 import {
   Orientation,
@@ -25,7 +33,7 @@ const CAPABILITIES: MotionCapabilities = {
   supportsSleepWake: false,
   thresholdMax: 127,
   guardVersion: 1,
-  tapVersion: 1,
+  tapVersion: 2,
   powerVersion: 1,
   powerLights: 3,
 };
@@ -39,8 +47,8 @@ function defaultTapConfig(): TapConfig {
     latencyMs: 80,
     windowMs: 240,
     // &bt BT_SEL 0 in the demo behavior table — a plausible "pat the case" action.
-    leftSingleBinding: { behaviorId: 10, param1: 0, param2: 0 },
-    leftDoubleBinding: undefined,
+    leftSingleBinding: undefined,
+    leftDoubleBinding: { behaviorId: 10, param1: 0, param2: 0 },
     rightSingleBinding: undefined,
     rightDoubleBinding: undefined,
     layerMask: 0,
@@ -67,15 +75,60 @@ function defaultStillWakeConfig(): StillWakeConfig {
 class DemoMotionFirmware implements MotionBackend {
   private testUntil = 0;
   private pulses = 0;
-  async setTapTest(enabled: boolean) { this.testUntil = enabled ? Date.now()+60000 : 0; this.pulses=0; return true; }
-  async getTapDiagnostics(): Promise<TapDiagnostics> {
-    const dry=Date.now()<this.testUntil; if(this.tap.enabled)this.pulses++;
-    return { irqCount:this.pulses,singleCount:this.pulses,doubleCount:0,gestureCount:Math.floor(this.pulses/2),actionCount:dry?0:Math.floor(this.pulses/2),suppressedCount:0,queueDrops:0,odrHz:this.tap.enabled?400:100,engine:this.tap.enabled?1:0,testRemainingMs:Math.max(0,this.testUntil-Date.now()),lastSource:0x54,lastGesture:2,xCount:0,yCount:0,zCount:this.pulses,fullScaleMg:2000,error:0,xMg:0,yMg:0,zMg:1000,registers:Uint8Array.from([0x77,0xc4,0,0,0x80,0x15,0x94,12,32,96,0])};
+  async setTapTest(enabled: boolean) {
+    this.testUntil = enabled ? Date.now() + 60000 : 0;
+    this.pulses = 0;
+    return true;
   }
-  async getTapCapture(): Promise<TapCapture> { return {sequence:this.pulses,samples:Array.from({length:32},(_,i)=>({t:i*3,x:Math.round(80*Math.sin(i/3)),y:Math.round(150*Math.sin(i/2)),z:1000+Math.round(600*Math.sin(i/2)*Math.exp(-i/9))}))}; }
+  async getTapDiagnostics(): Promise<TapDiagnostics> {
+    const dry = Date.now() < this.testUntil;
+    if (this.tap.enabled) this.pulses++;
+    return {
+      irqCount: this.pulses,
+      singleCount: 0,
+      doubleCount: this.pulses,
+      gestureCount: Math.floor(this.pulses / 2),
+      actionCount: dry ? 0 : Math.floor(this.pulses / 2),
+      suppressedCount: 0,
+      queueDrops: 0,
+      odrHz: this.tap.enabled ? 400 : 100,
+      engine: this.tap.enabled ? 2 : 0,
+      testRemainingMs: Math.max(0, this.testUntil - Date.now()),
+      lastSource: 0x62,
+      lastGesture: 2,
+      xCount: 0,
+      yCount: this.pulses,
+      zCount: 0,
+      fullScaleMg: 2000,
+      error: 0,
+      xMg: 0,
+      yMg: 0,
+      zMg: 1000,
+      registers: Uint8Array.from([
+        0x77, 0xc4, 0, 0, 0x80, 0x2a, 0x94, 12, 32, 96, 0,
+      ]),
+    };
+  }
+  async getTapCapture(): Promise<TapCapture> {
+    return {
+      sequence: this.pulses,
+      samples: Array.from({ length: 32 }, (_, i) => ({
+        t: i * 3,
+        x: Math.round(80 * Math.sin(i / 3)),
+        y: Math.round(150 * Math.sin(i / 2)),
+        z: 1000 + Math.round(600 * Math.sin(i / 2) * Math.exp(-i / 9)),
+      })),
+    };
+  }
   private power = { ...POWER_DEFAULTS };
-  async getPowerConfig() { return { ...this.power }; }
-  async setPowerConfig(config: PowerConfig) { if (!validPowerConfig(config)) return false; this.power = { ...config }; return true; }
+  async getPowerConfig() {
+    return { ...this.power };
+  }
+  async setPowerConfig(config: PowerConfig) {
+    if (!validPowerConfig(config)) return false;
+    this.power = { ...config };
+    return true;
+  }
   private tap = defaultTapConfig();
   private carry = defaultCarryConfig();
   private stillWake = defaultStillWakeConfig();
@@ -142,24 +195,34 @@ class DemoMotionFirmware implements MotionBackend {
 
     // Idle jitter vs. gait-like swing, both bounded by thresholdMax.
     const base = walking ? 46 : 4;
-    const swing = walking ? 22 * Math.abs(Math.sin(this.tick / 2.2)) : 3 * Math.random();
-    const magnitude = Math.min(CAPABILITIES.thresholdMax, Math.round(base + swing));
+    const swing = walking
+      ? 22 * Math.abs(Math.sin(this.tick / 2.2))
+      : 3 * Math.random();
+    const magnitude = Math.min(
+      CAPABILITIES.thresholdMax,
+      Math.round(base + swing),
+    );
 
-    const orientation = walking ? Orientation.ORIENTATION_TILTED : Orientation.ORIENTATION_FLAT_UP;
+    const orientation = walking
+      ? Orientation.ORIENTATION_TILTED
+      : Orientation.ORIENTATION_FLAT_UP;
     // Monotonic so the streak survives the tick wrap.
     this.now += 100;
     const elapsed = this.now;
 
     // Qualitative demo at 100ms ticks: retain lock for two ticks after motion.
     if (walking) this.aboveSince = elapsed;
-    this.carryActive = this.carry.enabled && (walking ||
-      (this.aboveSince !== undefined && elapsed - this.aboveSince < (this.carry.carriedSettleMs ?? 180)));
+    this.carryActive =
+      this.carry.enabled &&
+      (walking ||
+        (this.aboveSince !== undefined &&
+          elapsed - this.aboveSince < (this.carry.carriedSettleMs ?? 180)));
 
     // A tap lands only while still and only when the swing clears the click
     // threshold — same gate the firmware applies. Sign bit set = left side.
     const tapDetected =
       this.tap.enabled && !walking && magnitude >= this.tap.threshold;
-    const lastClickSrc = tapDetected ? 0x35 : 0; // SCLICK | Sign | XA
+    const lastClickSrc = tapDetected ? 0x62 : 0; // IA | DCLICK | Y
 
     const state: MotionLiveState = {
       magnitude,
@@ -181,7 +244,9 @@ export function setDemoMotionEnabled(on: boolean) {
   instance = on ? new DemoMotionFirmware() : undefined;
 }
 
-export function getDemoMotionBackend(connectionLabel: string): MotionBackend | null {
+export function getDemoMotionBackend(
+  connectionLabel: string,
+): MotionBackend | null {
   if (!enabled || connectionLabel !== DEMO_LABEL) return null;
   if (!instance) instance = new DemoMotionFirmware();
   return instance;

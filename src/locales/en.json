@@ -1031,7 +1031,14 @@
       "quiet": "Quiet time after typing",
       "quietHint": "Held keys always suppress tap actions. This window rejects vibration just after typing and never delays ordinary keys.",
       "thresholdHint": "Lower is more sensitive. The threshold is quantized by hardware; diagnostics show the applied mg value.",
-      "windowHint": "With both actions, single tap waits for suppression plus the second-click window. Double-only uses hardware double-click recognition."
+      "windowHint": "With both actions, single tap waits for suppression plus the second-click window. Double-only uses hardware double-click recognition.",
+      "batteryHint": "Enabling tap detection slightly reduces battery life. Turn it off when not needed.",
+      "doubleDesc": "Double-tap the case to trigger the assigned action. Single-tap actions are disabled.",
+      "advanced": "Advanced parameters and hardware test",
+      "upgradeDouble": "Update to preview.8 to disable saved single-tap actions. On older firmware, apply any tap setting to clear them, then save to the keyboard.",
+      "rawThresholdHint": "Lower is more sensitive. This is a relative setting, not mg; the actual hardware threshold is shown in diagnostics below.",
+      "doubleWindowHint": "Time allowed for the second tap after the first tap’s suppression interval.",
+      "doubleSplitHint": "Impact direction does not reliably identify the side struck. Unified mode uses the first double-tap binding; the other is retained but inactive."
     }
   },
   "unlockPanel": {
