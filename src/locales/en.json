@@ -668,6 +668,8 @@
       "rfRejected": "The keyboard refused the pairing request — 2.4G pairing only runs while the link is on USB.",
       "twoG4": "2.4G",
       "monitor": {
+        "managementCharts": "Management link charts",
+        "receiverCharts": "Receiver activity charts",
         "demoTitle": "Demo receiver",
         "demoNote": "Simulated data: cycles through activity, idle and disconnection. No serial port or receiver hardware is used.",
         "scenario": "Demo scenario",

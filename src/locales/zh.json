@@ -668,6 +668,8 @@
       "rfRejected": "配对请求被键盘拒绝，请确认键盘已解锁。",
       "twoG4": "2.4G",
       "monitor": {
+        "managementCharts": "管理链路图表",
+        "receiverCharts": "接收器活动图表",
         "title": "接收器活动",
         "pause": "暂停监测",
         "start": "开始监测",
