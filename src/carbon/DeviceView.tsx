@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Copy, Cpu, RefreshCw } from "lucide-react";
 
 import type { CarbonTheme } from "./theme";
@@ -19,10 +19,11 @@ interface DeviceViewProps {
   t: (k: string, d: string) => string;
   deviceName: string;
   serial?: string;
+  powerSettings?: ReactNode;
   onResetSettings: () => Promise<boolean> | void;
 }
 
-export function DeviceView({ model, th, t, deviceName, serial, onResetSettings }: DeviceViewProps) {
+export function DeviceView({ model, th, t, deviceName, serial, onResetSettings, powerSettings }: DeviceViewProps) {
   const info = useSysInfo();
   const [copiedAll, setCopiedAll] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -65,6 +66,7 @@ export function DeviceView({ model, th, t, deviceName, serial, onResetSettings }
         </div>
       </div>
 
+      {powerSettings}
       <DeviceInfoSections th={th} t={t} sections={sections} />
 
       <div className="pt-5">

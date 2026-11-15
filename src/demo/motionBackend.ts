@@ -1,3 +1,5 @@
+import { POWER_DEFAULTS, validPowerConfig, type PowerConfig } from "../motion/powerProtocol";
+import { GUARD_DEFAULTS, validGuardSettings } from "../motion/guardProtocol";
 import {
   Orientation,
   type CarryConfig,
@@ -14,13 +16,16 @@ import {
 export const DEMO_LABEL = "Demo";
 
 const CAPABILITIES: MotionCapabilities = {
-  sensor: "lis2dh12",
+  sensor: "LIS2DH12 · Motion Guard Demo",
   supportsTap: true,
   supportsDoubleTap: true,
   supportsCarry: true,
-  supportsStillWake: true,
-  supportsSleepWake: true,
+  supportsStillWake: false,
+  supportsSleepWake: false,
   thresholdMax: 127,
+  guardVersion: 1,
+  powerVersion: 1,
+  powerLights: 3,
 };
 
 function defaultTapConfig(): TapConfig {
@@ -44,6 +49,7 @@ function defaultCarryConfig(): CarryConfig {
     enabled: true,
     motionThreshold: 32,
     motionDurationMs: 2000,
+    ...GUARD_DEFAULTS,
   };
 }
 
@@ -56,6 +62,9 @@ function defaultStillWakeConfig(): StillWakeConfig {
 
 // Self-driving signal: a ~5 s "carried in a bag" burst every ~14 s.
 class DemoMotionFirmware implements MotionBackend {
+  private power = { ...POWER_DEFAULTS };
+  async getPowerConfig() { return { ...this.power }; }
+  async setPowerConfig(config: PowerConfig) { if (!validPowerConfig(config)) return false; this.power = { ...config }; return true; }
   private tap = defaultTapConfig();
   private carry = defaultCarryConfig();
   private stillWake = defaultStillWakeConfig();
@@ -80,6 +89,7 @@ class DemoMotionFirmware implements MotionBackend {
     return { ...this.carry };
   }
   async setCarryConfig(config: CarryConfig) {
+    if (!validGuardSettings(config)) return false;
     this.carry = { ...config };
     return true;
   }
@@ -129,15 +139,10 @@ class DemoMotionFirmware implements MotionBackend {
     this.now += 100;
     const elapsed = this.now;
 
-    // Same streak rule as the firmware: above the threshold, sustained for
-    // motionDurationMs, resets when the signal drops back below it.
-    if (this.carry.enabled && magnitude >= this.carry.motionThreshold) {
-      if (this.aboveSince === undefined) this.aboveSince = elapsed;
-      if (elapsed - this.aboveSince >= this.carry.motionDurationMs) this.carryActive = true;
-    } else {
-      this.aboveSince = undefined;
-      this.carryActive = false;
-    }
+    // Qualitative demo at 100ms ticks: retain lock for two ticks after motion.
+    if (walking) this.aboveSince = elapsed;
+    this.carryActive = this.carry.enabled && (walking ||
+      (this.aboveSince !== undefined && elapsed - this.aboveSince < (this.carry.carriedSettleMs ?? 180)));
 
     // A tap lands only while still and only when the swing clears the click
     // threshold — same gate the firmware applies. Sign bit set = left side.

@@ -1,5 +1,10 @@
+import { GuardSettingsPanel } from "../motion/GuardSettingsPanel";
+import { validGuardSettings } from "../motion/guardProtocol";
+import { ConnectionContext } from "../rpc/ConnectionContext";
+import { useReceiver } from "../connection/ReceiverContext";
+import { hasMotionGuard } from "../connection/receiverState";
 import { FeatureRail } from "./FeatureRail";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Hand, Waves, Footprints, Moon, Smartphone, Sunrise, Info } from "lucide-react";
 
 import type { BehaviorBinding, Layer } from "@zmkfirmware/zmk-studio-ts-client/keymap";
@@ -39,11 +44,18 @@ interface MotionViewProps {
 // IMU panel
 export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: MotionViewProps) {
   const { capabilities, tapConfig, carryConfig, stillWakeConfig } = motion;
+  const { conn } = useContext(ConnectionContext);
+  const { dongle, selectedSlot } = useReceiver();
+  const [guardConfirmed, setGuardConfirmed] = useState(false);
+  const [legacySettings, setLegacySettings] = useState(false);
+  const reportedGuard = capabilities?.guardVersion === 1 || conn?.label === "Demo" || (!!conn?.label.startsWith("2.4G") && hasMotionGuard(dongle.status, selectedSlot));
+  useEffect(() => { setGuardConfirmed(false); setLegacySettings(false); }, [conn]);
+  useEffect(() => { if (reportedGuard) { setGuardConfirmed(true); setLegacySettings(false); } }, [reportedGuard, conn]);
 
   const allSections: { id: Section; label: string; icon: React.ReactNode; has: boolean }[] = [
     {
       id: "carry",
-      label: t("motion.carry.title", "Carry sleep"),
+      label: legacySettings ? t("motion.carry.title", "Carry sleep") : t("motion.guard.title", "Carry protection"),
       icon: <Footprints size={16} />,
       has: !!capabilities?.supportsCarry && !!carryConfig,
     },
@@ -51,7 +63,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
       id: "stillWake",
       label: t("motion.stillWake.title", "Stationary wake"),
       icon: <Sunrise size={16} />,
-      has: !!capabilities?.supportsStillWake && !!stillWakeConfig,
+      has: legacySettings && !guardConfirmed && !!capabilities?.supportsStillWake && !!stillWakeConfig,
     },
     {
       id: "tap",
@@ -133,6 +145,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
               motion={motion}
               section={current ?? "carry"}
               thresholdDraft={carryThresholdDraft}
+              showCarryThreshold={legacySettings && !guardConfirmed}
             />
           )}
         </div>
@@ -190,6 +203,10 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
             <CarrySettings
               th={th} t={t}
               config={carryConfig}
+              guardConfirmed={guardConfirmed}
+              configurable={capabilities.guardVersion === 1}
+              legacySettings={legacySettings}
+              onLegacySettings={setLegacySettings}
               thresholdMax={capabilities.thresholdMax}
               thresholdDraft={carryThresholdDraft}
               onThresholdDraft={setCarryThresholdDraft}
@@ -291,13 +308,14 @@ function usePeakHold(value: number, max: number, resetKey: unknown): number {
   return Math.round(peak.current);
 }
 
-function LiveMeter({ th, t, motion, section, thresholdDraft }: {
+function LiveMeter({ th, t, motion, section, thresholdDraft, showCarryThreshold = false }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   motion: MotionModel;
   section: Section;
   /** Uncommitted slider value, so the marker tracks the knob during a drag. */
   thresholdDraft?: number | null;
+  showCarryThreshold?: boolean;
 }) {
   const { live, capabilities, carryConfig } = motion;
   const max = capabilities?.thresholdMax ?? 127;
@@ -306,7 +324,7 @@ function LiveMeter({ th, t, motion, section, thresholdDraft }: {
 
   // Markers make raw counts legible: distance from the threshold that fires.
   const markers =
-    section === "carry" && carryConfig
+    showCarryThreshold && section === "carry" && carryConfig
       ? [{
           value: thresholdDraft ?? carryConfig.motionThreshold,
           label: t("motion.carry.motionThreshold", "Motion threshold"),
@@ -350,7 +368,9 @@ function LiveMeter({ th, t, motion, section, thresholdDraft }: {
             ))}
           </div>
           <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: th.textHelper, lineHeight: 1.5 }}>
-            {section === "carry"
+            {section === "carry" && !showCarryThreshold
+              ? t("motion.guard.meterHint", "Relative motion amplitude for observation; it does not set the placement threshold.")
+              : section === "carry"
               ? t("motion.carry.calibrateHint", "Move the keyboard and observe the stable motion range. Use the lower end of that range as a starting threshold.")
               : t("motion.stillWake.meterHint", "Stationary confirmation uses motion state rather than a threshold marker.")}
           </div>
@@ -743,19 +763,45 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
   );
 }
 
-function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThresholdDraft, onChange }: {
+function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThresholdDraft, onChange, guardConfirmed, configurable, legacySettings, onLegacySettings }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   config: CarryConfig;
   thresholdMax: number;
+  guardConfirmed: boolean;
+  configurable: boolean;
+  legacySettings: boolean;
+  onLegacySettings: (v: boolean) => void;
   /** Uncommitted slider value, shared with the live meter's marker. */
   thresholdDraft: number | null;
   onThresholdDraft: (v: number | null) => void;
-  onChange: (c: CarryConfig) => void;
+  onChange: (c: CarryConfig) => Promise<boolean>;
 }) {
   const set = (patch: Partial<CarryConfig>) => onChange({ ...config, ...patch });
   const dim = config.enabled ? 1 : 0.45;
   const shownThreshold = thresholdDraft ?? config.motionThreshold;
+
+  if (!legacySettings || guardConfirmed) return <div className="flex min-h-0 flex-1 flex-col">
+    <EnableBar th={th} title={t("motion.guard.title", "Carry protection")}
+      desc={t("motion.guard.desc", "Suppress input while carrying; resume after stable placement.")}
+      enabled={config.enabled} onChange={v => set({ enabled: v })} />
+    <div className="custom-scrollbar overflow-y-auto px-6 py-4 text-sm leading-relaxed">
+      <p className="text-helper">{t(guardConfirmed ? "motion.guard.detected" : "motion.guard.unconfirmed", "Firmware controls this policy.")}</p>
+      {configurable && validGuardSettings(config) ? <GuardSettingsPanel config={config} onChange={onChange} t={t} /> : <>
+      <dl className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-3">
+        <dt>{t("motion.guard.input", "Normal input")}</dt><dd>{t("motion.guard.direct", "Direct processing")}</dd>
+        <dt>{t("motion.guard.placement", "After sustained carrying")}</dt><dd>180 ms</dd>
+        <dt>{t("motion.guard.shortPlacement", "After a brief lock")}</dt><dd>60 ms</dd>
+        <dt>{t("motion.guard.window", "Stable-window range")}</dt><dd>≤ 60 mg</dd>
+      </dl>
+      <p className="mt-4 text-xs text-helper">{t("motion.guard.fixed", "Values describe Motion Guard defaults and are read-only. They are not reported configuration values for legacy firmware.")}</p>
+      <p className="mt-3 text-xs text-helper">{t("motion.guard.upgradeSettings", "Adjustable settings require keyboard firmware preview.5 or later. Current defaults remain in use.")}</p>
+      </>}
+      <p className="mt-3 text-xs text-helper">{t("motion.guard.sleep", "Idle power management remains active. With a healthy IMU and protection enabled, automatic System OFF is suspended; manual power-off remains available.")}</p>
+      <p className="mt-3 text-xs text-helper">{t("motion.guard.firstKey", "New presses during placement confirmation are buffered. Confirmation can delay output; this is not zero-latency placement.")}</p>
+      {!guardConfirmed && <label className="mt-5 flex items-start gap-2 text-xs"><input type="checkbox" checked={legacySettings} onChange={e => onLegacySettings(e.target.checked)} />{t("motion.guard.showLegacy", "Show legacy motion-sleep parameters")}</label>}
+    </div>
+  </div>;
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -767,6 +813,7 @@ function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThreshol
       <div className="custom-scrollbar"
         style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 24px 24px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
         <SettingsList>
+          <button className="my-3 text-xs underline" onClick={() => onLegacySettings(false)}>{t("motion.guard.hideLegacy", "Hide legacy parameters")}</button>
           <Field th={th} label={t("motion.carry.motionThreshold", "Motion threshold")} tag="INT_THS"
             value={String(shownThreshold)} height={24}>
             <Slider th={th} value={config.motionThreshold} min={1} max={thresholdMax}
