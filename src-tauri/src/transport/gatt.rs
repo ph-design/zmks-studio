@@ -178,7 +178,8 @@ pub async fn gatt_list_devices() -> Result<Vec<super::commands::AvailableDevice>
                 .and_then(Result::ok)
                 .unwrap_or("Unknown".to_string());
 
-            ret.push(super::commands::AvailableDevice { label, id });
+            ret.push(super::commands::AvailableDevice {
+                serial_role: None, receiver_id: None, label, id });
         }
     }
 

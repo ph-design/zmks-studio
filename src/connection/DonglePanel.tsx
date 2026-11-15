@@ -8,6 +8,10 @@ import { ActionButton, ConfirmAction, Facts, InlineError, Notice, SettingsBlock,
 import { errorText } from "../misc/errors";
 import { channelToMhz, DASH, format2g4Address, type Translate } from "../misc/format";
 import { clearKeyboardPairing, runOneClickPair, type ConsistencyRow, type PairOutcome, type PairStepId } from "./useConnectionState";
+import { HubKeyboardsPanel } from "./HubKeyboardsPanel";
+import { DongleHubPanel } from "./DongleHubPanel";
+import { DongleLedPanel } from "./DongleLedPanel";
+import { ReceiverPortHelp } from "./ReceiverAccess";
 import { DongleMonitor } from "./DongleMonitor";
 import type { DongleController } from "./useDongle";
 
@@ -31,6 +35,7 @@ export function DonglePanel({ th, t, dongle, firmwareHasConnection, showAdvanced
       right={
         !dongle.supported ? undefined : dongle.phase === "open" ? (
           <>
+            <ActionButton th={th} label={t("bootloader.hubButton", "Enter Hub bootloader (BL)")} disabled={dongle.busy} onClick={() => void dongle.bootloader()} />
             <ActionButton
               th={th}
               label={dongle.busy ? t("carbon.conn.refreshing", "Reading…") : t("carbon.conn.refresh", "Refresh")}
@@ -73,6 +78,7 @@ export function DonglePanel({ th, t, dongle, firmwareHasConnection, showAdvanced
         )
       }
     >
+      <div className="mb-3"><ReceiverPortHelp /></div>
       {!dongle.supported ? (
         <Notice
           th={th}
@@ -128,9 +134,12 @@ export function DonglePanel({ th, t, dongle, firmwareHasConnection, showAdvanced
             </div>
           )}
 
-          <DongleMonitor th={th} t={t} dongle={dongle} />
           <DongleStatusFacts th={th} t={t} dongle={dongle} showAdvanced={showAdvanced} />
-          <PairingBlock th={th} t={t} dongle={dongle} firmwareHasConnection={firmwareHasConnection} />
+          <HubKeyboardsPanel th={th} t={t} dongle={dongle} />
+          <DongleHubPanel th={th} t={t} dongle={dongle} />
+          <DongleLedPanel th={th} t={t} dongle={dongle} />
+          <DongleMonitor th={th} t={t} dongle={dongle} />
+          {dongle.status?.hubCapacity !== 2 && <PairingBlock th={th} t={t} dongle={dongle} firmwareHasConnection={firmwareHasConnection} />}
           {showAdvanced && <TerminalBlock th={th} t={t} dongle={dongle} />}
         </>
       )}
@@ -158,6 +167,7 @@ function DongleStatusFacts({ th, t, dongle, showAdvanced }: { th: CarbonTheme; t
           value: status.pairState || DASH,
         },
         { label: t("carbon.conn.dongleLink", "Keyboard link"), value: status.link || DASH },
+        { label: t("carbon.dongleLed.battery", "Keyboard battery"), value: status.link === "CONNECTED" && status.batteryPercent !== undefined ? `${status.batteryPercent}%` : t("carbon.dongleLed.unknown", "Unknown") },
         ...(showAdvanced
           ? [
               {
