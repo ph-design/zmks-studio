@@ -1,3 +1,4 @@
+import type { ImuLive } from "./imuProtocol";
 import type { RpcConnection } from "@zmkfirmware/zmk-studio-ts-client";
 import type { BehaviorBinding } from "@zmkfirmware/zmk-studio-ts-client/keymap";
 import {
@@ -19,11 +20,11 @@ export type { TapConfig } from "./tapProtocol";
 import type { PowerConfig, PowerRequest, PowerResponse } from "./powerProtocol";
 import type { GuardSettings } from "./guardProtocol";
 export type CarryConfig = BaseCarryConfig & Partial<GuardSettings>;
-export type MotionCapabilities = BaseCapabilities & { guardVersion?: number; powerVersion?: number; powerLights?: number; tapVersion?: number };
+export type MotionCapabilities = BaseCapabilities & { guardVersion?: number; powerVersion?: number; powerLights?: number; tapVersion?: number; imuVersion?: number };
+export type MotionLiveState = LiveState & Partial<ImuLive>;
 // Generated codec types, re-exported so the app imports motion types from here.
 export { Orientation };
 export type {
-  LiveState as MotionLiveState,
   StillWakeConfig,
 };
 
