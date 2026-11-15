@@ -13,6 +13,10 @@ use tauri::{command, ipc::Request, State};
 pub struct AvailableDevice {
     pub label: String,
     pub id: String,
+    #[serde(rename="serialRole", skip_serializing_if="Option::is_none")]
+    pub serial_role: Option<String>,
+    #[serde(rename="receiverId", skip_serializing_if="Option::is_none")]
+    pub receiver_id: Option<String>,
 }
 
 #[derive(Debug, Default)]

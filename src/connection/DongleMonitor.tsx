@@ -7,6 +7,7 @@ import type { DongleController } from "./useDongle";
 type Sample = { at: number; rx?: number; rate?: number; failures?: number; delta?: number; latency?: number; link?: string; event?: string };
 export function DongleMonitor({ th, t, dongle, autoStart = false, management }: { th: CarbonTheme; t: Translate; dongle: Pick<DongleController, "phase" | "busy" | "status" | "queryStatus">; autoStart?: boolean; management?: string }) {
   const [active, setActive] = useState(autoStart);
+  const [expanded, setExpanded] = useState(false);
   const [samples, setSamples] = useState<Sample[]>([]);
   const [range, setRange] = useState(60);
   const [selected, setSelected] = useState<number>();
@@ -14,10 +15,10 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
   const latest = useRef(dongle);
   latest.current = dongle;
   useEffect(() => {
-    if (dongle.phase !== "open") { setActive(false); setSamples([]); }
+    if (dongle.phase !== "open") { setActive(false); setExpanded(false); setSamples([]); }
   }, [dongle.phase]);
   useEffect(() => {
-    if (!active) return;
+    if (!active || !expanded) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     let baseline: Sample | undefined;
@@ -50,7 +51,7 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
     };
     timer = setTimeout(poll, 1000);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [active]);
+  }, [active, expanded]);
   if (dongle.phase !== "open") return null;
   const label = (key: string, fallback: string) => {
     const copy: Record<string, string> = { title: "Studio management channel", channel: "Connection", link: "RPC response state", connected: "Responding", lost: "Query failed", rate: "Successful queries per sample", rx: "Successful queries / failed queries", errors: "Failed queries per sample", latency: "RPC round-trip time (ms)", linkTimeline: "Query response history", note: "Management queries are not keyboard reports. Query time includes transport, firmware and host processing; it is not key latency. RSSI, radio retries and packet loss are unavailable.", reconnected: "Queries resumed", disconnected: "Query failed" };
@@ -72,9 +73,11 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
     <Facts th={th} rows={[
       { label: label("channel", "Current channel"), value: management ?? String(dongle.status?.rfChannel ?? "—") },
       { label: label("link", "Keyboard link"), value: dongle.status?.link === "CONNECTED" ? label("connected", "Connected") : dongle.status?.link === "LOST" ? label("lost", "Disconnected") : "—" },
-      { label: label("rate", "Receive rate (packets/s)"), value: active && !failed && rate !== undefined ? rate.toFixed(management ? 0 : 1) : "—" },
+      { label: label("rate", "Receive rate (packets/s)"), value: expanded && active && !failed && rate !== undefined ? rate.toFixed(management ? 0 : 1) : "—" },
       { label: label("rx", "Received packets / decryption failures"), value: `${dongle.status?.rx ?? "—"} / ${dongle.status?.rxDecryptFail ?? "—"}` },
     ]} />
+    <details open={expanded} onToggle={event => setExpanded(event.currentTarget.open)} className="mt-4 border-t border-base-300">
+      <summary className="cursor-pointer py-4 text-sm font-semibold">{management ? t("carbon.conn.monitor.managementCharts", "Management link charts") : t("carbon.conn.monitor.receiverCharts", "Receiver activity charts")}</summary>
     <div className="my-6 flex flex-wrap items-end gap-4" data-monitor-toolbar>
       <div className="flex min-w-0 flex-col gap-2" style={{ flex: "1 1 240px", maxWidth: 420 }}>
         <span className="text-xs text-secondary-content">{label("range", "Time range")}</span>
@@ -150,5 +153,6 @@ export function DongleMonitor({ th, t, dongle, autoStart = false, management }: 
     </div></details>
     <p style={{ fontSize: 12, color: th.textHelper }}>{failed ? label("failed", "Read failed; waiting for the next sample.") : !active ? label("paused", "Monitoring paused.") : label("sampling", "Sampling once per second while this page is visible.")}</p>
     <p style={{ fontSize: 12, color: th.textHelper }}>{label("note", "Activity is not signal strength. This firmware does not report RSSI, packet loss or retries; decryption failures are not packet loss.")}</p>
+    </details>
   </section>;
 }
