@@ -1,3 +1,4 @@
+import { ImuPanel } from "../motion/ImuPanel";
 import { TapDiagnosticsPanel } from "../motion/TapDiagnosticsPanel";
 import { GuardSettingsPanel } from "../motion/GuardSettingsPanel";
 import { validGuardSettings } from "../motion/guardProtocol";
@@ -42,7 +43,7 @@ import {
 } from "../motion/motionRpc";
 import type { MotionModel } from "../motion/useMotion";
 
-type Section = "carry" | "stillWake" | "tap";
+type Section = "carry" | "stillWake" | "tap" | "imu";
 
 interface MotionViewProps {
   motion: MotionModel;
@@ -115,6 +116,7 @@ export function MotionView({
       has: !!capabilities?.supportsTap && !!tapConfig,
     },
   ];
+  allSections.push({id:"imu",label:t("motion.imu.title","Pose and motion controls"),icon:<Smartphone size={16}/>,has:capabilities?.imuVersion===1});
   const sections = allSections.filter((s) => s.has);
 
   const [section, setSection] = useState<Section>("carry");
@@ -261,10 +263,10 @@ export function MotionView({
         <div
           style={{
             flexShrink: 0,
-            padding: current === "tap" ? 0 : "14px 24px 14px",
+            padding: current === "tap" || current === "imu" ? 0 : "14px 24px 14px",
           }}
         >
-          {current !== "tap" && (
+          {current !== "tap" && current !== "imu" && (
             <LiveMeter
               th={th}
               t={t}
@@ -388,6 +390,8 @@ export function MotionView({
                 />
               </div>
             </div>
+          ) : current === "imu" ? (
+            <ImuPanel live={motion.live} t={t} onChanged={motion.noteImuChanged} />
           ) : current === "tap" && tapConfig ? (
             <div
               style={{
