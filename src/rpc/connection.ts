@@ -1,3 +1,4 @@
+import {encodeBootloader,extendBootloader} from "./bootloaderProtocol";
 import { encodeImu, extendImu } from "../motion/imuProtocol";
 // Stream routing follows the MIT-licensed zmk-studio-ts-client implementation.
 // Additive pairing / Motion Guard extensions, bounded requests, and independent stream cancellation.
@@ -11,7 +12,7 @@ import { encodeGuardRequest, decodeGuardResponse } from "../motion/guardProtocol
 export type ExtendedRequest=Omit<Request,"pairing"> & {pairing?: NonNullable<Request["pairing"]> & {setChannel?:{channel:number}}};
 export function encodeRequest(req:ExtendedRequest):Uint8Array {
   const channel=req.pairing?.setChannel?.channel;
-  if(channel===undefined)return encodeImu(req) ?? encodeTapRequest(req) ?? encodePowerRequest(req) ?? encodeGuardRequest(req) ?? Request.encode(req).finish();
+  if(channel===undefined)return encodeBootloader(req) ?? encodeImu(req) ?? encodeTapRequest(req) ?? encodePowerRequest(req) ?? encodeGuardRequest(req) ?? Request.encode(req).finish();
   if(!Number.isInteger(channel) || channel<0 || channel>100 || [2,26,80].includes(channel))throw Error("Invalid radio channel");
   const base=Request.encode({...req,pairing:undefined}).finish();
   const body=Writer.create().uint32(8).uint32(channel).finish();
@@ -56,7 +57,7 @@ export function create_rpc_connection(transport:RpcTransport,opts?:{signal?:Abor
   const closed=requests.readable.pipeThrough(new TransformStream(get_encoder()),{signal}).pipeTo(transport.writable,{signal});
   void closed.then(()=>transport.abortController.abort(),reason=>transport.abortController.abort(reason));
   const decoded=transport.readable.pipeThrough(new TransformStream(get_decoder()),{signal})
-    .pipeThrough(new TransformStream<Uint8Array,Response>({transform(bytes,c){const response=extendImu(bytes, extendTapResponse(bytes, extendPowerResponse(bytes, decodeGuardResponse(bytes))));
+    .pipeThrough(new TransformStream<Uint8Array,Response>({transform(bytes,c){const response=extendBootloader(bytes,extendImu(bytes, extendTapResponse(bytes, extendPowerResponse(bytes, decodeGuardResponse(bytes)))));
       if(response.requestResponse?.requestId===pendingId){clearTimeout(timer);pendingId=undefined;}
       c.enqueue(response);}}),{signal});
   const decodedReader=decoded.getReader();

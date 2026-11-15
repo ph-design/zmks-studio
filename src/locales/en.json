@@ -1195,5 +1195,15 @@
     "applied": "Applied. Use the header Save action to retain settings after restart.",
     "failed": "The keyboard rejected these settings. Previous values were restored.",
     "scope": "These controls affect the keyboard only. Receiver indicator settings are on the Connection page."
+  },
+  "bootloader": {
+    "keyboardTitle": "Keyboard firmware update",
+    "keyboardHint": "Save your changes first. The USB keyboard restarts into its UF2 bootloader and disconnects from Studio.",
+    "keyboardButton": "Enter keyboard bootloader (BL)",
+    "keyboardDone": "Keyboard is restarting. Open its UF2 drive to install firmware.",
+    "failed": "Bootloader entry was not confirmed. Check the USB cable and firmware version.",
+    "usbRequired": "Connect the keyboard directly by USB and choose USB in Studio. Wireless entry cannot create a keyboard UF2 drive on this PC.",
+    "upgradeRequired": "Requires keyboard firmware preview.11 or newer.",
+    "hubButton": "Enter Hub bootloader (BL)"
   }
 }

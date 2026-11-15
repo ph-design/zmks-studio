@@ -1,3 +1,4 @@
+import {KeyboardBootloader} from "../connection/KeyboardBootloader";
 // Connection management and 2.4G pairing.
 import { useContext, useState } from "react";
 import { Transport } from "@zmkfirmware/zmk-studio-ts-client/connection";
@@ -53,6 +54,8 @@ export function ConnectionView({ th, t, onDisconnect, connectionType }: Connecti
             onClick={() => setShowAdvanced((value) => !value)}
           />
         </div>
+
+        <KeyboardBootloader th={th} t={t} connectionType={connectionType} />
 
         {snapshot.support === "loading" && (
           <Notice th={th} tone="neutral">

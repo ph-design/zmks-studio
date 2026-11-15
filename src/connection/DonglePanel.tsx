@@ -35,6 +35,7 @@ export function DonglePanel({ th, t, dongle, firmwareHasConnection, showAdvanced
       right={
         !dongle.supported ? undefined : dongle.phase === "open" ? (
           <>
+            <ActionButton th={th} label={t("bootloader.hubButton", "Enter Hub bootloader (BL)")} disabled={dongle.busy} onClick={() => void dongle.bootloader()} />
             <ActionButton
               th={th}
               label={dongle.busy ? t("carbon.conn.refreshing", "Reading…") : t("carbon.conn.refresh", "Refresh")}

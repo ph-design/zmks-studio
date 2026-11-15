@@ -36,3 +36,14 @@ Hub不合并两把键盘的轴。使用最新值和独立更新时间，轴超�
 
 参考：ST DT0140 https://www.st.com/resource/en/design_tip/dt0140-tilt-computation-using-accelerometer-data-for-inclinometer-applications-stmicroelectronics.pdf
 USB HID Usage Tables https://usb.org/hid
+
+
+## preview.11：无线流控、USB 接管和固件更新
+
+配套键盘 preview.11 限制姿态遥测积压：USB 输出端约25Hz，无线输出端约10Hz；姿态计算仍约50Hz。拥塞丢弃旧快照，前端平滑显示；650ms未收到新样本仍标为过期，不放宽异常检查。EVO默认负Z安装方向修正，原始读数仍保留传感器坐标；自定义轴向映射保留，需要时重新执行三步校准。
+
+连接页增加键盘 BL 控件，通过 GetDeviceInfo.bootloader_version=1 明确检测支持；使用新增 core.enter_bootloader 字段5。只对 USB 管理连接启用，仍要求用户先解锁 Studio。进入前提示保存，固件应答后延迟重启，电脑枚举键盘自身的UF2磁盘。旧固件不尝试未知命令。Hub BL 使用已有AT+BL，在接收器连接入口和连接页均可操作，无需先打开高级终端。
+
+替换连接先终止旧 RPC 生命周期；初始化设备查询失败也主动释放新传输。USB首个查询窗口5秒，不影响按键路径。固件配套修复无线清理循环吞掉USB应答，并在插线后优先选择USB管理链路，即使HID仍选择无线。
+
+本轮38项测试／222个断言、TypeScript和Vite构建通过。浏览器受控10Hz推送覆盖模型变化与停更提示。三款键盘构建、实际TX拥塞／转义／锁释放／USB归属／BL／RGB渐变回归通过。尚未自动刷写，实机2.4G连续输入、插线接管、UF2磁盘枚举、功耗和端到端时延待测试。

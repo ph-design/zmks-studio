@@ -66,6 +66,7 @@ export function ReceiverAccess({ onTransportCreated, onConnectionError }: {
       </button></li>)}</ul>}
     {(error || dongle.error) && <p role="alert" className="text-sm text-error">{error || dongle.error}</p>}
     {connected && <>
+      <button className="justify-self-start border border-base-300 px-3 py-2 text-sm disabled:opacity-40" disabled={dongle.busy || opening !== undefined} onClick={() => void dongle.bootloader()}>{t("bootloader.hubButton")}</button>
       <p className="break-words text-xs opacity-65">{dongle.port} · {dongle.firmware}</p>
       <div className="grid gap-2 sm:grid-cols-2">{peers.map(peer => <article key={peer.slot} className="rounded-md border border-base-300 p-3">
         <h3 className="text-sm font-medium">{t("receiverFlow.keyboard", { number: peer.slot + 1 })}</h3>

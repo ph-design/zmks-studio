@@ -1262,5 +1262,15 @@
     "applied": "电源设置已应用。使用顶部“保存到键盘”可在重启后保留。",
     "failed": "键盘未接受这些设置，已恢复此前的值。",
     "scope": "这里仅控制键盘本体。接收器指示灯请在“连接”页面设置。"
+  },
+  "bootloader": {
+    "keyboardTitle": "键盘固件更新",
+    "keyboardHint": "请先保存修改。键盘将重启进入 UF2 引导模式，并断开 Studio 连接。",
+    "keyboardButton": "键盘进入引导模式（BL）",
+    "keyboardDone": "键盘正在重启，请在 UF2 移动磁盘中安装固件。",
+    "failed": "未确认进入引导模式，请检查 USB 数据线与固件版本。",
+    "usbRequired": "请用 USB 数据线直连键盘，并在 Studio 中选择 USB 连接。无线指令无法让键盘的 UF2 磁盘出现在此电脑上。",
+    "upgradeRequired": "需要键盘固件 preview.11 或更新版本。",
+    "hubButton": "Hub 进入引导模式（BL）"
   }
 }

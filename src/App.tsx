@@ -171,7 +171,7 @@ async function connect(
         console.error("Failed first RPC call", e);
         return undefined;
       }),
-    valueAfter(undefined, connectionType === "2.4G" ? 10000 : 1000),
+    valueAfter(undefined, connectionType === "2.4G" ? 10000 : 5000),
   ]);
 
   if (signal.aborted) {
@@ -179,6 +179,7 @@ async function connect(
   }
 
   if (!details) {
+    transport.abortController.abort(new Error("Initial device query failed"));
     setConnectionError(i18n.t(connectionType === "2.4G" ? "welcome.receiverConnectionFailed" : "errors.failedToConnect"));
     return false;
   }
@@ -461,6 +462,8 @@ function App() {
     (t: RpcTransport, meta?: { isWireless?: boolean; connectionType?: "USB" | "BLE" | "2.4G" }) => {
       const type = meta?.connectionType ?? (meta?.isWireless ? "BLE" : "USB");
       setConnectionType(type);
+      connectionAbortRef.current.abort("Replaced by a new connection");
+      setConn({conn:null});
       const ac = new AbortController();
       connectionAbortRef.current = ac;
       setConnectionAbort(ac);

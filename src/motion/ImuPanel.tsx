@@ -33,8 +33,10 @@ export function ImuPanel({
   const [step, setStep] = useState(0);
   const l = (key: string) => t("motion.imu." + key, key);
   useEffect(() => {
-    received.current = Date.now();
-    setFresh(true);
+    if (live.sampleTime !== undefined && live.sampleTime !== 0) {
+      received.current = Date.now();
+      setFresh(true);
+    }
   }, [live.sampleTime]);
   useEffect(() => {
     alive.current = true;
@@ -288,7 +290,7 @@ export function ImuPanel({
             <button
               className="border border-base-300 px-4 py-2 disabled:opacity-40"
               disabled={busy || wanted}
-              onClick={() => setDraft({ ...IMU_DEFAULTS })}
+              onClick={() => setDraft({ ...IMU_DEFAULTS, swapXy: config?.swapXy ?? false, flipMask: config?.flipMask ?? 0 })}
             >
               {l("defaults")}
             </button>
@@ -407,8 +409,29 @@ function KeyboardPose({
     [140, 48, 8],
     [-140, 48, 8],
   ];
-  const r = (roll * Math.PI) / 180,
-    p = (pitch * Math.PI) / 180;
+  const target = useRef([roll, pitch]);
+  target.current = [roll, pitch];
+  const current = useRef([roll, pitch]);
+  const [display, setDisplay] = useState(current.current);
+  useEffect(() => {
+    let frame = 0, previous = performance.now();
+    const draw = (now: number) => {
+      const alpha = Math.min(1, (now - previous) / 50);
+      previous = now;
+      const next = current.current.map((angle, i) => {
+        const delta = ((target.current[i] - angle + 540) % 360) - 180;
+        return angle + delta * alpha;
+      });
+      if (next.some((value, i) => Math.abs(value - current.current[i]) > .01)) {
+        current.current = next; setDisplay(next);
+      }
+      frame = requestAnimationFrame(draw);
+    };
+    frame = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const r = (display[0] * Math.PI) / 180,
+    p = (display[1] * Math.PI) / 180;
   const projected = points.map(([x, y, z]) => {
     const xx = x * Math.cos(p) + z * Math.sin(p),
       zz = -x * Math.sin(p) + z * Math.cos(p);
