@@ -1,3 +1,5 @@
+import {KeyboardPose} from "./KeyboardPose";
+import {FlatCalibration,relativeAngle,type Point3} from "./poseMath";
 import { maintainImuLease } from "./imuLease";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ConnectionContext } from "../rpc/ConnectionContext";
@@ -31,6 +33,8 @@ export function ImuPanel({
     zero = useRef<number[] | null>(null),
     left = useRef<{ axis: number; flip: boolean } | null>(null);
   const [step, setStep] = useState(0);
+  const [calibrating,setCalibrating]=useState(false),[calProgress,setCalProgress]=useState(0),[calNote,setCalNote]=useState("");
+  const calibration=useRef<{sampler:FlatCalibration;started:number;config:ImuConfig}|null>(null);
   const l = (key: string) => t("motion.imu." + key, key);
   useEffect(() => {
     if (live.sampleTime !== undefined && live.sampleTime !== 0) {
@@ -41,9 +45,10 @@ export function ImuPanel({
   useEffect(() => {
     alive.current = true;
     const current = ++epoch.current;
-    setConfig(null);
+    setConfig(null);setBusy(false);setError("");
     setWanted(false);
     setStep(0);
+    calibration.current=null;setCalibrating(false);setCalNote("");
     void backend
       ?.get()
       .then((c) => {
@@ -52,9 +57,10 @@ export function ImuPanel({
           setDraft(c);
         }
       })
-      .catch(() => setError(l("error")));
+      .catch(() => {if(alive.current && current===epoch.current)setError(l("error"));});
     return () => {
       alive.current = false;
+      calibration.current=null;
       epoch.current++;
       void backend?.mode(false).catch(() => {});
     };
@@ -129,6 +135,34 @@ export function ImuPanel({
       setBusy(false);
     }
   };
+  const startFlat = () => {
+    if(!backend || !valid || wanted || busy || !validImu(draft))return;
+    calibration.current={sampler:new FlatCalibration(draft),started:performance.now(),config:{...draft}};
+    setCalibrating(true);setCalProgress(0);setCalNote("");setError("");setStep(0);
+  };
+  useEffect(()=>{
+    const job=calibration.current;
+    if(!job || !backend || !live.sampleTime)return;
+    if(!valid){job.sampler.reset();setCalProgress(0);return;}
+    const result=job.sampler.push(raw as Point3,live.sampleTime,performance.now());
+    setCalProgress(result.progress);
+    if(!result.center)return;
+    calibration.current=null;setCalibrating(false);setBusy(true);
+    const next={...job.config,centerRoll:result.center[0],centerPitch:result.center[1]};
+    const current=epoch.current;
+    void backend.set(next).then(ok=>{
+      if(!alive.current || current!==epoch.current)return;
+      if(ok){setConfig({...next});setDraft({...next});onChanged();setCalNote(l("flatDone"));}
+      else setError(l("error"));
+    }).catch(()=>{if(alive.current && current===epoch.current)setError(l("error"));})
+      .finally(()=>{if(alive.current && current===epoch.current)setBusy(false);});
+  },[live.sampleTime]);
+  useEffect(()=>{
+    if(!calibrating)return;
+    const timer=setInterval(()=>{const job=calibration.current;
+      if(job && performance.now()-job.started>8000){calibration.current=null;setCalibrating(false);setCalNote(l("flatRetry"));}
+    },200);return()=>clearInterval(timer);
+  },[calibrating]);
   const calibrate = () => {
     if (!valid) return;
     if (step === 0) {
@@ -167,7 +201,7 @@ export function ImuPanel({
         centerRoll: 0,
         centerPitch: 0,
       });
-      setStep(0);
+      setStep(0);setCalNote(l("axisDone"));
     }
   };
   const changed = JSON.stringify(config) !== JSON.stringify(draft);
@@ -186,55 +220,31 @@ export function ImuPanel({
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="border border-base-300 p-4">
               <KeyboardPose
-                roll={angles.current[0]}
-                pitch={angles.current[1]}
+                roll={relativeAngle(angles.current[0],draft.centerRoll/100)}
+                pitch={relativeAngle(angles.current[1],draft.centerPitch/100)}
                 label={l("model")}
+                frontLabel={l("frontEdge")}
+                guide={step===1?"left":step===2?"rear":calibrating?"flat":undefined}
               />
               <p className="text-xs text-helper">
                 {valid ? l("stable") : l("unstable")}
               </p>
             </div>
             <div className="space-y-4">
-              <p className="font-mono">
-                X {raw[0]} mg · Y {raw[1]} mg · Z {raw[2]} mg
-              </p>
-              <p>
-                {l("roll")} {angles.current[0].toFixed(1)}° · {l("pitch")}{" "}
-                {angles.current[1].toFixed(1)}°
-              </p>
-              <p className="text-xs text-helper">{l("calibrationHint")}</p>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  className="border border-base-300 px-3 py-2 disabled:opacity-40"
-                  disabled={!valid || busy || wanted}
-                  onClick={calibrate}
-                >
-                  {l(["calibrate", "leftLift", "rearLift"][step])}
-                </button>
-                {step > 0 && (
-                  <button onClick={() => setStep(0)}>{l("cancel")}</button>
-                )}
-                <button
-                  className="border border-base-300 px-3 py-2 disabled:opacity-40"
-                  disabled={!valid || wanted}
-                  onClick={() =>
-                    set({
-                      centerRoll: Math.round(roll * 100),
-                      centerPitch: Math.round(pitch * 100),
-                    })
-                  }
-                >
-                  {l("center")}
-                </button>
-              </div>
-              <p className="text-xs text-helper">
-                {l("centerValue")} {(draft.centerRoll / 100).toFixed(1)}° /{" "}
-                {(draft.centerPitch / 100).toFixed(1)}°
-              </p>
+              <p>{l("roll")} {relativeAngle(angles.current[0],draft.centerRoll/100).toFixed(1)}° · {l("pitch")} {relativeAngle(angles.current[1],draft.centerPitch/100).toFixed(1)}°</p>
+              <h3 className="font-semibold">{l("flatTitle")}</h3>
+              <p className="text-xs leading-relaxed text-helper">{l("flatGuide")}</p>
+              <button className="border border-base-300 px-4 py-2 disabled:opacity-40" disabled={!valid || busy || wanted || calibrating || !validImu(draft)} onClick={startFlat}>{l("flatButton")}</button>
+              {calibrating && <div role="status" className="space-y-2">
+                <p>{l("flatCollecting")}</p><progress aria-label={l("flatTitle")} className="w-full" max={100} value={calProgress}/>
+                <button onClick={()=>{calibration.current=null;setCalibrating(false);}}>{l("cancel")}</button>
+              </div>}
+              {calNote && <p role="status" className="text-xs leading-relaxed">{calNote}</p>}
+              <p className="text-xs text-helper">{l("axisOptional")}</p>
             </div>
           </div>
           <fieldset
-            disabled={busy || wanted}
+            disabled={busy || wanted || calibrating}
             className="grid gap-5 sm:grid-cols-2"
           >
             <label className="grid gap-2">
@@ -282,14 +292,14 @@ export function ImuPanel({
           <div className="flex flex-wrap items-center gap-3">
             <button
               className="border border-base-300 px-4 py-2 disabled:opacity-40"
-              disabled={busy || wanted || !changed || !validImu(draft)}
+              disabled={busy || wanted || calibrating || !changed || !validImu(draft)}
               onClick={() => void apply()}
             >
               {l("apply")}
             </button>
             <button
               className="border border-base-300 px-4 py-2 disabled:opacity-40"
-              disabled={busy || wanted}
+              disabled={busy || wanted || calibrating}
               onClick={() => setDraft({ ...IMU_DEFAULTS, swapXy: config?.swapXy ?? false, flipMask: config?.flipMask ?? 0 })}
             >
               {l("defaults")}
@@ -304,7 +314,7 @@ export function ImuPanel({
             <button
               className="border border-base-300 px-4 py-2 disabled:opacity-40"
               disabled={
-                busy ||
+                busy || calibrating ||
                 (!wanted &&
                   (!valid ||
                     changed ||
@@ -343,11 +353,28 @@ export function ImuPanel({
           </div>
           <details className="border-t border-base-300 pt-4">
             <summary className="cursor-pointer">{l("advanced")}</summary>
+            <div className="mt-4 space-y-3">
+              <h3 className="font-semibold">{l("axisTitle")}</h3>
+              <p className="text-xs text-helper">{l("calibrationHint")}</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="max-w-[360px] border border-base-300 p-2"><KeyboardPose roll={step===2?20:0} pitch={step===1?20:0} label={l("guideModel")} frontLabel={l("frontEdge")} guide={step===1?"left":step===2?"rear":"flat"}/></div>
+                <div className="space-y-3 self-center">
+              <ol className="grid gap-2 text-xs" aria-label={l("axisTitle")}>
+                {["guideFlat","guideLeft","guideRear"].map((key,i)=><li key={key} aria-current={step===i?"step":undefined} className={step===i?"font-semibold text-primary":"text-helper"}>{i+1}. {l(key)}</li>)}
+              </ol>
+              <button className="border border-base-300 px-3 py-2 disabled:opacity-40" disabled={!valid || busy || wanted || calibrating} onClick={calibrate}>{l(["calibrate","leftLift","rearLift"][step])}</button>
+              {step>0 && <button className="ml-3" onClick={()=>setStep(0)}>{l("cancel")}</button>}
+              {step>0 && <p role="status" className="text-xs text-primary">{l(step===1?"guideLeft":"guideRear")}</p>}
+                </div>
+              </div>
+              <p className="font-mono text-xs">X {raw[0]} mg · Y {raw[1]} mg · Z {raw[2]} mg</p>
+              <p className="text-xs text-helper">{l("centerValue")} {(draft.centerRoll/100).toFixed(1)}° / {(draft.centerPitch/100).toFixed(1)}°</p>
+            </div>
             <div className="mt-4 flex flex-wrap gap-5">
               <label>
                 <input
                   type="checkbox"
-                  disabled={wanted}
+                  disabled={wanted || calibrating || busy}
                   checked={draft.swapXy}
                   onChange={(e) =>
                     set({
@@ -363,7 +390,7 @@ export function ImuPanel({
                 <label key={axis}>
                   <input
                     type="checkbox"
-                    disabled={wanted}
+                    disabled={wanted || calibrating || busy}
                     checked={!!(draft.flipMask & (1 << i))}
                     onChange={(e) =>
                       set({
@@ -388,94 +415,5 @@ export function ImuPanel({
         </p>
       )}
     </div>
-  );
-}
-function KeyboardPose({
-  roll,
-  pitch,
-  label,
-}: {
-  roll: number;
-  pitch: number;
-  label: string;
-}) {
-  const points = [
-    [-140, -48, -8],
-    [140, -48, -8],
-    [140, 48, -8],
-    [-140, 48, -8],
-    [-140, -48, 8],
-    [140, -48, 8],
-    [140, 48, 8],
-    [-140, 48, 8],
-  ];
-  const target = useRef([roll, pitch]);
-  target.current = [roll, pitch];
-  const current = useRef([roll, pitch]);
-  const [display, setDisplay] = useState(current.current);
-  useEffect(() => {
-    let frame = 0, previous = performance.now();
-    const draw = (now: number) => {
-      const alpha = Math.min(1, (now - previous) / 50);
-      previous = now;
-      const next = current.current.map((angle, i) => {
-        const delta = ((target.current[i] - angle + 540) % 360) - 180;
-        return angle + delta * alpha;
-      });
-      if (next.some((value, i) => Math.abs(value - current.current[i]) > .01)) {
-        current.current = next; setDisplay(next);
-      }
-      frame = requestAnimationFrame(draw);
-    };
-    frame = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(frame);
-  }, []);
-  const r = (display[0] * Math.PI) / 180,
-    p = (display[1] * Math.PI) / 180;
-  const projected = points.map(([x, y, z]) => {
-    const xx = x * Math.cos(p) + z * Math.sin(p),
-      zz = -x * Math.sin(p) + z * Math.cos(p);
-    const yy = y * Math.cos(r) - zz * Math.sin(r),
-      z2 = y * Math.sin(r) + zz * Math.cos(r);
-    const u = xx * Math.cos(-0.25) - yy * Math.sin(-0.25),
-      v = xx * Math.sin(-0.25) + yy * Math.cos(-0.25);
-    return [200 + u, 125 - v * 0.65 - z2 * 0.65, z2 - v * 0.3];
-  });
-  const faces = [
-    [0, 1, 2, 3],
-    [0, 1, 5, 4],
-    [1, 2, 6, 5],
-    [2, 3, 7, 6],
-    [3, 0, 4, 7],
-    [4, 5, 6, 7],
-  ]
-    .map((ids, i) => ({
-      ids,
-      i,
-      depth: ids.reduce((sum, j) => sum + projected[j][2], 0) / 4,
-    }))
-    .sort((a, b) => a.depth - b.depth);
-  return (
-    <svg viewBox="0 0 400 250" role="img" aria-label={label} className="w-full">
-      <path d="M25 220H375M200 10V235" stroke="currentColor" opacity=".12" />
-      {faces.map(({ ids, i }) => (
-        <polygon
-          key={i}
-          points={ids.map((j) => projected[j].slice(0, 2).join(",")).join(" ")}
-          fill={i === 5 ? "#c4d6ee" : i === 1 ? "#ea9659" : "#8195ad"}
-          stroke="#37485c"
-          strokeWidth="1.5"
-        />
-      ))}
-      <text
-        x="200"
-        y="235"
-        textAnchor="middle"
-        fontSize="12"
-        fill="currentColor"
-      >
-        {label}
-      </text>
-    </svg>
   );
 }
