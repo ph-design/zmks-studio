@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
+import type { PowerConfig } from "./powerProtocol";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 
 import { ConnectionContext } from "../rpc/ConnectionContext";
@@ -41,6 +42,7 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
   const [tapConfig, setTapConfig] = useState<TapConfig | null>(null);
   const [carryConfig, setCarryConfig] = useState<CarryConfig | null>(null);
   const [stillWakeConfig, setStillWakeConfig] = useState<StillWakeConfig | null>(null);
+  const [powerConfig, setPowerConfig] = useState<PowerConfig | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [live, setLive] = useState<MotionLiveState>(IDLE_LIVE_STATE);
 
@@ -48,10 +50,11 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
   const generation = useRef(0);
   // Last config each setter confirmed; failed applies roll back here instead
   // of a closure snapshot, so in-flight applies can't clobber each other.
-  const lastGood = useRef<{ tap: TapConfig | null; carry: CarryConfig | null; stillWake: StillWakeConfig | null }>({
+  const lastGood = useRef<{ tap: TapConfig | null; carry: CarryConfig | null; stillWake: StillWakeConfig | null; power: PowerConfig | null }>({
     tap: null,
     carry: null,
     stillWake: null,
+    power: null,
   });
 
   useEffect(() => {
@@ -59,6 +62,7 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
     const gen = generation.current;
 
     setCapabilities(null);
+    setPowerConfig(null);
     setTapConfig(null);
     setCarryConfig(null);
     setStillWakeConfig(null);
@@ -79,18 +83,20 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
         return;
       }
 
-      const [tap, carry, stillWake] = await Promise.all([
+      const [tap, carry, stillWake, power] = await Promise.all([
         caps.supportsTap ? backend.getTapConfig().catch(() => null) : Promise.resolve(null),
         caps.supportsCarry ? backend.getCarryConfig().catch(() => null) : Promise.resolve(null),
         caps.supportsStillWake ? backend.getStillWakeConfig().catch(() => null) : Promise.resolve(null),
+        caps.powerVersion === 1 ? backend.getPowerConfig().catch(() => null) : Promise.resolve(null),
       ]);
       if (generation.current !== gen) return;
 
       setCapabilities(caps);
+      setPowerConfig(power);
       setTapConfig(tap);
       setCarryConfig(carry);
       setStillWakeConfig(stillWake);
-      lastGood.current = { tap, carry, stillWake };
+      lastGood.current = { tap, carry, stillWake, power };
       setLoaded(true);
     })();
   }, [backend, unlocked]);
@@ -173,8 +179,14 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
     [apply, backend]
   );
 
+  const applyPowerConfig = useCallback((config: PowerConfig) => apply(config,
+    c => backend?.setPowerConfig(c) ?? Promise.resolve(false), setPowerConfig,
+    c => { lastGood.current.power = c; }, () => setPowerConfig(lastGood.current.power)), [apply, backend]);
+
   return {
-    hasMotion: !!capabilities,
+    hasMotion: !!(capabilities?.supportsTap || capabilities?.supportsCarry || capabilities?.supportsStillWake || capabilities?.supportsSleepWake),
+    powerConfig,
+    applyPowerConfig,
     loaded,
     capabilities,
     tapConfig,
