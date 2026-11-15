@@ -184,6 +184,7 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
     c => { lastGood.current.power = c; }, () => setPowerConfig(lastGood.current.power)), [apply, backend]);
 
   return {
+    noteImuChanged: () => onMotionChanged?.(),
     hasMotion: !!(capabilities?.supportsTap || capabilities?.supportsCarry || capabilities?.supportsStillWake || capabilities?.supportsSleepWake),
     powerConfig,
     applyPowerConfig,

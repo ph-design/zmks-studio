@@ -1,3 +1,4 @@
+import { demoImu } from "../motion/imuProtocol";
 import {
   TAP_DEFAULTS,
   type TapDiagnostics,
@@ -34,6 +35,7 @@ const CAPABILITIES: MotionCapabilities = {
   thresholdMax: 127,
   guardVersion: 1,
   tapVersion: 2,
+  imuVersion: 1,
   powerVersion: 1,
   powerLights: 3,
 };
@@ -224,7 +226,10 @@ class DemoMotionFirmware implements MotionBackend {
       this.tap.enabled && !walking && magnitude >= this.tap.threshold;
     const lastClickSrc = tapDetected ? 0x62 : 0; // IA | DCLICK | Y
 
+    const imu=demoImu(Date.now());
+    if(imu.gameActive)this.carryActive=false;
     const state: MotionLiveState = {
+      ...imu,
       magnitude,
       orientation,
       carryActive: this.carryActive,
