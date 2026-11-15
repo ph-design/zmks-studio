@@ -1,4 +1,4 @@
-# 敲击检测评估（仅方案，未修改实现）
+# 敲击检测评估与实现记录
 
 当前路径已经使用 LIS2DH12 的硬件 Click 引擎：驱动读取并缓存 CLICK_SRC，再派发单击 / 双击回调；HPCLICK 高通与 Click 中断锁存也已启用。因此不应先改为高频软件敲击识别，或把“没开高通”当作已确认原因。
 
@@ -16,4 +16,20 @@
 4. **最后评估左右侧。** 若侧向信号确实可分，再用轴方向、首脉冲和少量时序特征辅助判断；若不同桌面上不能稳定区分，就提供单一敲击手势，避免把冲击极性当作可靠位置。
 5. **独立验证输入体验。** 覆盖左右敲击、轻重打字、桌面碰撞、放下、拿起和包内晃动。继续保留拿起锁定时禁止敲击动作的门控，传感器读取与识别不进入按键处理路径。
 
-本轮没有更改敲击相关寄存器、轴选择、回调、绑定或采样率。以上是排查与设计方向，识别成功率需通过实测记录建立。
+以上为 preview.6 时的排查方案；下面记录 preview.7 的实现。识别成功率仍需实测。
+
+## Tap detection and driver corrections (preview.7)
+
+LIS2DH normal 10-bit samples previously used an approximate full-scale conversion: nominal 1 g decoded to approximately 0.976 g. Conversion now uses the datasheet nominal sensitivity for each range and 8/10/12-bit mode, explicit signed little-endian decoding and 64-bit intermediate arithmetic. BDU prevents mixed high/low bytes. Tests execute the actual patched fetch/conversion/channel getters. Register order is X/Y/Z; physical PCB-to-case axis orientation has not been measured, so no speculative X/Y swap is applied. Studio shows sensor-axis values in mg for this measurement. Real sensor tolerances still apply.
+
+Enabled tapping selects 400 Hz hardware ODR; disabling restores 100 Hz. The guard consumes frames at its existing approximately 100 Hz cadence. I2C remains on the sampler thread. The hardware click engine selects single OR double detection, rather than arming both bits on the same axis. Default mode is one case-wide gesture, all sensor axes, 120 ms typing quiet interval. Left/right-by-polarity remains an explicit experimental option and is not reliable physical localization. Existing right-side bindings are preserved while hidden in unified mode.
+
+Double-only bindings use hardware double-click. When both single and double actions are assigned, hardware single events feed bounded software arbitration; single actions wait for the second-tap interval. Physical key processing gains no new delay. Tap dispatch waits 12 ms to allow a coincident physical key to veto it, and rejects held/recent keys, lift-lock transitions, stale configurations and queue overflow. Carry transitions clear pending gestures.
+
+Studio provides a 60-second no-action test, GPIO/recognition/gesture/action/suppression counters, actual register snapshot and a bounded 32-frame waveform with actual timestamps. Test events remain non-executing even if processed after test expiry. Snapshot reads do not reread the self-clearing CLICK_SRC register. Test sampling is best-effort and is not an oscilloscope or guaranteed 400 Hz host recording.
+
+Wire extension: Capabilities uint32 tap_version=11 is 1. TapConfig fields 11/12/13 are axes_mask (1..7), split_sides (bool), typing_quiet_ms (0..1000). Complete extensions are validated transactionally; old clients preserve current extra options. Requests 14/15/16 get diagnostics, set test (bool), get capture; responses 14/15/16 return diagnostics, acceptance, capture. Capture bytes are at most 256 bytes: 32 little-endian frames of uint16 milliseconds and int16 X/Y/Z mg. Options persist independently as tap/v1 only on explicit Save; reset includes this record. Existing binding fields remain unchanged. The messages module must provide nanopb.proto, as the pinned module does.
+
+Validation: host policy and real-controller tests, actual driver functions across modes/ranges and fresh EVO compilation pass. Physical axis orientation, click recognition rate, false triggers, power use and real reboot persistence need user testing. No preview.7 keyboard flash was performed. The nominal scale correction slightly changes motion thresholds in physical units; repeat carrying/placement and typing checks after flashing.
+
+References: [LIS2DH12 datasheet](https://www.st.com/resource/en/datasheet/lis2dh12.pdf), [ST AN5005](https://www.st.com/resource/en/application_note/an5005-lis2dh12-ultralowpower-highperformance-3axis-nano-accelerometer-with-digital-output-stmicroelectronics.pdf).

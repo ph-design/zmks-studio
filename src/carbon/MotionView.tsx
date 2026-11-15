@@ -1,3 +1,4 @@
+import { TapDiagnosticsPanel } from "../motion/TapDiagnosticsPanel";
 import { GuardSettingsPanel } from "../motion/GuardSettingsPanel";
 import { validGuardSettings } from "../motion/guardProtocol";
 import { ConnectionContext } from "../rpc/ConnectionContext";
@@ -181,7 +182,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
             </div>
           ) : current === "tap" && tapConfig ? (
             <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
-              <TapTestPanel th={th} t={t} live={motion.live} tapConfig={tapConfig} />
+              {capabilities.tapVersion === 1 ? <TapDiagnosticsPanel enabled={tapConfig.enabled} t={t} /> : <TapTestPanel th={th} t={t} live={motion.live} tapConfig={tapConfig} />}
               <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="custom-scrollbar">
                 <TapSettings
                   th={th} t={t}
@@ -189,6 +190,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
                   behaviors={behaviors}
                   layers={layers}
                   thresholdMax={capabilities.thresholdMax}
+                  modern={capabilities.tapVersion === 1}
                   onEditSlot={(slot) =>
                     setEditing({
                       slot,
@@ -693,7 +695,7 @@ function LayerChips({ th, t, layers, mask, onChange }: {
   );
 }
 
-function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlot, onChange }: {
+function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlot, onChange, modern }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   config: TapConfig;
@@ -702,6 +704,7 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
   thresholdMax: number;
   onEditSlot: (slot: TapSlot) => void;
   onChange: (c: TapConfig) => void;
+  modern: boolean;
 }) {
   const set = (patch: Partial<TapConfig>) => onChange({ ...config, ...patch });
   const dim = config.enabled ? 1 : 0.45;
@@ -710,7 +713,7 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <EnableBar th={th}
         title={t("motion.tap.title", "Tap detection")}
-        desc={t("motion.tap.desc", "Trigger actions by tapping the case. Configure single and double taps separately for each side.")}
+        desc={modern ? t("motion.tapV1.desc", "Hardware tap recognition with unified single/double gestures.") : t("motion.tap.desc", "Trigger actions by tapping the case. Configure single and double taps separately for each side.")}
         enabled={config.enabled}
         onChange={(v) => set({ enabled: v })} />
 
@@ -718,9 +721,9 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
         style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 24px 24px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
         <SettingsList>
           <GroupHeading th={th}>{t("motion.tap.bindingsGroup", "Action bindings")}</GroupHeading>
-          {TAP_SLOTS.map(({ slot, side, taps }) => (
+          {TAP_SLOTS.filter(({side}) => !modern || config.splitSides || side === "left").map(({ slot, side, taps }) => (
             <Field key={slot} th={th}
-              label={t(`motion.tap.${side}${taps === 1 ? "Single" : "Double"}`,
+              label={modern && !config.splitSides ? t(`motion.tapV1.${taps === 1 ? "single" : "double"}`, taps === 1 ? "Case single tap" : "Case double tap") : t(`motion.tap.${side}${taps === 1 ? "Single" : "Double"}`,
                 `${side === "left" ? "Left" : "Right"} ${taps === 1 ? "single" : "double"} tap`)}
               tag={taps === 1 ? "SCLICK" : "DCLICK"}>
               <ValueField th={th}
@@ -732,14 +735,22 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
             </Field>
           ))}
 
+          {modern && <div className="mb-4 grid gap-3 border border-base-300 p-3 text-xs">
+            <p className="text-helper">{t("motion.tapV1.modeHint", "Double-only uses hardware double click; both bindings use hardware single clicks and software arbitration.")}</p>
+            <div className="flex flex-wrap items-center gap-3"><span>{t("motion.tapV1.detectAxes", "Sensor axes")}</span>{[1,2,4].map((bit,i)=><label key={bit} className="flex items-center gap-1"><input type="checkbox" checked={!!((config.axesMask ?? 7)&bit)} onChange={e=>{const mask=e.target.checked?(config.axesMask??7)|bit:(config.axesMask??7)&~bit;if(mask)set({axesMask:mask});}} />{["X","Y","Z"][i]}</label>)}</div>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={!!config.splitSides} onChange={e=>set({splitSides:e.target.checked})} />{t("motion.tapV1.split", "Experimental direction-based side bindings")}</label>
+            <p className="text-helper">{t("motion.tapV1.splitHint", "Direction is not a reliable indication of where the case was struck. Unified mode uses the first pair of bindings; the other pair is retained.")}</p>
+            <label className="flex flex-wrap items-center gap-3">{t("motion.tapV1.quiet", "Typing quiet window")}<input aria-label={t("motion.tapV1.quiet", "Typing quiet window")} className="w-24 border border-base-300 bg-base-200 px-2 py-1" type="number" min={0} max={1000} value={config.typingQuietMs ?? 120} onChange={e=>{const n=Number(e.target.value);if(Number.isInteger(n)&&n>=0&&n<=1000)set({typingQuietMs:n});}} />ms</label>
+            <p className="text-helper">{t("motion.tapV1.quietHint", "Held keys always block tap actions. This window suppresses actions briefly after typing; ordinary keys are never delayed.")}</p>
+          </div>}
           <GroupHeading th={th}>{t("motion.tap.timingGroup", "Detection")}</GroupHeading>
           <Field th={th} label={t("motion.tap.threshold", "Trigger threshold")} tag="CLICK_THS"
-            value={String(config.threshold)} height={24}>
+            value={String(config.threshold)} height={24} hint={modern ? t("motion.tapV1.thresholdHint", "Lower is more sensitive; actual threshold is quantized in the hardware register and shown in diagnostics.") : undefined}>
             <Slider th={th} value={config.threshold} min={1} max={thresholdMax} onCommit={(v) => set({ threshold: v })} />
           </Field>
           <Field th={th} label={t("motion.tap.timeLimit", "Max tap length")} tag="TIME_LIMIT"
             value={`${config.timeLimitMs} ms`} height={24}>
-            <Slider th={th} value={config.timeLimitMs} min={20} max={200} step={5} onCommit={(v) => set({ timeLimitMs: v })} />
+            <Slider th={th} value={config.timeLimitMs} min={modern ? 5 : 20} max={200} step={5} onCommit={(v) => set({ timeLimitMs: v })} />
           </Field>
           <Field th={th} label={t("motion.tap.latency", "Post-trigger suppression")} tag="TIME_LATENCY"
             value={`${config.latencyMs} ms`} height={24}>
@@ -747,8 +758,8 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
           </Field>
           <Field th={th} label={t("motion.tap.window", "Double-tap window")} tag="TIME_WINDOW"
             value={`${config.windowMs} ms`} height={24}
-            hint={t("motion.tap.windowHint", "When both actions are configured on the same side, the single-tap action waits until this window ends so a double tap can take priority.")}>
-            <Slider th={th} value={config.windowMs} min={50} max={800} step={10} onCommit={(v) => set({ windowMs: v })} />
+            hint={modern ? t("motion.tapV1.windowHint", "When both bindings exist, single tap waits through suppression plus the second-click window; only-double uses the chip engine.") : t("motion.tap.windowHint", "When both actions are configured on the same side, the single-tap action waits until this window ends so a double tap can take priority.")}>
+            <Slider th={th} value={config.windowMs} min={modern ? 80 : 50} max={modern ? 600 : 800} step={10} onCommit={(v) => set({ windowMs: v })} />
           </Field>
 
           <GroupHeading th={th}>{t("motion.tap.layersGroup", "Active layers")}</GroupHeading>

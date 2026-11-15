@@ -1,3 +1,4 @@
+import { TAP_DEFAULTS, type TapDiagnostics, type TapCapture } from "../motion/tapProtocol";
 import { POWER_DEFAULTS, validPowerConfig, type PowerConfig } from "../motion/powerProtocol";
 import { GUARD_DEFAULTS, validGuardSettings } from "../motion/guardProtocol";
 import {
@@ -24,6 +25,7 @@ const CAPABILITIES: MotionCapabilities = {
   supportsSleepWake: false,
   thresholdMax: 127,
   guardVersion: 1,
+  tapVersion: 1,
   powerVersion: 1,
   powerLights: 3,
 };
@@ -31,6 +33,7 @@ const CAPABILITIES: MotionCapabilities = {
 function defaultTapConfig(): TapConfig {
   return {
     enabled: true,
+    ...TAP_DEFAULTS,
     threshold: 40,
     timeLimitMs: 60,
     latencyMs: 80,
@@ -62,6 +65,14 @@ function defaultStillWakeConfig(): StillWakeConfig {
 
 // Self-driving signal: a ~5 s "carried in a bag" burst every ~14 s.
 class DemoMotionFirmware implements MotionBackend {
+  private testUntil = 0;
+  private pulses = 0;
+  async setTapTest(enabled: boolean) { this.testUntil = enabled ? Date.now()+60000 : 0; this.pulses=0; return true; }
+  async getTapDiagnostics(): Promise<TapDiagnostics> {
+    const dry=Date.now()<this.testUntil; if(this.tap.enabled)this.pulses++;
+    return { irqCount:this.pulses,singleCount:this.pulses,doubleCount:0,gestureCount:Math.floor(this.pulses/2),actionCount:dry?0:Math.floor(this.pulses/2),suppressedCount:0,queueDrops:0,odrHz:this.tap.enabled?400:100,engine:this.tap.enabled?1:0,testRemainingMs:Math.max(0,this.testUntil-Date.now()),lastSource:0x54,lastGesture:2,xCount:0,yCount:0,zCount:this.pulses,fullScaleMg:2000,error:0,xMg:0,yMg:0,zMg:1000,registers:Uint8Array.from([0x77,0xc4,0,0,0x80,0x15,0x94,12,32,96,0])};
+  }
+  async getTapCapture(): Promise<TapCapture> { return {sequence:this.pulses,samples:Array.from({length:32},(_,i)=>({t:i*3,x:Math.round(80*Math.sin(i/3)),y:Math.round(150*Math.sin(i/2)),z:1000+Math.round(600*Math.sin(i/2)*Math.exp(-i/9))}))}; }
   private power = { ...POWER_DEFAULTS };
   async getPowerConfig() { return { ...this.power }; }
   async setPowerConfig(config: PowerConfig) { if (!validPowerConfig(config)) return false; this.power = { ...config }; return true; }
