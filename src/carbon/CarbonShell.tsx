@@ -21,6 +21,7 @@ import { ComboPanel } from "../combos/ComboPanel";
 
 import { LayersView } from "./LayersView";
 import { LightingView } from "./LightingView";
+import { PowerSettingsPanel } from "../motion/PowerSettingsPanel";
 import { MotionView } from "./MotionView";
 import { DeviceView } from "./DeviceView";
 import { PreferencesView } from "./PreferencesView";
@@ -318,7 +319,7 @@ export function CarbonShell(props: CarbonShellProps) {
               </div>
             ) : activeNav === "device" ? (
               <DeviceView model={model} th={th} t={t} deviceName={deviceName} serial={serialHex}
-                onResetSettings={props.onResetSettings} />
+                onResetSettings={props.onResetSettings} powerSettings={<PowerSettingsPanel config={motion.powerConfig} lights={motion.capabilities?.powerLights ?? 0} onChange={motion.applyPowerConfig} t={t} />} />
             ) : activeNav === "connection" ? (
               <ConnectionView th={th} t={t} onDisconnect={props.onDisconnect}
                 connectionType={props.connectionType} />

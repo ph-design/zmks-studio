@@ -14,9 +14,10 @@ import {
 import { call_rpc } from "../rpc/logging";
 import { DEMO_LABEL, getDemoMotionBackend } from "../demo/motionBackend";
 
+import type { PowerConfig, PowerRequest, PowerResponse } from "./powerProtocol";
 import type { GuardSettings } from "./guardProtocol";
 export type CarryConfig = BaseCarryConfig & Partial<GuardSettings>;
-export type MotionCapabilities = BaseCapabilities & { guardVersion?: number };
+export type MotionCapabilities = BaseCapabilities & { guardVersion?: number; powerVersion?: number; powerLights?: number };
 // Generated codec types, re-exported so the app imports motion types from here.
 export { Orientation };
 export type {
@@ -40,6 +41,8 @@ export const TAP_SLOTS: { slot: TapSlot; side: "left" | "right"; taps: 1 | 2 }[]
 
 export interface MotionBackend {
   getCapabilities(): Promise<MotionCapabilities | null>;
+  getPowerConfig(): Promise<PowerConfig | null>;
+  setPowerConfig(config: PowerConfig): Promise<boolean>;
   getTapConfig(): Promise<TapConfig | null>;
   setTapConfig(config: TapConfig): Promise<boolean>;
   getCarryConfig(): Promise<CarryConfig | null>;
@@ -55,10 +58,10 @@ export interface MotionBackend {
 
 async function callMotion(
   conn: RpcConnection,
-  motion: MotionRequest
-): Promise<MotionResponse | undefined> {
+  motion: MotionRequest & PowerRequest
+): Promise<(MotionResponse & PowerResponse) | undefined> {
   const resp = await call_rpc(conn, { motion });
-  return resp.motion;
+  return resp.motion as (MotionResponse & PowerResponse) | undefined;
 }
 
 /*
@@ -67,6 +70,8 @@ async function callMotion(
  */
 function rpcBackend(conn: RpcConnection): MotionBackend {
   return {
+    async getPowerConfig() { return (await callMotion(conn, { getPowerConfig: true }))?.powerConfig ?? null; },
+    async setPowerConfig(config) { return (await callMotion(conn, { setPowerConfig: config }))?.setPowerConfig === true; },
     async getCapabilities() {
       const r = await callMotion(conn, { getCapabilities: true });
       return r?.capabilities ?? null;

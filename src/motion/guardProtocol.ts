@@ -68,7 +68,7 @@ export function encodeGuardRequest(req: Request): Uint8Array | undefined {
     Writer.create().uint32(66).bytes(motion).finish(),
   ); // studio.motion = 8
 }
-function fields(bytes: Uint8Array) {
+export function fields(bytes: Uint8Array) {
   const reader = Reader.create(bytes),
     found = new Map<number, number | Uint8Array>();
   while (reader.pos < reader.len) {
@@ -79,7 +79,7 @@ function fields(bytes: Uint8Array) {
   }
   return found;
 }
-function nested(bytes: Uint8Array, path: number[]): Uint8Array | undefined {
+export function nested(bytes: Uint8Array, path: number[]): Uint8Array | undefined {
   let current: Uint8Array | undefined = bytes;
   for (const field of path) {
     const value = fields(current).get(field);

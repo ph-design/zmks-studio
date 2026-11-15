@@ -967,7 +967,7 @@
       "shortPlacement": "Placement after a brief lock",
       "window": "Per-axis stable-window range",
       "fixed": "These are fixed Motion Guard policy defaults, not adjustable values read from legacy firmware.",
-      "sleep": "Idle power management remains active. Automatic deep sleep is suspended while protection is enabled and the IMU is healthy; manual power-off remains available.",
+      "sleep": "Adjust automatic lighting and standby on the Device page. Deep sleep is a separate opt-in setting, off by default.",
       "firstKey": "New presses during placement confirmation are buffered and sent in order after confirmation. This may delay the first output.",
       "showLegacy": "Show legacy motion-sleep parameters (legacy firmware only)",
       "hideLegacy": "Hide legacy parameters",
@@ -1083,5 +1083,30 @@
       "LOCKED": "Carry locked",
       "UNKNOWN": "Protection state unknown"
     }
+  },
+  "power": {
+    "title": "Automatic sleep and lighting",
+    "upgrade": "Unlock Studio and use preview.6 or compatible keyboard firmware to edit these settings.",
+    "hint": "Timers start after the last key or meaningful action. Held keys keep the keyboard active. Standby retains the IMU, scanning and connection; input or confirmed placement resumes operation. Apply, then use the header Save action to retain settings after restart.",
+    "seconds": "seconds",
+    "idleTimeoutMs": "Idle standby timeout",
+    "idleTimeoutMsHint": "0 disables automatic standby. Standby reduces background activity without switching the keyboard off or adding a per-key delay.",
+    "rgbOffMs": "RGB off timeout",
+    "rgbOffMsHint": "0 disables timed suppression. Wake restores the existing on/off state, brightness and effect; manually disabled lights remain off.",
+    "backlightOffMs": "Backlight off timeout",
+    "backlightOffMsHint": "0 disables the separate backlight timer. This timer is independent of RGB.",
+    "offWhenLocked": "Turn lights off immediately while lift-locked",
+    "onUsb": "Apply light and standby timers on USB power",
+    "deepEnabled": "Enable deep sleep (off by default)",
+    "deepHint": "Deep sleep stops the IMU and connection. A key is required to wake, and that first key may not be sent. It runs only on battery, with no held keys, while not lift-locked and with Studio locked. Keep this off for immediate response.",
+    "deepSleepMs": "Deep sleep timeout",
+    "deepSleepMsHint": "Total time since the last meaningful action, at least 60 seconds and no earlier than enabled standby or light timers.",
+    "invalid": "Enter whole seconds from 0 to 86400. Zero disables standby or a light timer. Deep sleep must be at least 60 seconds and no earlier than other timers.",
+    "defaults": "Restore recommended settings",
+    "apply": "Apply power settings",
+    "applying": "Applying…",
+    "applied": "Applied. Use the header Save action to retain settings after restart.",
+    "failed": "The keyboard rejected these settings. Previous values were restored.",
+    "scope": "These controls affect the keyboard only. Receiver indicator settings are on the Connection page."
   }
 }

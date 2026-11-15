@@ -1,3 +1,4 @@
+import { POWER_DEFAULTS, validPowerConfig, type PowerConfig } from "../motion/powerProtocol";
 import { GUARD_DEFAULTS, validGuardSettings } from "../motion/guardProtocol";
 import {
   Orientation,
@@ -23,6 +24,8 @@ const CAPABILITIES: MotionCapabilities = {
   supportsSleepWake: false,
   thresholdMax: 127,
   guardVersion: 1,
+  powerVersion: 1,
+  powerLights: 3,
 };
 
 function defaultTapConfig(): TapConfig {
@@ -59,6 +62,9 @@ function defaultStillWakeConfig(): StillWakeConfig {
 
 // Self-driving signal: a ~5 s "carried in a bag" burst every ~14 s.
 class DemoMotionFirmware implements MotionBackend {
+  private power = { ...POWER_DEFAULTS };
+  async getPowerConfig() { return { ...this.power }; }
+  async setPowerConfig(config: PowerConfig) { if (!validPowerConfig(config)) return false; this.power = { ...config }; return true; }
   private tap = defaultTapConfig();
   private carry = defaultCarryConfig();
   private stillWake = defaultStillWakeConfig();
