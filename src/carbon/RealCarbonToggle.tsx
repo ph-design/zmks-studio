@@ -4,11 +4,12 @@
  * come from the CSS variables (not `th`) so it works in both the inline-styled
  * Carbon shell and the Tailwind panels, and it follows accent changes.
  */
-export function RealCarbonToggle({ checked, onChange, disabled, size = "md" }: {
+export function RealCarbonToggle({ checked, onChange, disabled, size = "md", ariaLabel }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
   size?: "md" | "sm";
+  ariaLabel?: string;
 }) {
   const sm = size === "sm";
   const w = sm ? 36 : 48;
@@ -25,6 +26,7 @@ export function RealCarbonToggle({ checked, onChange, disabled, size = "md" }: {
     <button
       role="switch"
       aria-checked={checked}
+      aria-label={ariaLabel}
       disabled={disabled}
       onClick={() => onChange(!checked)}
       style={{

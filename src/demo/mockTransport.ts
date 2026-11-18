@@ -364,6 +364,7 @@ class DemoFirmware {
   // Link state for the Connection panel: one tri-mode keyboard, USB plugged in,
   // slot 1 bonded, 2.4G unpaired until the user runs the pairing flow.
   private bootedAt = Date.now();
+  private rgbFade = { enabled: false, durationMs: 180 };
   private transport = Transport.ZMK_CONNECTION_TRANSPORT_USB;
   private activeProfile = 0;
   private profiles: BleProfile[] = [
@@ -576,7 +577,7 @@ class DemoFirmware {
       }
       const l = req.lighting;
       if (l.getRgbUnderglowState) {
-        return respond({ lighting: { getRgbUnderglowState: { on: true, color: { h: 0, s: 0, b: 80 }, effect: 0, speed: 3, effectCount: 1, effectNames: ["Solid"], fade: undefined } } });
+        return respond({ lighting: { getRgbUnderglowState: { on: true, color: { h: 0, s: 0, b: 80 }, effect: 0, speed: 3, effectCount: 1, effectNames: ["Solid"], fade: this.rgbFade } } });
       }
       if (l.getBacklightState) {
         return respond({ lighting: { getBacklightState: { on: false, brightness: 60 } } });
@@ -603,7 +604,10 @@ class DemoFirmware {
       if (l.getConnectionIndicator) {
         return respond({ lighting: { getConnectionIndicator: { enabled: false, usbColor: 0, btColor: 0, keyPosition: 0xff, layerId: 0 } } });
       }
-      if (l.setRgbUnderglowState) return respond({ lighting: { setRgbUnderglowState: true } });
+      if (l.setRgbUnderglowState) {
+        if (l.setRgbUnderglowState.fade) this.rgbFade = l.setRgbUnderglowState.fade;
+        return respond({ lighting: { setRgbUnderglowState: true } });
+      }
       if (l.setBacklightState) return respond({ lighting: { setBacklightState: true } });
       if (l.saveState) return respond({ lighting: { saveState: true } });
       if (l.saveLayerLedState) return respond({ lighting: { saveLayerLedState: true } });
