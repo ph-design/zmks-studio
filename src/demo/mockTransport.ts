@@ -404,14 +404,14 @@ class DemoFirmware {
 
   handle(req: Request): Response | null {
     const r = req.requestId;
-    const respond = (subsystem: Omit<RequestResponse, "requestId">): Response => ({
-      requestResponse: { requestId: r, ...subsystem },
+    const respond = (subsystem: Omit<RequestResponse, "requestId" | "actionToken">): Response => ({
+      requestResponse: { requestId: r, actionToken: 0, ...subsystem },
     });
 
     if (req.core) {
       const c = req.core;
       if (c.getDeviceInfo) {
-        return respond({ core: { getDeviceInfo: { name: "Demo Keyboard", serialNumber: new Uint8Array([0xde, 0xad, 0xbe, 0xef]) } } });
+        return respond({ core: { getDeviceInfo: { name: "Demo Keyboard", serialNumber: new Uint8Array([0xde, 0xad, 0xbe, 0xef]), bootloaderVersion: 0 } } });
       }
       if (c.getLockState) {
         return respond({
@@ -520,7 +520,7 @@ class DemoFirmware {
 
     if (req.combos) {
       if (!this.features.combos) {
-        return { requestResponse: { requestId: r, meta: { noResponse: true } } };
+        return respond({ meta: { noResponse: true } });
       }
       const c = req.combos;
       if (c.listAllCombos) {
@@ -572,11 +572,11 @@ class DemoFirmware {
 
     if (req.lighting) {
       if (!this.features.lighting) {
-        return { requestResponse: { requestId: r, meta: { noResponse: true } } };
+        return respond({ meta: { noResponse: true } });
       }
       const l = req.lighting;
       if (l.getRgbUnderglowState) {
-        return respond({ lighting: { getRgbUnderglowState: { on: true, color: { h: 0, s: 0, b: 80 }, effect: 0, speed: 3, effectCount: 1, effectNames: ["Solid"] } } });
+        return respond({ lighting: { getRgbUnderglowState: { on: true, color: { h: 0, s: 0, b: 80 }, effect: 0, speed: 3, effectCount: 1, effectNames: ["Solid"], fade: undefined } } });
       }
       if (l.getBacklightState) {
         return respond({ lighting: { getBacklightState: { on: false, brightness: 60 } } });
@@ -611,7 +611,7 @@ class DemoFirmware {
       if (l.setLayerLedEnabled) return respond({ lighting: { setLayerLedEnabled: true } });
       if (l.setCapsLockIndicator) return respond({ lighting: { setCapsLockIndicator: true } });
       if (l.setConnectionIndicator) return respond({ lighting: { setConnectionIndicator: true } });
-      return { requestResponse: { requestId: r, meta: { noResponse: true } } };
+      return respond({ meta: { noResponse: true } });
     }
 
     // Device info, link state and 2.4G pairing, so both panels work without hardware.
@@ -776,7 +776,7 @@ class DemoFirmware {
     }
 
     // Unknown / unsupported request: no_response meta so call_rpc rejects cleanly.
-    return { requestResponse: { requestId: r, meta: { noResponse: true } } };
+    return respond({ meta: { noResponse: true } });
   }
 
   // One plausible tri-mode link: USB plugged in, three BLE slots, one bonded.

@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 
-import { Request } from "@zmkfirmware/zmk-studio-ts-client";
+import type { RpcRequest } from "@zmkfirmware/zmk-studio-ts-client";
 import { call_rpc } from "../rpc/logging";
 import {
   PhysicalLayout,
@@ -82,9 +82,8 @@ function useBehaviors(): [BehaviorMap, boolean] {
         return;
       }
 
-      const get_behaviors: Request = {
+      const get_behaviors: RpcRequest = {
         behaviors: { listAllBehaviors: true },
-        requestId: 0,
       };
 
       const behavior_map: BehaviorMap = {};

@@ -3,12 +3,12 @@ import { ConnectionContext } from "./ConnectionContext";
 
 import { call_rpc } from "./logging";
 
-import { Request, RequestResponse } from "@zmkfirmware/zmk-studio-ts-client";
+import { RpcRequest, RequestResponse } from "@zmkfirmware/zmk-studio-ts-client";
 import { LockStateContext } from "./LockStateContext";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 
 export function useConnectedDeviceData<T>(
-  req: Omit<Request, "requestId">,
+  req: RpcRequest,
   response_mapper: (resp: RequestResponse) => T | undefined,
   requireUnlock?: boolean
 ): [T | undefined, React.Dispatch<SetStateAction<T | undefined>>] {
