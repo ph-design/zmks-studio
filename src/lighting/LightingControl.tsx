@@ -10,7 +10,6 @@ import { call_rpc } from "../rpc/logging";
 
 import type {
   RgbUnderglowState,
-  RgbUnderglowFade,
   BacklightState,
   CapsLockIndicatorState,
   ConnectionIndicatorState,
@@ -32,7 +31,7 @@ import { encodeRgbOverride, isRgbOverrideTransparent } from "./rgbOverride";
 import TransparentColorPicker from "./TransparentColorPicker";
 import { hasIndicatorPosition } from "./indicatorPosition";
 
-export type LightSource = "rgb" | "backlight" | "capslock" | "connection" | "layerLed";
+export type LightSource = "general" | "rgb" | "backlight" | "capslock" | "connection" | "layerLed";
 
 const ANY_LAYER_ID = 0xff;
 
@@ -450,13 +449,6 @@ export default function LightingControl({
               <span className="text-sm text-base-content/50 w-8 text-right tabular-nums">{rgbState.speed ?? 1}</span>
             </div>
           </div>
-          {rgbState.fade && (
-            <FadeControls
-              fade={rgbState.fade}
-              disabled={!isUnlocked}
-              onChange={(fade) => setRgbProp({ fade })}
-            />
-          )}
         </Block>
       </>
     );
@@ -604,76 +596,6 @@ export default function LightingControl({
       <div className="flex flex-1 min-h-0 overflow-x-auto">
         {blocks}
       </div>
-    </div>
-  );
-}
-
-function FadeControls({
-  fade,
-  disabled,
-  onChange,
-}: {
-  fade: RgbUnderglowFade;
-  disabled: boolean;
-  onChange: (fade: RgbUnderglowFade) => Promise<boolean | undefined>;
-}) {
-  const { t } = useTranslation();
-  const [duration, setDuration] = useState(String(fade.durationMs));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(false);
-  useEffect(() => setDuration(String(fade.durationMs)), [fade.durationMs]);
-
-  const apply = async (next: RgbUnderglowFade) => {
-    if (saving) return;
-    setSaving(true);
-    setError(false);
-    try {
-      if (!(await onChange(next))) {
-        setDuration(String(fade.durationMs));
-        setError(true);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const commitDuration = () => {
-    const value = Number(duration);
-    if (!Number.isInteger(value) || value < 1 || value > 1000) {
-      setDuration(String(fade.durationMs));
-      return;
-    }
-    if (value !== fade.durationMs) void apply({ ...fade, durationMs: value });
-  };
-
-  return (
-    <div className="mt-4 flex flex-col gap-2 border-t border-base-300 pt-3">
-      <div className="flex items-center justify-between gap-2 text-sm">
-        <span>{t("lighting.fade", "Fade in/out")}</span>
-        <RealCarbonToggle
-          checked={fade.enabled}
-          disabled={disabled || saving}
-          onChange={(enabled) => void apply({ ...fade, enabled })}
-          ariaLabel={t("lighting.fade", "Fade in/out")}
-        />
-      </div>
-      <label className="flex items-center justify-between gap-2 text-sm">
-        <span>{t("lighting.fadeDuration", "Fade duration (ms)")}</span>
-        <input
-          type="number"
-          min={1}
-          max={1000}
-          value={duration}
-          disabled={disabled || saving || !fade.enabled}
-          onChange={(event) => setDuration(event.currentTarget.value)}
-          onBlur={commitDuration}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") event.currentTarget.blur();
-          }}
-          className="w-20 border border-base-300 bg-base-100 px-2 py-1 text-right tabular-nums"
-        />
-      </label>
-      {error && <span className="text-sm text-error">{t("lighting.fadeSaveFailed", "Could not save fade settings")}</span>}
     </div>
   );
 }

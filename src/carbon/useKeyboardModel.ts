@@ -245,7 +245,7 @@ export function useKeyboardModel({
   const [indicatorPositionDraft, setIndicatorPositionDraft] = useState<
     IndicatorPositionDraft | undefined
   >(undefined);
-  const [lightingSource, setLightingSource] = useState<string>("rgb");
+  const [lightingSource, setLightingSource] = useState<string>("general");
 
   // Progress for the duplicate-layer op — exposed so LayersView can render a
   // progress bar on the new layer while bindings are being copied.
@@ -887,6 +887,7 @@ export function useKeyboardModel({
     conn,
     isUnlocked,
     dataReady,
+    lightingLoaded,
     // keymap + layouts
     keymap,
     setKeymap,

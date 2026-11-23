@@ -1,10 +1,12 @@
 import { FeatureRail } from "./FeatureRail";
 import { useEffect } from "react";
-import { Sun, Lightbulb, Lock, Wifi, Layers } from "lucide-react";
+import { Sun, Lightbulb, Lock, Wifi, Layers, SlidersHorizontal } from "lucide-react";
 
 import type { CarbonTheme } from "./theme";
 import { useKeyboardModel } from "./useKeyboardModel";
 import LightingControl, { type LightSource } from "../lighting/LightingControl";
+import { RgbGeneralControls } from "../lighting/RgbGeneralControls";
+import type { useRgbGeneralDraft } from "../lighting/useRgbGeneralDraft";
 import LayerLedMap from "../lighting/LayerLedMap";
 import RgbEffectPreview from "../lighting/RgbEffectPreview";
 import { KeyboardCanvas } from "../keyboard/KeyboardCanvas";
@@ -13,15 +15,24 @@ import { Loading, NotSupportedHint } from "./CarbonChrome";
 
 interface LightingViewProps {
   model: ReturnType<typeof useKeyboardModel>;
+  generalLighting: ReturnType<typeof useRgbGeneralDraft>;
+  saving: boolean;
   th: CarbonTheme;
   t: (k: string, d: string) => string;
 }
 
-export function LightingView({ model, th, t }: LightingViewProps) {
+export function LightingView({ model, generalLighting, saving, th, t }: LightingViewProps) {
   const km = model.keymap;
+  const rgb = model.rgbState;
 
   // Light sources become a Layers-style left rail; only available ones show.
   const allSources: { id: LightSource; label: string; icon: React.ReactNode; has: boolean }[] = [
+    {
+      id: "general",
+      label: t("lighting.general.title", "General"),
+      icon: <SlidersHorizontal size={16} />,
+      has: !!(rgb?.fade || rgb?.idle || rgb?.layerWake),
+    },
     { id: "rgb", label: t("lighting.rgbUnderglow", "RGB Underglow"), icon: <Sun size={16} />, has: model.hasRgb },
     { id: "backlight", label: t("lighting.backlight", "Backlight"), icon: <Lightbulb size={16} />, has: model.hasBacklight },
     { id: "capslock", label: t("lighting.capsLock.title", "Caps Lock"), icon: <Lock size={16} />, has: model.hasCapsLock },
@@ -30,18 +41,16 @@ export function LightingView({ model, th, t }: LightingViewProps) {
   ];
   const sources = allSources.filter((s) => s.has);
 
-  const currentSource = sources.some((s) => s.id === model.lightingSource)
-    ? (model.lightingSource as LightSource)
-    : sources[0]?.id;
+  const { lightingSource, lightingLoaded, handleLightingSourceChanged } = model;
+  const currentSource = sources.find((source) => source.id === lightingSource)?.id ?? sources[0]?.id;
 
-  // Keep the model's source valid when the current one isn't available.
   useEffect(() => {
-    if (sources.length > 0 && model.lightingSource !== currentSource && currentSource) {
-      model.handleLightingSourceChanged(currentSource);
+    if (lightingLoaded && currentSource && lightingSource !== currentSource) {
+      handleLightingSourceChanged(currentSource);
     }
-  }, [currentSource, model, sources.length]);
+  }, [currentSource, lightingLoaded, lightingSource, handleLightingSourceChanged]);
 
-  if (!model.dataReady || !km || !model.layouts) return <Loading th={th} t={t} />;
+  if (!model.dataReady || !lightingLoaded || !km || !model.layouts) return <Loading th={th} t={t} />;
 
   if (sources.length === 0) {
     return (
@@ -67,7 +76,7 @@ export function LightingView({ model, th, t }: LightingViewProps) {
           {sources.map((s) => {
             const active = s.id === currentSource;
             return (
-              <button key={s.id} onClick={() => model.handleLightingSourceChanged(s.id)}
+              <button key={s.id} onClick={() => model.handleLightingSourceChanged(s.id)} aria-pressed={active}
                 style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 44, padding: "0 14px", cursor: "pointer", textAlign: "left", background: active ? th.selectedLayer : "transparent", border: "none", borderLeft: `3px solid ${active ? th.interactive : "transparent"}`, fontFamily: "var(--font-sans)" }}>
                 <span style={{ color: active ? th.interactive : th.iconSecondary, display: "flex", flexShrink: 0 }}>{s.icon}</span>
                 <span style={{ fontSize: 14, fontWeight: active ? 500 : 400, color: active ? th.textPrimary : th.textSecondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</span>
@@ -93,12 +102,12 @@ export function LightingView({ model, th, t }: LightingViewProps) {
         </div>
         <KeyboardCanvas th={th} t={t} scale={previewScale} setScale={model.setKeymapScale}>
           {(fitContainerRef) =>
-            currentSource === "rgb" && model.rgbState ? (
+            (currentSource === "rgb" || currentSource === "general") && rgb ? (
               <RgbEffectPreview
                 key={model.selectedPhysicalLayoutIndex}
                 layout={model.layouts![model.selectedPhysicalLayoutIndex]}
                 keymap={km}
-                rgbState={model.rgbState}
+                rgbState={rgb}
                 scale={previewScale}
                 ledData={model.ledData}
                 selectedLayerIndex={model.selectedLayerIndex}
@@ -121,33 +130,43 @@ export function LightingView({ model, th, t }: LightingViewProps) {
           }
         </KeyboardCanvas>
         <ResizableDrawer th={th} storageKey="zmk-studio-drawer-h-lighting">
-          <LightingControl
-            th={th}
-            selectedSource={currentSource ?? "rgb"}
-            hasLayerLed={model.hasLayerLed}
-            selectedLedPositions={model.selectedLedPositions}
-            ledData={model.ledData}
-            selectedLayerIndex={model.selectedLayerIndex}
-            keymap={km}
-            onLayerLedColorChanged={model.handleLayerLedColorChanged}
-            layerLedEnabled={model.ledData?.enabled ?? true}
-            onLayerLedEnabledChanged={model.handleLayerLedEnabledChanged}
-            rgbState={model.rgbState}
-            setRgbState={model.setRgbState}
-            backlightState={model.backlightState}
-            setBacklightState={model.setBacklightState}
-            capsLockState={model.capsLockState}
-            setCapsLockState={model.setCapsLockState}
-            connectionState={model.connectionState}
-            setConnectionState={model.setConnectionState}
-            hasRgb={model.hasRgb}
-            hasBacklight={model.hasBacklight}
-            hasCapsLock={model.hasCapsLock}
-            hasConnection={model.hasConnection}
-            indicatorPositionDraft={model.indicatorPositionDraft}
-            onClearIndicator={() => model.setIndicatorPositionDraft(undefined)}
-            onLightingChanged={model.onLightingChanged}
-          />
+          {currentSource === "general" ? (
+            <RgbGeneralControls
+              settings={generalLighting.settings}
+              layers={km.layers}
+              onChange={generalLighting.edit}
+              saving={saving || generalLighting.previewing}
+              previewFailed={generalLighting.previewFailed}
+            />
+          ) : (
+            <LightingControl
+              th={th}
+              selectedSource={currentSource ?? "rgb"}
+              hasLayerLed={model.hasLayerLed}
+              selectedLedPositions={model.selectedLedPositions}
+              ledData={model.ledData}
+              selectedLayerIndex={model.selectedLayerIndex}
+              keymap={km}
+              onLayerLedColorChanged={model.handleLayerLedColorChanged}
+              layerLedEnabled={model.ledData?.enabled ?? true}
+              onLayerLedEnabledChanged={model.handleLayerLedEnabledChanged}
+              rgbState={model.rgbState}
+              setRgbState={model.setRgbState}
+              backlightState={model.backlightState}
+              setBacklightState={model.setBacklightState}
+              capsLockState={model.capsLockState}
+              setCapsLockState={model.setCapsLockState}
+              connectionState={model.connectionState}
+              setConnectionState={model.setConnectionState}
+              hasRgb={model.hasRgb}
+              hasBacklight={model.hasBacklight}
+              hasCapsLock={model.hasCapsLock}
+              hasConnection={model.hasConnection}
+              indicatorPositionDraft={model.indicatorPositionDraft}
+              onClearIndicator={() => model.setIndicatorPositionDraft(undefined)}
+              onLightingChanged={model.onLightingChanged}
+            />
+          )}
         </ResizableDrawer>
       </div>
     </div>

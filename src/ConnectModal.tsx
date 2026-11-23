@@ -42,6 +42,7 @@ export interface ConnectModalProps {
   connectionPhase?: ConnectionPhase;
   loadProgress?: number;
   lockState?: LockState;
+  onCheckLockState?: () => void;
   onCancelConnection?: () => void;
   footer?: ReactNode;
 }
@@ -317,7 +318,10 @@ function ConnectingStep({
   );
 }
 
-function UnlockStep() {
+function UnlockStep({ onCheck, onDisconnect }: {
+  onCheck?: () => void;
+  onDisconnect?: () => void;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -343,8 +347,19 @@ function UnlockStep() {
         </ExternalLink>{" "}
         {t("unlock.body2Suffix")}
       </p>
-      <div className="h-1 overflow-hidden rounded-[2px] bg-base-300">
-        <div className="h-full w-1/3 rounded-[2px] bg-primary animate-[carbon-progress_1.6s_cubic-bezier(0.4,0,0.2,1)_infinite]" />
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button
+          className="rounded-md border border-base-300 px-3 py-2 text-sm hover:bg-base-300 disabled:opacity-50"
+          onPress={onCheck}
+          isDisabled={!onCheck}
+        >
+          {t("unlock.checkStatus")}
+        </Button>
+        {onDisconnect && (
+          <Button className="rounded-md px-3 py-2 text-sm hover:bg-base-300" onPress={onDisconnect}>
+            {t("unlock.disconnect")}
+          </Button>
+        )}
       </div>
     </FlowStep>
   );
@@ -693,6 +708,7 @@ export const ConnectModal = ({
   connectionPhase = "idle",
   loadProgress,
   lockState,
+  onCheckLockState,
   onCancelConnection,
   footer,
 }: ConnectModalProps) => {
@@ -715,10 +731,9 @@ export const ConnectModal = ({
   const showConnecting = connectionPhase === "connecting";
   const showInitializing = connectionPhase === "initializing";
   const showConnected = connectionPhase === "connected";
-  const showCheckingLock = showConnected && lockState === undefined;
-  const showUnlock =
-    lockState !== undefined &&
-    lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
+  const showCheckingLock = showConnected && lockState === undefined && !connectionError;
+  const showUnlock = lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED &&
+    (lockState !== undefined || (showConnected && !!connectionError));
   const liveView = showConnecting || showInitializing || showCheckingLock
     ? "progress"
     : showUnlock
@@ -786,7 +801,12 @@ export const ConnectModal = ({
               progress={loadProgress}
             />
           )}
-          {displayView === "unlock" && <UnlockStep />}
+          {displayView === "unlock" && (
+            <UnlockStep
+              onCheck={onCheckLockState}
+              onDisconnect={onCancelConnection}
+            />
+          )}
           {displayView === "options" && (
             <>
               {haveTransports

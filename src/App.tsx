@@ -209,7 +209,13 @@ function App() {
   const [loadProgress, setLoadProgress] = useState(0);
   const connectionAbortRef = useRef(connectionAbort);
 
-  const [lockState, setLockState] = useState<LockState | undefined>(undefined);
+  const [lockState, updateLockState] = useState<LockState | undefined>(undefined);
+  const lockStateVersion = useRef(0);
+  const activeLockCheck = useRef<AbortController>();
+  const setLockState = useCallback((state: LockState | undefined) => {
+    lockStateVersion.current++;
+    updateLockState(state);
+  }, []);
   const [hasUnsavedLightingChanges, setHasUnsavedLightingChanges] = useState(false);
   const [hasUnsavedMotionChanges, setHasUnsavedMotionChanges] = useState(false);
   /*
@@ -230,42 +236,65 @@ function App() {
     setLockState(ls);
   });
 
-  useEffect(() => {
-    let ignore = false;
+  const checkLockState = useCallback(async () => {
+    const rpc = conn.conn;
+    const session = connectionAbortRef.current;
+    if (!rpc || session.signal.aborted || activeLockCheck.current === session) return;
 
+    activeLockCheck.current = session;
+    const version = lockStateVersion.current;
+    const isCurrent = () => connectionAbortRef.current === session &&
+      !session.signal.aborted && lockStateVersion.current === version;
+
+    // Keep one read in flight. A missing response must never queue more reads.
+    const timer = window.setTimeout(() => {
+      if (isCurrent()) setConnectionError(i18n.t("unlock.checkFailed"));
+    }, 5000);
+    try {
+      const response = await call_rpc(rpc, { core: { getLockState: true } });
+      if (!isCurrent()) return;
+
+      const state = response?.core?.getLockState;
+      if (state === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED ||
+          state === LockState.ZMK_STUDIO_CORE_LOCK_STATE_LOCKED) {
+        setConnectionError(undefined);
+        setLockState(state);
+      } else {
+        setConnectionError(i18n.t("unlock.checkFailed"));
+      }
+    } catch {
+      if (isCurrent()) setConnectionError(i18n.t("unlock.checkFailed"));
+    } finally {
+      window.clearTimeout(timer);
+      if (activeLockCheck.current === session) {
+        activeLockCheck.current = undefined;
+      }
+    }
+  }, [conn.conn, setLockState]);
+
+  useEffect(() => {
     if (!conn.conn) {
       reset();
       setLockState(undefined);
       setHasUnsavedLightingChanges(false);
       return;
     }
+    void checkLockState();
+  }, [conn, checkLockState, setLockState]);
 
-    async function updateLockState() {
-      if (!conn.conn) {
-        return;
-      }
-
-      setLockState(undefined);
-
-      const locked_resp = await call_rpc(conn.conn, {
-        core: { getLockState: true },
-      });
-
-      if (ignore) {
-        return;
-      }
-
-      setLockState(
-        locked_resp.core?.getLockState ??
-          LockState.ZMK_STUDIO_CORE_LOCK_STATE_LOCKED
-      );
+  useEffect(() => {
+    if (!conn.conn || lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_LOCKED ||
+        (connectionPhase !== "connected" && connectionPhase !== "idle")) {
+      return;
     }
 
-    updateLockState();
-    return () => {
-      ignore = true;
-    };
-  }, [conn]);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible" && document.hasFocus()) {
+        void checkLockState();
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [conn.conn, connectionPhase, lockState, checkLockState]);
 
   useEffect(() => {
     if (!conn.conn) {
@@ -310,32 +339,32 @@ function App() {
     setHasUnsavedComboChanges(true);
   }, []);
 
-  const save = useCallback(async (): Promise<boolean> => {
+  const save = useCallback(async (saveOtherChanges: boolean, saveRgbGeneral: boolean): Promise<boolean> => {
     if (!conn.conn) {
       return false;
     }
 
     let saved = true;
-    let resp = await call_rpc(conn.conn, { keymap: { saveChanges: true } });
-    if (!resp.keymap?.saveChanges || resp.keymap?.saveChanges.err) {
-      saved = false;
-      console.error(t("errors.failedToSave"), resp.keymap?.saveChanges);
+    if (saveOtherChanges) {
+      const resp = await call_rpc(conn.conn, { keymap: { saveChanges: true } });
+      if (!resp.keymap?.saveChanges || resp.keymap.saveChanges.err) {
+        saved = false;
+        console.error(t("errors.failedToSave"), resp.keymap?.saveChanges);
+      }
     }
 
-    if (hasUnsavedLightingChanges) {
-      const [stateResp, layerLedResp] = await Promise.allSettled([
-        call_rpc(conn.conn, { lighting: { saveState: true } }),
-        call_rpc(conn.conn, { lighting: { saveLayerLedState: true } }),
-      ]);
-
-      if (stateResp.status !== "fulfilled" || !stateResp.value.lighting?.saveState) {
+    if (hasUnsavedLightingChanges || saveRgbGeneral) {
+      const response = await call_rpc(conn.conn, { lighting: { saveState: true } });
+      if (!response.lighting?.saveState) {
         saved = false;
-        console.error(t("errors.failedToSave"), stateResp);
+        console.error(t("errors.failedToSave"), response);
       }
-
-      if (layerLedResp.status !== "fulfilled" || !layerLedResp.value.lighting?.saveLayerLedState) {
+    }
+    if (hasUnsavedLightingChanges) {
+      const response = await call_rpc(conn.conn, { lighting: { saveLayerLedState: true } });
+      if (!response.lighting?.saveLayerLedState) {
         saved = false;
-        console.error(t("errors.failedToSave"), layerLedResp);
+        console.error(t("errors.failedToSave"), response);
       }
     }
 
@@ -355,25 +384,19 @@ function App() {
     return saved;
   }, [conn, hasUnsavedLightingChanges, hasUnsavedMotionChanges, t]);
 
-  const discard = useCallback(() => {
-    async function doDiscard() {
-      if (!conn.conn) {
-        return;
-      }
+  const discard = useCallback(async (): Promise<boolean> => {
+    if (!conn.conn) return false;
 
-      let resp = await call_rpc(conn.conn, {
-        keymap: { discardChanges: true },
-      });
-      if (!resp.keymap?.discardChanges) {
-        console.error(t("errors.failedToDiscard"), resp);
-      }
-
-      reset();
-      setConn({ conn: conn.conn });
+    const resp = await call_rpc(conn.conn, { keymap: { discardChanges: true } });
+    if (!resp.keymap?.discardChanges) {
+      console.error(t("errors.failedToDiscard"), resp);
+      return false;
     }
 
-    doDiscard();
-  }, [conn]);
+    reset();
+    setConn({ conn: conn.conn });
+    return true;
+  }, [conn, reset, t]);
 
   /*
    * Returns a promise so the caller can show a busy state — a factory reset takes
@@ -429,7 +452,7 @@ function App() {
     }
 
     doDisconnect();
-  }, [conn]);
+  }, [conn, setLockState]);
 
   // Give up if initialization stalls past 60s instead of spinning forever.
   useEffect(() => {
@@ -476,7 +499,7 @@ function App() {
           );
         });
     },
-    [setConn, setConnectedDeviceName, setConnectionError]
+    [setConn, setConnectedDeviceName, setConnectionError, setLockState]
   );
 
   const cancelConnection = useCallback(() => {
@@ -491,7 +514,7 @@ function App() {
     setHasUnsavedLightingChanges(false);
     setConnectionType(undefined);
     setConnectionPhase("idle");
-  }, []);
+  }, [setLockState]);
 
   const connectModalOpen =
     !conn.conn ||
@@ -512,6 +535,7 @@ function App() {
               connectionPhase={connectionPhase}
               loadProgress={loadProgress}
               lockState={lockState}
+              onCheckLockState={checkLockState}
               onCancelConnection={cancelConnection}
             />
             <AboutModal open={showAbout} onClose={() => setShowAbout(false)} />

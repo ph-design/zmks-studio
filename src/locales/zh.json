@@ -181,7 +181,17 @@
     "speed": "速度",
     "fade": "淡入淡出",
     "fadeDuration": "渐变时长（毫秒）",
-    "fadeSaveFailed": "无法保存渐变设置",
+    "general": {
+      "title": "灯光总控",
+      "fadeEnabled": "启用渐变",
+      "idle": "RGB 休眠",
+      "sleepOnUsb": "有线连接时允许 RGB 休眠",
+      "idleSeconds": "空闲时长（秒）",
+      "idleHint": "设为 0 时，RGB 不会因空闲而熄灭。",
+      "layerWake": "激活时点亮层灯",
+      "layerWakeHint": "选中后，即使 RGB 已关闭，激活相应的层也会点亮对应层灯。颜色在「层灯」里设置。",
+      "previewFailed": "预览未生效，请重试。"
+    },
     "color": "颜色",
     "transparent": "透明",
     "transparentHint": "显示底层 RGB 灯效",
@@ -346,6 +356,9 @@
     "composite": "某种组合？"
   },
   "unlock": {
+    "checkStatus": "已按解锁键",
+    "checkFailed": "未能读取键盘的锁定状态。若仍无响应，可以断开后重连。",
+    "disconnect": "断开连接",
     "title": "解锁以继续",
     "body1": "出于安全原因，使用 ZMK Studio 前需要先解锁键盘。",
     "body2Prefix": "如果尚未在键位或组合键中添加解锁，请参阅",

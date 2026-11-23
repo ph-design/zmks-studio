@@ -365,6 +365,9 @@ class DemoFirmware {
   // slot 1 bonded, 2.4G unpaired until the user runs the pairing flow.
   private bootedAt = Date.now();
   private rgbFade = { enabled: false, durationMs: 180 };
+  private rgbIdle = { timeoutMs: 30000, sleepOnUsb: false };
+  private rgbLayerWake = { layers: 0 };
+  private savedRgbGeneral = { fade: this.rgbFade, idle: this.rgbIdle, layerWake: this.rgbLayerWake };
   private transport = Transport.ZMK_CONNECTION_TRANSPORT_USB;
   private activeProfile = 0;
   private profiles: BleProfile[] = [
@@ -453,6 +456,9 @@ class DemoFirmware {
       }
       if (k.discardChanges) {
         this.unsaved = false;
+        this.rgbFade = this.savedRgbGeneral.fade;
+        this.rgbIdle = this.savedRgbGeneral.idle;
+        this.rgbLayerWake = this.savedRgbGeneral.layerWake;
         return respond({ keymap: { discardChanges: true } });
       }
       if (k.setLayerBinding) {
@@ -577,7 +583,13 @@ class DemoFirmware {
       }
       const l = req.lighting;
       if (l.getRgbUnderglowState) {
-        return respond({ lighting: { getRgbUnderglowState: { on: true, color: { h: 0, s: 0, b: 80 }, effect: 0, speed: 3, effectCount: 1, effectNames: ["Solid"], fade: this.rgbFade } } });
+        return respond({ lighting: { getRgbUnderglowState: {
+          on: true, color: { h: 0, s: 0, b: 80 }, effect: 0, speed: 3,
+          effectCount: 1, effectNames: ["Solid"],
+          fade: this.rgbFade, idle: this.rgbIdle, layerWake: this.rgbLayerWake,
+          generalChangesPending: this.rgbFade !== this.savedRgbGeneral.fade ||
+            this.rgbIdle !== this.savedRgbGeneral.idle || this.rgbLayerWake !== this.savedRgbGeneral.layerWake,
+        } } });
       }
       if (l.getBacklightState) {
         return respond({ lighting: { getBacklightState: { on: false, brightness: 60 } } });
@@ -606,10 +618,15 @@ class DemoFirmware {
       }
       if (l.setRgbUnderglowState) {
         if (l.setRgbUnderglowState.fade) this.rgbFade = l.setRgbUnderglowState.fade;
+        if (l.setRgbUnderglowState.idle) this.rgbIdle = l.setRgbUnderglowState.idle;
+        if (l.setRgbUnderglowState.layerWake) this.rgbLayerWake = l.setRgbUnderglowState.layerWake;
         return respond({ lighting: { setRgbUnderglowState: true } });
       }
       if (l.setBacklightState) return respond({ lighting: { setBacklightState: true } });
-      if (l.saveState) return respond({ lighting: { saveState: true } });
+      if (l.saveState) {
+        this.savedRgbGeneral = { fade: this.rgbFade, idle: this.rgbIdle, layerWake: this.rgbLayerWake };
+        return respond({ lighting: { saveState: true } });
+      }
       if (l.saveLayerLedState) return respond({ lighting: { saveLayerLedState: true } });
       if (l.setLayerLedBinding) return respond({ lighting: { setLayerLedBinding: true } });
       if (l.setLayerLedEnabled) return respond({ lighting: { setLayerLedEnabled: true } });

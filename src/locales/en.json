@@ -181,7 +181,16 @@
     "speed": "Speed",
     "fade": "Fade in/out",
     "fadeDuration": "Fade duration (ms)",
-    "fadeSaveFailed": "Could not save fade settings",
+    "general": {
+      "title": "General",
+      "fadeEnabled": "Enable fades",
+      "idle": "RGB sleep",
+      "sleepOnUsb": "Allow RGB sleep on USB",
+      "idleSeconds": "Idle time (s)",
+      "idleHint": "Set to 0 to keep RGB on while idle.",
+      "layerWake": "Light up when a layer is active",
+      "layerWakeHint": "Pick layers that should light up even when RGB is off. Set their colours under Layer LED."
+    },
     "color": "Color",
     "transparent": "Transparent",
     "transparentHint": "Show the underlying RGB effect",
@@ -346,6 +355,9 @@
     "composite": "Some composite?"
   },
   "unlock": {
+    "checkStatus": "I've pressed the unlock keys",
+    "checkFailed": "Could not read the keyboard's lock status. If it stays unresponsive, disconnect and reconnect.",
+    "disconnect": "Disconnect",
     "title": "Unlock To Continue",
     "body1": "For security reasons, your keyboard requires unlocking before using ZMK Studio.",
     "body2Prefix": "If studio unlocking hasn't been added to your keymap or a combo, see the",

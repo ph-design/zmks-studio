@@ -8,6 +8,8 @@ import {
 
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import { LockStateContext } from "../rpc/LockStateContext";
+import { ConnectionContext } from "../rpc/ConnectionContext";
+import { useRgbGeneralDraft } from "../lighting/useRgbGeneralDraft";
 import { useConnectedDeviceData } from "../rpc/useConnectedDeviceData";
 import { useSub } from "../usePubSub";
 import { useLocalStorageState } from "../misc/useLocalStorageState";
@@ -42,8 +44,8 @@ export interface CarbonShellProps {
   onSwitchDevice: () => void;
   /** Awaitable so the Device page can show a busy state — this one is slow. */
   onResetSettings: () => Promise<boolean> | void;
-  onSave: () => void | Promise<boolean>;
-  onDiscard: () => void;
+  onSave: (saveOtherChanges: boolean, saveRgbGeneral: boolean) => Promise<boolean>;
+  onDiscard: () => Promise<boolean>;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -68,6 +70,16 @@ export function CarbonShell(props: CarbonShellProps) {
     onLightingChanged: props.onLightingChanged,
   });
   const motion = useMotion({ onMotionChanged: props.onMotionChanged });
+  const { conn } = useContext(ConnectionContext);
+  const generalLighting = useRgbGeneralDraft(conn, model.rgbState, model.setRgbState);
+
+  const [keymapUnsaved, setKeymapUnsaved] = useConnectedDeviceData<boolean>(
+    { keymap: { checkUnsavedChanges: true } },
+    (r) => r.keymap?.checkUnsavedChanges
+  );
+  useSub("rpc_notification.keymap.unsavedChangesStatusChanged", (u) => setKeymapUnsaved(u));
+  const otherChanges = !!keymapUnsaved || props.extraSaveEnabled;
+  const unsaved = otherChanges || generalLighting.hasChanges;
 
   // Wait for both capability probes before showing navigation.
   const { onReady } = props;
@@ -105,24 +117,52 @@ export function CarbonShell(props: CarbonShellProps) {
 
   const [saving, setSaving] = useState(false);
   const onSave = props.onSave;
-  const handleSave = useCallback(async (): Promise<boolean> => {
-    if (saving) return false;
+  const {
+    save: saveGeneralLighting, discard: discardGeneralLighting,
+    hasPreviewChanges, previewing, markSaved,
+  } = generalLighting;
+  const busy = saving || previewing;
+
+  const handleDiscard = async () => {
+    if (busy) return;
     setSaving(true);
     try {
-      const ok = await onSave();
-      showToast(ok === false ? "error" : "success",
-        ok === false ? t("carbon.saveFailed", "Save failed — please retry")
-          : t("carbon.saveSuccess", "Saved to keyboard"));
-      return ok !== false;
+      if ((otherChanges || hasPreviewChanges) && !(await props.onDiscard())) {
+        showToast("error", t("errors.failedToDiscard"));
+        return;
+      }
+      discardGeneralLighting();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (busy) return false;
+    setSaving(true);
+    try {
+      const saved = otherChanges || hasPreviewChanges
+        ? await onSave(otherChanges, hasPreviewChanges)
+        : true;
+      if (saved && hasPreviewChanges) markSaved();
+      const savedGeneralLighting = await saveGeneralLighting();
+      const ok = saved && savedGeneralLighting;
+      showToast(ok ? "success" : "error",
+        ok ? t("carbon.saveSuccess", "Saved to keyboard")
+          : t("carbon.saveFailed", "Save failed — please retry"));
+      return ok;
     } catch {
       showToast("error", t("carbon.saveFailed", "Save failed — please retry"));
       return false;
     } finally {
       setSaving(false);
     }
-  }, [saving, onSave, showToast, t]);
+  }, [busy, otherChanges, hasPreviewChanges, onSave, saveGeneralLighting, markSaved, showToast, t]);
 
   const goToNav = (id: NavId) => {
+    if (id === "lighting" && activeNav !== "lighting") {
+      model.handleLightingSourceChanged("general");
+    }
     setNavSelection(id);
     model.setSelectedKeyPosition(undefined);
     if (window.matchMedia("(max-width: 767px)").matches) setSidebarCollapsed(true);
@@ -134,12 +174,6 @@ export function CarbonShell(props: CarbonShellProps) {
     true
   );
 
-  const [keymapUnsaved, setKeymapUnsaved] = useConnectedDeviceData<boolean>(
-    { keymap: { checkUnsavedChanges: true } },
-    (r) => r.keymap?.checkUnsavedChanges
-  );
-  useSub("rpc_notification.keymap.unsavedChangesStatusChanged", (u) => setKeymapUnsaved(u));
-  const unsaved = !!keymapUnsaved || props.extraSaveEnabled;
   const { canUndo, canRedo, onUndo, onRedo } = props;
 
   useEffect(() => {
@@ -231,11 +265,11 @@ export function CarbonShell(props: CarbonShellProps) {
         <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-2">
           {unsaved && (
             <>
-              <button onClick={props.onDiscard}
-                className="flex h-8 shrink-0 items-center whitespace-nowrap border border-error bg-transparent px-2 font-sans text-sm text-error sm:px-4">
+              <button onClick={handleDiscard} disabled={busy}
+                className="flex h-8 shrink-0 items-center whitespace-nowrap border border-error bg-transparent px-2 font-sans text-sm text-error disabled:opacity-50 sm:px-4">
                 {t("common.discard")}
               </button>
-              <button onClick={handleSave} disabled={saving}
+              <button onClick={handleSave} disabled={busy}
                 className={`flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap bg-primary px-2 font-sans text-sm text-primary-content sm:px-4 ${saving ? "opacity-70" : ""}`}>
                 <Save size={14} /><span className="hidden sm:inline">{saving ? t("carbon.saving", "Saving…") : t("carbon.saveToKeyboard", "Save to keyboard")}</span>
               </button>
@@ -307,7 +341,7 @@ export function CarbonShell(props: CarbonShellProps) {
             ) : activeNav === "layers" ? (
               <LayersView model={model} th={th} t={t} deviceName={deviceName} />
             ) : activeNav === "lighting" ? (
-              <LightingView model={model} th={th} t={t} />
+              <LightingView model={model} generalLighting={generalLighting} saving={saving} th={th} t={t} />
             ) : activeNav === "motion" ? (
               <MotionView motion={motion} behaviors={model.behaviors} behaviorList={model.behaviorList}
                 layers={model.keymap?.layers ?? []} th={th} t={t} />

@@ -8,7 +8,7 @@ import type { Layer, PhysicalLayout as PhysicalLayoutMsg } from "@zmkfirmware/zm
 import type { CarbonTheme } from "../carbon/theme";
 import { PhysicalLayout } from "../keyboard/PhysicalLayout";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
-import { NotSupportedHint, Badge } from "../carbon/CarbonChrome";
+import { NotSupportedHint, Badge, SelectionButton } from "../carbon/CarbonChrome";
 import { RealCarbonToggle } from "../carbon/RealCarbonToggle";
 import { summarizeCombo, summarizeBinding } from "./comboUtils";
 import { combosEqual } from "./useCombos";
@@ -582,34 +582,15 @@ const LayersField = ({
         {t("combos.layersDesc", "Layers this combo is active on. With none selected, it works on every layer.")}
       </p>
       <div className="flex gap-1.5 flex-wrap">
-        <button
-          type="button"
-          aria-pressed={allLayers}
-          onClick={() => onChange(0)}
-          className={`px-3 py-1.5 text-sm cursor-pointer transition-colors border ${
-            allLayers
-              ? "bg-primary text-primary-content border-primary"
-              : "bg-base-100 text-base-content border-base-300 hover:border-base-content/40"
-          }`}
-        >
+        <SelectionButton selected={allLayers} onClick={() => onChange(0)}>
           {t("combos.allLayers", "All layers")}
-        </button>
+        </SelectionButton>
         {layers.map((layer, index) => {
           const active = !allLayers && !!(mask & (1 << index));
           return (
-            <button
-              key={layer.id}
-              type="button"
-              aria-pressed={active}
-              onClick={() => toggle(index)}
-              className={`px-3 py-1.5 text-sm cursor-pointer transition-colors border ${
-                active
-                  ? "bg-primary text-primary-content border-primary"
-                  : "bg-base-100 text-base-content border-base-300 hover:border-base-content/40"
-              }`}
-            >
+            <SelectionButton key={layer.id} selected={active} onClick={() => toggle(index)}>
               {layer.name || `${t("carbon.layer", "Layer")} ${index}`}
-            </button>
+            </SelectionButton>
           );
         })}
       </div>

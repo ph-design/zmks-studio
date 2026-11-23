@@ -10,6 +10,25 @@ import { copyText, type Translate } from "../misc/format";
 export type Tone = "ok" | "warn" | "err" | "info" | "neutral";
 type ChromeProps = { th: CarbonTheme };
 
+export function SelectionButton({ selected, onClick, children }: {
+  selected: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={`border px-3 py-1.5 text-sm transition-colors ${selected
+        ? "border-primary bg-primary text-primary-content"
+        : "border-base-300 bg-base-100 text-base-content hover:border-base-content/40"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function SegmentedControl({ opts, value, onChange }: ChromeProps & {
   opts: { id: string; label: string }[];
   value: string;
