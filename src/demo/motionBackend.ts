@@ -21,6 +21,10 @@ const CAPABILITIES: MotionCapabilities = {
   supportsStillWake: true,
   supportsSleepWake: true,
   thresholdMax: 127,
+  guardVersion: 0,
+  powerVersion: 0,
+  powerLights: 0,
+  tapVersion: 0,
 };
 
 function defaultTapConfig(): TapConfig {
@@ -36,6 +40,9 @@ function defaultTapConfig(): TapConfig {
     rightSingleBinding: undefined,
     rightDoubleBinding: undefined,
     layerMask: 0,
+    axesMask: 0x7,
+    splitSides: false,
+    typingQuietMs: 0,
   };
 }
 
@@ -44,6 +51,11 @@ function defaultCarryConfig(): CarryConfig {
     enabled: true,
     motionThreshold: 32,
     motionDurationMs: 2000,
+    carriedSettleMs: 0,
+    briefSettleMs: 0,
+    stableSpanMg: 0,
+    departureMg: 0,
+    verifyMs: 0,
   };
 }
 
