@@ -189,7 +189,8 @@
       "idleSeconds": "Idle time (s)",
       "idleHint": "Set to 0 to keep RGB on while idle.",
       "layerWake": "Light up when a layer is active",
-      "layerWakeHint": "Pick layers that should light up even when RGB is off. Set their colours under Layer LED."
+      "layerWakeHint": "Pick layers that should light up even when RGB is off. Set their colours under Layer LED.",
+      "previewFailed": "Could not apply the preview. Please try again."
     },
     "color": "Color",
     "transparent": "Transparent",

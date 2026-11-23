@@ -455,10 +455,8 @@ class DemoFirmware {
         return respond({ keymap: { saveChanges: { ok: true } } });
       }
       if (k.discardChanges) {
+        // Keymap discard leaves lighting alone; the client restores it.
         this.unsaved = false;
-        this.rgbFade = this.savedRgbGeneral.fade;
-        this.rgbIdle = this.savedRgbGeneral.idle;
-        this.rgbLayerWake = this.savedRgbGeneral.layerWake;
         return respond({ keymap: { discardChanges: true } });
       }
       if (k.setLayerBinding) {
@@ -587,8 +585,13 @@ class DemoFirmware {
           on: true, color: { h: 0, s: 0, b: 80 }, effect: 0, speed: 3,
           effectCount: 1, effectNames: ["Solid"],
           fade: this.rgbFade, idle: this.rgbIdle, layerWake: this.rgbLayerWake,
-          generalChangesPending: this.rgbFade !== this.savedRgbGeneral.fade ||
-            this.rgbIdle !== this.savedRgbGeneral.idle || this.rgbLayerWake !== this.savedRgbGeneral.layerWake,
+          // Compare by value: the client restores its own copy.
+          generalChangesPending:
+            this.rgbFade.enabled !== this.savedRgbGeneral.fade.enabled ||
+            this.rgbFade.durationMs !== this.savedRgbGeneral.fade.durationMs ||
+            this.rgbIdle.timeoutMs !== this.savedRgbGeneral.idle.timeoutMs ||
+            this.rgbIdle.sleepOnUsb !== this.savedRgbGeneral.idle.sleepOnUsb ||
+            this.rgbLayerWake.layers !== this.savedRgbGeneral.layerWake.layers,
         } } });
       }
       if (l.getBacklightState) {

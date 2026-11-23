@@ -6,7 +6,7 @@ import { SelectionButton } from "../carbon/CarbonChrome";
 import { RealCarbonToggle } from "../carbon/RealCarbonToggle";
 import type { RgbGeneralSettings } from "./useRgbGeneralDraft";
 
-const FADE_MAX_MS = 2000;
+const FADE_MAX_MS = 1000;
 const IDLE_MAX_SECONDS = 24 * 60 * 60;
 
 interface NumberSettingProps {
@@ -14,13 +14,18 @@ interface NumberSettingProps {
   value: number;
   min: number;
   max: number;
+  fraction?: boolean;
   disabled?: boolean;
   onChange: (value: number) => void;
 }
 
-function NumberSetting({ label, value, min, max, disabled, onChange }: NumberSettingProps) {
-  const [text, setText] = useState(String(value));
-  useEffect(() => setText(String(value)), [value]);
+function rounded(value: number) {
+  return Math.round(value * 1000) / 1000;
+}
+
+function NumberSetting({ label, value, min, max, fraction, disabled, onChange }: NumberSettingProps) {
+  const [text, setText] = useState(String(rounded(value)));
+  useEffect(() => setText(String(rounded(value))), [value]);
 
   return (
     <label className="flex items-center justify-between gap-3">
@@ -29,15 +34,16 @@ function NumberSetting({ label, value, min, max, disabled, onChange }: NumberSet
         type="number"
         min={min}
         max={max}
+        step={fraction ? "any" : 1}
         value={text}
         disabled={disabled}
         onChange={(event) => setText(event.currentTarget.value)}
         onBlur={() => {
           const next = Number(text);
-          if (text && Number.isInteger(next) && next >= min && next <= max && next !== value) {
-            onChange(next);
-          }
-          setText(String(value));
+          const valid = text.trim() !== "" && Number.isFinite(next) &&
+            next >= min && next <= max && (fraction || Number.isInteger(next));
+          if (valid && next !== rounded(value)) onChange(next);
+          setText(String(rounded(value)));
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter") event.currentTarget.blur();
@@ -106,7 +112,8 @@ export function RgbGeneralControls({
               value={idle.timeoutMs / 1000}
               min={0}
               max={IDLE_MAX_SECONDS}
-              onChange={(seconds) => onChange({ idle: { ...idle, timeoutMs: seconds * 1000 } })}
+              fraction
+              onChange={(seconds) => onChange({ idle: { ...idle, timeoutMs: Math.round(seconds * 1000) } })}
             />
             <p className="text-base-content/60">{t("lighting.general.idleHint")}</p>
           </fieldset>
@@ -117,8 +124,9 @@ export function RgbGeneralControls({
             <p className="text-base-content/60">{t("lighting.general.layerWakeHint")}</p>
             <div className="flex flex-wrap gap-1.5">
               {layers.map((layer, index) => {
-                if (layer.id === 0 || layer.id >= 32) return null;
-                const bit = 1 << layer.id;
+                // Masks count layer positions, like the combo mask.
+                if (index === 0 || index >= 32) return null;
+                const bit = 1 << index;
                 const selected = (layerWake.layers & bit) !== 0;
                 return (
                   <SelectionButton key={layer.id} selected={selected} onClick={() => {
@@ -135,7 +143,7 @@ export function RgbGeneralControls({
       </div>
       {previewFailed && (
         <p role="alert" className="mt-3 text-error">
-          {t("lighting.general.previewFailed", "Could not apply the preview. Please try again.")}
+          {t("lighting.general.previewFailed")}
         </p>
       )}
     </div>

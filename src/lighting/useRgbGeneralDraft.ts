@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { RpcConnection } from "@zmkfirmware/zmk-studio-ts-client";
 import type {
@@ -12,7 +12,7 @@ export type RgbGeneralSettings = Pick<SetRgbUnderglowStateRequest, "fade" | "idl
 
 const fields = ["fade", "idle", "layerWake"] as const;
 
-function changedSettings(rgb: RgbUnderglowState | null, draft: RgbGeneralSettings): RgbGeneralSettings {
+function diffFrom(rgb: RgbUnderglowState | null, draft: RgbGeneralSettings): RgbGeneralSettings {
   const changes: RgbGeneralSettings = {};
   if (rgb?.fade && draft.fade &&
       (rgb.fade.enabled !== draft.fade.enabled || rgb.fade.durationMs !== draft.fade.durationMs)) {
@@ -28,107 +28,116 @@ function changedSettings(rgb: RgbUnderglowState | null, draft: RgbGeneralSetting
   return changes;
 }
 
+function pickSettings(state: RgbUnderglowState): RgbGeneralSettings {
+  return { fade: state.fade, idle: state.idle, layerWake: state.layerWake };
+}
+
 export function useRgbGeneralDraft(
   connection: RpcConnection | null,
   rgb: RgbUnderglowState | null,
   setRgbState: Dispatch<SetStateAction<RgbUnderglowState | null>>
 ) {
-  const [draft, setDraft] = useState<RgbGeneralSettings>({});
+  // Last values known to be persisted; the lighting RPC has no discard.
+  const saved = useRef<RgbGeneralSettings | null>(null);
+  const [pending, setPending] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [previewFailed, setPreviewFailed] = useState(false);
-  const previewRequest = useRef<RpcConnection | null>(null);
   const activeConnection = useRef(connection);
-  const pending = useMemo(() => changedSettings(rgb, draft), [rgb, draft]);
+  const inFlight = useRef(false);
 
   useEffect(() => {
     activeConnection.current = connection;
-    setDraft({});
+    saved.current = null;
+    inFlight.current = false;
+    setPending(false);
     setPreviewing(false);
     setPreviewFailed(false);
-    previewRequest.current = null;
     return () => {
       activeConnection.current = null;
     };
   }, [connection]);
 
-  const edit = useCallback(async (change: RgbGeneralSettings) => {
-    if (rgb?.generalChangesPending === undefined) {
-      setDraft((previous) => changedSettings(rgb, { ...previous, ...change }));
-      return;
-    }
-    if (!connection || previewRequest.current || Object.keys(changedSettings(rgb, change)).length === 0) {
-      return;
-    }
+  useEffect(() => {
+    if (rgb && !saved.current) saved.current = pickSettings(rgb);
+  }, [rgb]);
 
-    previewRequest.current = connection;
+  const sendPreview = useCallback(async (change: RgbGeneralSettings): Promise<boolean> => {
+    if (!connection) return false;
+    const response = await call_rpc(connection, {
+      lighting: { setRgbUnderglowState: { ...change, preview: true } },
+    });
+    if (activeConnection.current !== connection) return false;
+    return !!response?.lighting?.setRgbUnderglowState;
+  }, [connection]);
+
+  const edit = useCallback(async (change: RgbGeneralSettings) => {
+    if (!connection || inFlight.current) return;
+    inFlight.current = true;
     setPreviewing(true);
     setPreviewFailed(false);
     try {
-      const response = await call_rpc(connection, {
-        lighting: { setRgbUnderglowState: { ...change, preview: true } },
-      });
+      const ok = await sendPreview(change);
       if (activeConnection.current !== connection) return;
-      if (response?.lighting?.setRgbUnderglowState) {
-        setRgbState((current) => current && { ...current, ...change, generalChangesPending: true });
-      } else {
+      if (!ok) {
         setPreviewFailed(true);
+        return;
       }
+      setRgbState((current) => current && { ...current, ...change });
+      setPending(true);
     } finally {
-      if (previewRequest.current === connection) {
-        previewRequest.current = null;
-        setPreviewing(false);
-      }
+      inFlight.current = false;
+      if (activeConnection.current === connection) setPreviewing(false);
     }
-  }, [connection, rgb, setRgbState]);
+  }, [connection, sendPreview, setRgbState]);
 
-  const discard = useCallback(() => {
-    setDraft({});
-    setPreviewFailed(false);
-  }, []);
-
-  const markSaved = useCallback(() => {
-    if (activeConnection.current === connection) {
-      setRgbState((current) => current && { ...current, generalChangesPending: false });
+  const discard = useCallback(async (): Promise<boolean> => {
+    const snapshot = saved.current;
+    if (!connection || !snapshot) {
+      setPending(false);
+      setPreviewFailed(false);
+      return true;
     }
-  }, [connection, setRgbState]);
 
-  const save = useCallback(async () => {
-    if (!connection) return false;
-
-    let saved = true;
+    const restore = diffFrom(rgb, snapshot);
+    let restored = true;
     for (const field of fields) {
-      const value = pending[field];
+      const value = restore[field];
       if (value === undefined) continue;
       if (activeConnection.current !== connection) return false;
 
-      const patch: RgbGeneralSettings = { [field]: value };
-      const response = await call_rpc(connection, { lighting: { setRgbUnderglowState: patch } });
+      // Deliberately not a preview: this writes the persisted values back.
+      const response = await call_rpc(connection, {
+        lighting: { setRgbUnderglowState: { [field]: value } },
+      });
       if (activeConnection.current !== connection) return false;
       if (!response?.lighting?.setRgbUnderglowState) {
-        saved = false;
+        restored = false;
         continue;
       }
 
+      const patch: RgbGeneralSettings = { [field]: value };
       setRgbState((current) => current && { ...current, ...patch });
-      setDraft((current) => {
-        if (current[field] !== value) return current;
-        const remaining = { ...current };
-        delete remaining[field];
-        return remaining;
-      });
     }
-    return saved;
-  }, [connection, pending, setRgbState]);
+
+    if (restored) setPending(false);
+    setPreviewFailed(false);
+    return restored;
+  }, [connection, rgb, setRgbState]);
+
+  const markSaved = useCallback(() => {
+    if (activeConnection.current !== connection) return;
+    if (rgb) saved.current = pickSettings(rgb);
+    setPending(false);
+    setPreviewFailed(false);
+  }, [connection, rgb]);
 
   return {
-    settings: { fade: rgb?.fade, idle: rgb?.idle, layerWake: rgb?.layerWake, ...pending },
-    hasChanges: rgb?.generalChangesPending === true || fields.some((field) => pending[field] !== undefined),
-    hasPreviewChanges: rgb?.generalChangesPending === true,
+    settings: { fade: rgb?.fade, idle: rgb?.idle, layerWake: rgb?.layerWake },
+    hasChanges: pending,
     previewing,
     previewFailed,
-    markSaved,
     edit,
     discard,
-    save,
+    markSaved,
   };
 }

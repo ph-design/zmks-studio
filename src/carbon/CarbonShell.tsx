@@ -118,8 +118,8 @@ export function CarbonShell(props: CarbonShellProps) {
   const [saving, setSaving] = useState(false);
   const onSave = props.onSave;
   const {
-    save: saveGeneralLighting, discard: discardGeneralLighting,
-    hasPreviewChanges, previewing, markSaved,
+    discard: discardGeneralLighting,
+    hasChanges: generalChanges, previewing, markSaved,
   } = generalLighting;
   const busy = saving || previewing;
 
@@ -127,11 +127,11 @@ export function CarbonShell(props: CarbonShellProps) {
     if (busy) return;
     setSaving(true);
     try {
-      if ((otherChanges || hasPreviewChanges) && !(await props.onDiscard())) {
+      const generalDiscarded = generalChanges ? await discardGeneralLighting() : true;
+      const othersDiscarded = otherChanges ? await props.onDiscard() : true;
+      if (!generalDiscarded || !othersDiscarded) {
         showToast("error", t("errors.failedToDiscard"));
-        return;
       }
-      discardGeneralLighting();
     } finally {
       setSaving(false);
     }
@@ -141,28 +141,23 @@ export function CarbonShell(props: CarbonShellProps) {
     if (busy) return false;
     setSaving(true);
     try {
-      const saved = otherChanges || hasPreviewChanges
-        ? await onSave(otherChanges, hasPreviewChanges)
+      const saved = otherChanges || generalChanges
+        ? await onSave(otherChanges, generalChanges)
         : true;
-      if (saved && hasPreviewChanges) markSaved();
-      const savedGeneralLighting = await saveGeneralLighting();
-      const ok = saved && savedGeneralLighting;
-      showToast(ok ? "success" : "error",
-        ok ? t("carbon.saveSuccess", "Saved to keyboard")
+      if (saved && generalChanges) markSaved();
+      showToast(saved ? "success" : "error",
+        saved ? t("carbon.saveSuccess", "Saved to keyboard")
           : t("carbon.saveFailed", "Save failed — please retry"));
-      return ok;
+      return saved;
     } catch {
       showToast("error", t("carbon.saveFailed", "Save failed — please retry"));
       return false;
     } finally {
       setSaving(false);
     }
-  }, [busy, otherChanges, hasPreviewChanges, onSave, saveGeneralLighting, markSaved, showToast, t]);
+  }, [busy, otherChanges, generalChanges, onSave, markSaved, showToast, t]);
 
   const goToNav = (id: NavId) => {
-    if (id === "lighting" && activeNav !== "lighting") {
-      model.handleLightingSourceChanged("general");
-    }
     setNavSelection(id);
     model.setSelectedKeyPosition(undefined);
     if (window.matchMedia("(max-width: 767px)").matches) setSidebarCollapsed(true);
