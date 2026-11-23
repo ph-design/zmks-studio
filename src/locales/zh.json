@@ -356,7 +356,6 @@
     "composite": "某种组合？"
   },
   "unlock": {
-    "checkStatus": "已按解锁键",
     "checkFailed": "未能读取键盘的锁定状态。若仍无响应，可以断开后重连。",
     "disconnect": "断开连接",
     "title": "解锁以继续",

@@ -210,6 +210,7 @@ function App() {
   const connectionAbortRef = useRef(connectionAbort);
 
   const [lockState, updateLockState] = useState<LockState | undefined>(undefined);
+  const [lockCheckFailed, setLockCheckFailed] = useState(false);
   const lockStateVersion = useRef(0);
   const activeLockCheck = useRef<AbortController>();
   const setLockState = useCallback((state: LockState | undefined) => {
@@ -233,6 +234,7 @@ function App() {
   }, [connectionAbort]);
 
   useSub("rpc_notification.core.lockStateChanged", (ls) => {
+    setLockCheckFailed(false);
     setLockState(ls);
   });
 
@@ -246,9 +248,10 @@ function App() {
     const isCurrent = () => connectionAbortRef.current === session &&
       !session.signal.aborted && lockStateVersion.current === version;
 
-    // Keep one read in flight. A missing response must never queue more reads.
+    // One read in flight; if it never answers, still tell the user rather than
+    // leave the modal on a fake spinner.
     const timer = window.setTimeout(() => {
-      if (isCurrent()) setConnectionError(i18n.t("unlock.checkFailed"));
+      if (isCurrent()) setLockCheckFailed(true);
     }, 5000);
     try {
       const response = await call_rpc(rpc, { core: { getLockState: true } });
@@ -257,13 +260,13 @@ function App() {
       const state = response?.core?.getLockState;
       if (state === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED ||
           state === LockState.ZMK_STUDIO_CORE_LOCK_STATE_LOCKED) {
-        setConnectionError(undefined);
+        setLockCheckFailed(false);
         setLockState(state);
       } else {
-        setConnectionError(i18n.t("unlock.checkFailed"));
+        setLockCheckFailed(true);
       }
     } catch {
-      if (isCurrent()) setConnectionError(i18n.t("unlock.checkFailed"));
+      if (isCurrent()) setLockCheckFailed(true);
     } finally {
       window.clearTimeout(timer);
       if (activeLockCheck.current === session) {
@@ -276,25 +279,12 @@ function App() {
     if (!conn.conn) {
       reset();
       setLockState(undefined);
+      setLockCheckFailed(false);
       setHasUnsavedLightingChanges(false);
       return;
     }
     void checkLockState();
   }, [conn, checkLockState, setLockState]);
-
-  useEffect(() => {
-    if (!conn.conn || lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_LOCKED ||
-        (connectionPhase !== "connected" && connectionPhase !== "idle")) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible" && document.hasFocus()) {
-        void checkLockState();
-      }
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [conn.conn, connectionPhase, lockState, checkLockState]);
 
   useEffect(() => {
     if (!conn.conn) {
@@ -440,6 +430,7 @@ function App() {
       setConnectedDeviceName(undefined);
       setKeyboardReady(false);
       setLockState(undefined);
+      setLockCheckFailed(false);
       setHasUnsavedLightingChanges(false);
       setConnectionType(undefined);
       setConnectionPhase("idle");
@@ -477,6 +468,7 @@ function App() {
       setConnectionError(undefined);
       setKeyboardReady(false);
       setLockState(undefined);
+      setLockCheckFailed(false);
       setHasUnsavedLightingChanges(false);
       setConnectionPhase("connecting");
       connect(t, setConn, setConnectedDeviceName, ac.signal, setConnectionError)
@@ -511,6 +503,7 @@ function App() {
     setConnectedDeviceName(undefined);
     setKeyboardReady(false);
     setLockState(undefined);
+    setLockCheckFailed(false);
     setHasUnsavedLightingChanges(false);
     setConnectionType(undefined);
     setConnectionPhase("idle");
@@ -535,7 +528,7 @@ function App() {
               connectionPhase={connectionPhase}
               loadProgress={loadProgress}
               lockState={lockState}
-              onCheckLockState={checkLockState}
+              lockCheckFailed={lockCheckFailed}
               onCancelConnection={cancelConnection}
             />
             <AboutModal open={showAbout} onClose={() => setShowAbout(false)} />

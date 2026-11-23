@@ -355,7 +355,6 @@
     "composite": "Some composite?"
   },
   "unlock": {
-    "checkStatus": "I've pressed the unlock keys",
     "checkFailed": "Could not read the keyboard's lock status. If it stays unresponsive, disconnect and reconnect.",
     "disconnect": "Disconnect",
     "title": "Unlock To Continue",
