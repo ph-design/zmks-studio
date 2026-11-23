@@ -23,12 +23,12 @@ export async function connect(dev: AvailableDevice): Promise<RpcTransport> {
 
   let { writable: response_writable, readable } = new TransformStream();
 
+  const writer = response_writable.getWriter();
+
   const unlisten_data = await listen(
     "connection_data",
-    async (event: { payload: Array<number> }) => {
-      let writer = response_writable.getWriter();
-      await writer.write(new Uint8Array(event.payload));
-      writer.releaseLock();
+    (event: { payload: Array<number> }) => {
+      writer.write(new Uint8Array(event.payload)).catch(() => {});
     }
   );
 
@@ -37,7 +37,7 @@ export async function connect(dev: AvailableDevice): Promise<RpcTransport> {
     async (_ev: any) => {
       unlisten_data();
       unlisten_disconnected();
-      response_writable.close();
+      writer.close().catch(() => {});
     }
   );
 
