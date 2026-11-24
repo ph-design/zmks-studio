@@ -10,35 +10,13 @@ import { call_rpc } from "../rpc/logging";
 
 export type RgbGeneralSettings = Pick<SetRgbUnderglowStateRequest, "fade" | "idle" | "layerWake">;
 
-const fields = ["fade", "idle", "layerWake"] as const;
-
-function diffFrom(rgb: RgbUnderglowState | null, draft: RgbGeneralSettings): RgbGeneralSettings {
-  const changes: RgbGeneralSettings = {};
-  if (rgb?.fade && draft.fade &&
-      (rgb.fade.enabled !== draft.fade.enabled || rgb.fade.durationMs !== draft.fade.durationMs)) {
-    changes.fade = draft.fade;
-  }
-  if (rgb?.idle && draft.idle &&
-      (rgb.idle.sleepOnUsb !== draft.idle.sleepOnUsb || rgb.idle.timeoutMs !== draft.idle.timeoutMs)) {
-    changes.idle = draft.idle;
-  }
-  if (rgb?.layerWake && draft.layerWake && rgb.layerWake.layers !== draft.layerWake.layers) {
-    changes.layerWake = draft.layerWake;
-  }
-  return changes;
-}
-
-function pickSettings(state: RgbUnderglowState): RgbGeneralSettings {
-  return { fade: state.fade, idle: state.idle, layerWake: state.layerWake };
-}
-
 export function useRgbGeneralDraft(
   connection: RpcConnection | null,
   rgb: RgbUnderglowState | null,
   setRgbState: Dispatch<SetStateAction<RgbUnderglowState | null>>
 ) {
-  // Last values known to be persisted; the lighting RPC has no discard.
-  const saved = useRef<RgbGeneralSettings | null>(null);
+  // Edits stay in RAM until Save; generalChangesPending covers unsaved changes
+  // left from an earlier session.
   const [pending, setPending] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [previewFailed, setPreviewFailed] = useState(false);
@@ -47,7 +25,6 @@ export function useRgbGeneralDraft(
 
   useEffect(() => {
     activeConnection.current = connection;
-    saved.current = null;
     inFlight.current = false;
     setPending(false);
     setPreviewing(false);
@@ -57,14 +34,10 @@ export function useRgbGeneralDraft(
     };
   }, [connection]);
 
-  useEffect(() => {
-    if (rgb && !saved.current) saved.current = pickSettings(rgb);
-  }, [rgb]);
-
-  const sendPreview = useCallback(async (change: RgbGeneralSettings): Promise<boolean> => {
+  const send = useCallback(async (change: RgbGeneralSettings): Promise<boolean> => {
     if (!connection) return false;
     const response = await call_rpc(connection, {
-      lighting: { setRgbUnderglowState: { ...change, preview: true } },
+      lighting: { setRgbUnderglowState: { ...change } },
     });
     if (activeConnection.current !== connection) return false;
     return !!response?.lighting?.setRgbUnderglowState;
@@ -76,7 +49,7 @@ export function useRgbGeneralDraft(
     setPreviewing(true);
     setPreviewFailed(false);
     try {
-      const ok = await sendPreview(change);
+      const ok = await send(change);
       if (activeConnection.current !== connection) return;
       if (!ok) {
         setPreviewFailed(true);
@@ -88,56 +61,37 @@ export function useRgbGeneralDraft(
       inFlight.current = false;
       if (activeConnection.current === connection) setPreviewing(false);
     }
-  }, [connection, sendPreview, setRgbState]);
-
-  const discard = useCallback(async (): Promise<boolean> => {
-    const snapshot = saved.current;
-    if (!connection || !snapshot) {
-      setPending(false);
-      setPreviewFailed(false);
-      return true;
-    }
-
-    const restore = diffFrom(rgb, snapshot);
-    let restored = true;
-    for (const field of fields) {
-      const value = restore[field];
-      if (value === undefined) continue;
-      if (activeConnection.current !== connection) return false;
-
-      // Deliberately not a preview: this writes the persisted values back.
-      const response = await call_rpc(connection, {
-        lighting: { setRgbUnderglowState: { [field]: value } },
-      });
-      if (activeConnection.current !== connection) return false;
-      if (!response?.lighting?.setRgbUnderglowState) {
-        restored = false;
-        continue;
-      }
-
-      const patch: RgbGeneralSettings = { [field]: value };
-      setRgbState((current) => current && { ...current, ...patch });
-    }
-
-    if (restored) setPending(false);
-    setPreviewFailed(false);
-    return restored;
-  }, [connection, rgb, setRgbState]);
+  }, [connection, send, setRgbState]);
 
   const markSaved = useCallback(() => {
     if (activeConnection.current !== connection) return;
-    if (rgb) saved.current = pickSettings(rgb);
     setPending(false);
     setPreviewFailed(false);
-  }, [connection, rgb]);
+    setRgbState((current) => current && { ...current, generalChangesPending: false });
+  }, [connection, setRgbState]);
+
+  // The firmware reverts RAM on discard; re-read it for the UI.
+  const refresh = useCallback(async (): Promise<boolean> => {
+    if (!connection) return false;
+    const response = await call_rpc(connection, {
+      lighting: { getRgbUnderglowState: true },
+    });
+    if (activeConnection.current !== connection) return false;
+    const state = response?.lighting?.getRgbUnderglowState;
+    if (!state) return false;
+    setRgbState(state);
+    setPending(false);
+    setPreviewFailed(false);
+    return true;
+  }, [connection, setRgbState]);
 
   return {
     settings: { fade: rgb?.fade, idle: rgb?.idle, layerWake: rgb?.layerWake },
-    hasChanges: pending,
+    hasChanges: pending || !!rgb?.generalChangesPending,
     previewing,
     previewFailed,
     edit,
-    discard,
     markSaved,
+    refresh,
   };
 }

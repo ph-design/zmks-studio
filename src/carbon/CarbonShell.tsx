@@ -118,8 +118,7 @@ export function CarbonShell(props: CarbonShellProps) {
   const [saving, setSaving] = useState(false);
   const onSave = props.onSave;
   const {
-    discard: discardGeneralLighting,
-    hasChanges: generalChanges, previewing, markSaved,
+    hasChanges: generalChanges, previewing, markSaved, refresh: refreshGeneralLighting,
   } = generalLighting;
   const busy = saving || previewing;
 
@@ -127,9 +126,11 @@ export function CarbonShell(props: CarbonShellProps) {
     if (busy) return;
     setSaving(true);
     try {
-      const generalDiscarded = generalChanges ? await discardGeneralLighting() : true;
-      const othersDiscarded = otherChanges ? await props.onDiscard() : true;
-      if (!generalDiscarded || !othersDiscarded) {
+      const discarded = unsaved ? await props.onDiscard() : true;
+      if (discarded && generalChanges) {
+        await refreshGeneralLighting();
+      }
+      if (!discarded) {
         showToast("error", t("errors.failedToDiscard"));
       }
     } finally {
