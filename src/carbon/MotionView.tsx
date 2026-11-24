@@ -176,6 +176,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
                   behaviors={behaviors}
                   layers={layers}
                   thresholdMax={capabilities.thresholdMax}
+                  modern={capabilities.tapVersion === 1 || capabilities.tapVersion === 2}
                   onEditSlot={(slot) =>
                     setEditing({
                       slot,
@@ -191,6 +192,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
               th={th} t={t}
               config={carryConfig}
               thresholdMax={capabilities.thresholdMax}
+              guard={capabilities.guardVersion === 1}
               thresholdDraft={carryThresholdDraft}
               onThresholdDraft={setCarryThresholdDraft}
               onChange={(c) => motion.applyCarryConfig(c)}
@@ -673,13 +675,14 @@ function LayerChips({ th, t, layers, mask, onChange }: {
   );
 }
 
-function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlot, onChange }: {
+function TapSettings({ th, t, config, behaviors, layers, thresholdMax, modern, onEditSlot, onChange }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   config: TapConfig;
   behaviors: Record<number, GetBehaviorDetailsResponse>;
   layers: Layer[];
   thresholdMax: number;
+  modern: boolean;
   onEditSlot: (slot: TapSlot) => void;
   onChange: (c: TapConfig) => void;
 }) {
@@ -731,6 +734,42 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
             <Slider th={th} value={config.windowMs} min={50} max={800} step={10} onCommit={(v) => set({ windowMs: v })} />
           </Field>
 
+          {modern && (
+            <>
+              <GroupHeading th={th}>{t("motion.tap.optionsGroup", "Double-tap options")}</GroupHeading>
+              <Field th={th} label={t("motion.tap.axes", "Sensor axes")}
+                hint={t("motion.tap.axesHint", "At least one axis must stay enabled.")}>
+                <div style={{ display: "flex", gap: 18 }}>
+                  {[{ bit: 1, label: "X" }, { bit: 2, label: "Y" }, { bit: 4, label: "Z" }].map(({ bit, label }) => (
+                    <label key={bit} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: th.textPrimary }}>
+                      <input
+                        type="checkbox"
+                        checked={((config.axesMask || 7) & bit) !== 0}
+                        onChange={(e) => {
+                          const current = config.axesMask || 7;
+                          const mask = e.target.checked ? current | bit : current & ~bit;
+                          if (mask) set({ axesMask: mask });
+                        }}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </Field>
+              <Field th={th} label={t("motion.tap.splitSides", "Separate side bindings")}
+                hint={t("motion.tap.splitSidesHint", "Impact direction does not reliably identify the struck side; unified mode uses the first double-tap binding.")}>
+                <RealCarbonToggle checked={config.splitSides} onChange={(v) => set({ splitSides: v })}
+                  ariaLabel={t("motion.tap.splitSides", "Separate side bindings")} />
+              </Field>
+              <Field th={th} label={t("motion.tap.typingQuiet", "Typing quiet window")}
+                value={`${config.typingQuietMs} ms`} height={24}
+                hint={t("motion.tap.typingQuietHint", "Held keys always block tap actions; ordinary keys are never delayed.")}>
+                <Slider th={th} value={config.typingQuietMs} min={0} max={1000} step={10}
+                  onCommit={(v) => set({ typingQuietMs: v })} />
+              </Field>
+            </>
+          )}
+
           <GroupHeading th={th}>{t("motion.tap.layersGroup", "Active layers")}</GroupHeading>
           <Field th={th} label={t("motion.tap.layers", "Layers")}
             hint={t("motion.tap.layersHint", "Respond to taps only on the selected active layers. No selection enables all layers.")}>
@@ -743,11 +782,12 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlo
   );
 }
 
-function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThresholdDraft, onChange }: {
+function CarrySettings({ th, t, config, thresholdMax, guard, thresholdDraft, onThresholdDraft, onChange }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   config: CarryConfig;
   thresholdMax: number;
+  guard: boolean;
   /** Uncommitted slider value, shared with the live meter's marker. */
   thresholdDraft: number | null;
   onThresholdDraft: (v: number | null) => void;
@@ -779,6 +819,45 @@ function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThreshol
             <Slider th={th} value={config.motionDurationMs} min={1000} max={30000} step={1000}
               onCommit={(v) => set({ motionDurationMs: v })} />
           </Field>
+
+          {guard && (
+            <>
+              <GroupHeading th={th}>{t("motion.carry.guardGroup", "Lift lock")}</GroupHeading>
+              <p style={{ fontSize: 12, color: th.textHelper, lineHeight: 1.5, margin: "0 0 4px" }}>
+                {t("motion.carry.guardHint", "Locks input while the sensor believes the keyboard is being carried or has just been set down.")}
+              </p>
+              <Field th={th} label={t("motion.carry.guard.carriedSettle", "After extended movement")}
+                value={`${config.carriedSettleMs} ms`} height={24}
+                hint={t("motion.carry.guard.carriedSettleHint", "Movement must persist for this long before it counts as being carried.")}>
+                <Slider th={th} value={config.carriedSettleMs} min={100} max={600} step={10}
+                  onCommit={(v) => set({ carriedSettleMs: v, briefSettleMs: Math.min(config.briefSettleMs, v) })} />
+              </Field>
+              <Field th={th} label={t("motion.carry.guard.briefSettle", "After a brief lift")}
+                value={`${config.briefSettleMs} ms`} height={24}
+                hint={t("motion.carry.guard.briefSettleHint", "A short lift still locks input; it must not exceed the extended-movement time.")}>
+                <Slider th={th} value={config.briefSettleMs} min={40} max={200} step={10}
+                  onCommit={(v) => set({ briefSettleMs: Math.min(v, config.carriedSettleMs) })} />
+              </Field>
+              <Field th={th} label={t("motion.carry.guard.stableSpan", "Stable placement tolerance")}
+                value={`${config.stableSpanMg} mg`} height={24}
+                hint={t("motion.carry.guard.stableSpanHint", "How much the acceleration may drift while the keyboard is treated as placed.")}>
+                <Slider th={th} value={config.stableSpanMg} min={20} max={100} step={5}
+                  onCommit={(v) => set({ stableSpanMg: v })} />
+              </Field>
+              <Field th={th} label={t("motion.carry.guard.departure", "Lift detection threshold")}
+                value={`${config.departureMg} mg`} height={24}
+                hint={t("motion.carry.guard.departureHint", "Acceleration change that counts as lifting the keyboard.")}>
+                <Slider th={th} value={config.departureMg} min={120} max={350} step={10}
+                  onCommit={(v) => set({ departureMg: v })} />
+              </Field>
+              <Field th={th} label={t("motion.carry.guard.verify", "Lift confirmation time")}
+                value={`${config.verifyMs} ms`} height={24}
+                hint={t("motion.carry.guard.verifyHint", "How long the lift signal must hold before input is locked.")}>
+                <Slider th={th} value={config.verifyMs} min={20} max={60} step={5}
+                  onCommit={(v) => set({ verifyMs: v })} />
+              </Field>
+            </>
+          )}
         </SettingsList>
       </div>
     </div>

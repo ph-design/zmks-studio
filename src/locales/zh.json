@@ -885,7 +885,21 @@
       "motionThreshold": "运动阈值",
       "motionDuration": "持续运动时长",
       "motionDurationHint": "运动持续达到设定时长后进入休眠；短时振动不触发，按键操作会取消休眠判定。",
-      "calibrateHint": "移动键盘并观察稳定运动时的强度范围，建议以该范围下限作为运动阈值。"
+      "calibrateHint": "移动键盘并观察稳定运动时的强度范围，建议以该范围下限作为运动阈值。",
+      "guardGroup": "拿起锁定",
+      "guardHint": "传感器判断键盘被拿起或刚被放下时，暂时锁定输入。",
+      "guard": {
+        "carriedSettle": "持续移动后锁定",
+        "carriedSettleHint": "运动持续达到该时长后，视为被携带。",
+        "briefSettle": "短暂拿起后锁定",
+        "briefSettleHint": "短暂拿起也会锁定输入；该时长不能超过“持续移动后锁定”。",
+        "stableSpan": "稳定放置容差",
+        "stableSpanHint": "判定为已放置时，允许的加速度波动范围。",
+        "departure": "拿起检测阈值",
+        "departureHint": "加速度变化超过该值即视为拿起键盘。",
+        "verify": "拿起确认时间",
+        "verifyHint": "拿起信号需保持该时长后才锁定输入。"
+      }
     },
     "stillWake": {
       "title": "静止唤醒",
@@ -917,6 +931,13 @@
       "latency": "触发后抑制时长",
       "window": "双击识别窗口",
       "windowHint": "同侧同时配置单击与双击时，单击动作将延迟至识别窗口结束，以优先判断双击。",
+      "optionsGroup": "双击选项",
+      "axes": "检测轴",
+      "axesHint": "至少保留一个轴。",
+      "splitSides": "左右分开绑定",
+      "splitSidesHint": "敲击方向不一定能可靠区分左右；统一模式使用第一个双击绑定。",
+      "typingQuiet": "打字静默窗口",
+      "typingQuietHint": "按住按键时始终不触发敲击；普通按键不会被延迟。",
       "layersGroup": "生效图层",
       "layers": "图层",
       "layersHint": "仅在所选图层激活时响应敲击；未选择图层时，对所有图层生效。",

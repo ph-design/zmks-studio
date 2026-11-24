@@ -835,7 +835,21 @@
       "motionThreshold": "Motion threshold",
       "motionDuration": "Sustained movement",
       "motionDurationHint": "Motion must persist for the configured duration before sleep. Brief vibration does not trigger sleep; key input cancels the pending transition.",
-      "calibrateHint": "Move the keyboard and observe the stable motion range. Use the lower end of that range as a starting threshold."
+      "calibrateHint": "Move the keyboard and observe the stable motion range. Use the lower end of that range as a starting threshold.",
+      "guardGroup": "Lift lock",
+      "guardHint": "Locks input while the sensor believes the keyboard is being carried or has just been set down.",
+      "guard": {
+        "carriedSettle": "After extended movement",
+        "carriedSettleHint": "Movement must persist for this long before it counts as being carried.",
+        "briefSettle": "After a brief lift",
+        "briefSettleHint": "A short lift still locks input; it must not exceed the extended-movement time.",
+        "stableSpan": "Stable placement tolerance",
+        "stableSpanHint": "How much the acceleration may drift while the keyboard is treated as placed.",
+        "departure": "Lift detection threshold",
+        "departureHint": "Acceleration change that counts as lifting the keyboard.",
+        "verify": "Lift confirmation time",
+        "verifyHint": "How long the lift signal must hold before input is locked."
+      }
     },
     "stillWake": {
       "title": "Stationary wake",
@@ -867,6 +881,13 @@
       "latency": "Post-trigger suppression",
       "window": "Double-tap window",
       "windowHint": "When both actions are configured on the same side, the single-tap action waits until this window ends so a double tap can take priority.",
+      "optionsGroup": "Double-tap options",
+      "axes": "Sensor axes",
+      "axesHint": "At least one axis must stay enabled.",
+      "splitSides": "Separate side bindings",
+      "splitSidesHint": "Impact direction does not reliably identify the struck side; unified mode uses the first double-tap binding.",
+      "typingQuiet": "Typing quiet window",
+      "typingQuietHint": "Held keys always block tap actions; ordinary keys are never delayed.",
       "layersGroup": "Active layers",
       "layers": "Layers",
       "layersHint": "Respond to taps only on the selected active layers. No selection enables all layers.",
