@@ -9,7 +9,7 @@ mod transport;
 use transport::commands::{transport_close, transport_send_data, ActiveConnection};
 
 use transport::gatt::{gatt_connect, gatt_list_devices};
-use transport::serial::{serial_connect, serial_list_devices};
+use transport::serial::{serial_close, serial_connect, serial_list_devices, serial_send, SerialConnections};
 
 fn main() {
     tauri::Builder::default()
@@ -17,6 +17,7 @@ fn main() {
         .manage(ActiveConnection {
             conn: Mutex::new(None),
         })
+        .manage(SerialConnections::default())
         .invoke_handler(tauri::generate_handler![
             transport_send_data,
             transport_close,
@@ -24,6 +25,8 @@ fn main() {
             gatt_connect,
             serial_list_devices,
             serial_connect,
+            serial_send,
+            serial_close,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

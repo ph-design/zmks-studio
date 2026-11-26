@@ -10,9 +10,12 @@ use tauri::ipc::InvokeBody;
 use tauri::{command, ipc::Request, State};
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AvailableDevice {
     pub label: String,
     pub id: String,
+    pub usb_vendor_id: Option<u16>,
+    pub usb_product_id: Option<u16>,
 }
 
 #[derive(Debug, Default)]

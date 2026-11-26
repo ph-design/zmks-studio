@@ -1,56 +1,49 @@
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { Channel, invoke } from "@tauri-apps/api/core";
 
 import type { RpcTransport } from "@zmkfirmware/zmk-studio-ts-client/transport/index";
-import { AvailableDevice } from ".";
+import type { AvailableDevice } from ".";
+import type { UsbTransport } from "../connection/usbTransport";
+
+let nextSession = 0;
 
 export async function list_devices(): Promise<Array<AvailableDevice>> {
-  return await invoke("serial_list_devices");
+  return invoke("serial_list_devices");
 }
 
-export async function connect(dev: AvailableDevice): Promise<RpcTransport> {
-  if (!(await invoke("serial_connect", dev))) {
-    throw new Error("Failed to connect");
-  }
-
-  let abortController = new AbortController();
-
-  let writable = new WritableStream({
-    async write(chunk, _controller) {
-      await invoke("transport_send_data", new Uint8Array(chunk));
+export async function connect(dev: AvailableDevice): Promise<UsbTransport> {
+  const session = ++nextSession;
+  const abortController = new AbortController();
+  const onData = new Channel<number[] | null>();
+  const readable = new ReadableStream<Uint8Array>({
+    start(controller) {
+      onData.onmessage = (bytes) => {
+        if (bytes === null) {
+          controller.close();
+          abortController.abort();
+        } else {
+          controller.enqueue(new Uint8Array(bytes));
+        }
+      };
+    },
+    cancel() {
+      onData.onmessage = () => {};
+    },
+  });
+  const writable: RpcTransport["writable"] = new WritableStream({
+    write(chunk) {
+      return invoke("serial_send", new Uint8Array(chunk), {
+        headers: { "x-serial-session": String(session) },
+      });
     },
   });
 
-  let { writable: response_writable, readable } = new TransformStream();
+  await invoke("serial_connect", { id: dev.id, session, onData });
+  abortController.signal.addEventListener("abort", () => {
+    void invoke("serial_close", { session }).catch(console.error);
+  }, { once: true });
 
-  const writer = response_writable.getWriter();
-
-  const unlisten_data = await listen(
-    "connection_data",
-    (event: { payload: Array<number> }) => {
-      writer.write(new Uint8Array(event.payload)).catch(() => {});
-    }
-  );
-
-  const unlisten_disconnected = await listen(
-    "connection_disconnected",
-    async (_ev: any) => {
-      unlisten_data();
-      unlisten_disconnected();
-      writer.close().catch(() => {});
-    }
-  );
-
-  let signal = abortController.signal;
-
-  let abort_cb = async (_reason: any) => {
-    unlisten_data();
-    unlisten_disconnected();
-    await invoke("transport_close");
-    signal.removeEventListener("abort", abort_cb);
+  return {
+    label: dev.label, abortController, readable, writable,
+    usb: { usbVendorId: dev.usbVendorId ?? undefined, usbProductId: dev.usbProductId ?? undefined },
   };
-
-  signal.addEventListener("abort", abort_cb);
-
-  return { label: dev.label, abortController, readable, writable };
 }

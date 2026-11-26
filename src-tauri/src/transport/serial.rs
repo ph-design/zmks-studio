@@ -1,12 +1,16 @@
 use blocking::unblock;
-use futures::channel::mpsc::channel;
+use futures::channel::mpsc::{channel, Sender};
+use futures::future::select;
+use futures::lock::Mutex;
+use futures::{pin_mut, SinkExt};
 use futures::StreamExt;
 use std::collections::HashMap;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio_serial::{available_ports, SerialPortBuilderExt, SerialPortType};
+use tokio_serial::{available_ports, SerialPort, SerialPortBuilderExt, SerialPortType};
 
-use tauri::{command, AppHandle, State};
+use tauri::ipc::{Channel, InvokeBody, Request};
+use tauri::{command, AppHandle, Manager, State};
 use tauri_plugin_cli::CliExt;
 
 const READ_BUF_SIZE: usize = 1024;
@@ -278,59 +282,70 @@ fn serial_device_label(
     }
 }
 
+#[derive(Default)]
+pub struct SerialConnections(Mutex<HashMap<u32, Sender<Vec<u8>>>>);
+
 #[command]
 pub async fn serial_connect(
     id: String,
+    session: u32,
+    on_data: Channel<Option<Vec<u8>>>,
     app_handle: AppHandle,
-    state: State<'_, super::commands::ActiveConnection<'_>>,
-) -> Result<bool, String> {
-    match tokio_serial::new(id, 9600).open_native_async() {
-        Ok(mut port) => {
-            #[cfg(unix)]
-            port.set_exclusive(false)
-                .expect("Unable to set serial port exclusive to false");
+    state: State<'_, SerialConnections>,
+) -> Result<(), String> {
+    let mut port = tokio_serial::new(id, 115200)
+        .open_native_async()
+        .map_err(|e| format!("Failed to open the serial port: {}", e.description))?;
+    port.write_data_terminal_ready(true).map_err(|e| e.to_string())?;
+    let (mut reader, mut writer) = tokio::io::split(port);
+    let (send, mut recv) = channel::<Vec<u8>>(5);
+    state.0.lock().await.insert(session, send);
 
-            let (mut reader, mut writer) = tokio::io::split(port);
-
-            let ahc = app_handle.clone();
-            let (send, mut recv) = channel(5);
-            *state.conn.lock().await = Some(Box::new(send));
-
-            let read_process = tauri::async_runtime::spawn(async move {
-                use tauri::Emitter;
-                use tauri::Manager;
-
-                let mut buffer = vec![0; READ_BUF_SIZE];
-                while let Ok(size) = reader.read(&mut buffer).await {
-                    if size > 0 {
-                        app_handle.emit("connection_data", &buffer[..size]);
-                    } else {
-                        break;
-                    }
+    tauri::async_runtime::spawn(async move {
+        let read = async {
+            let mut buffer = vec![0; READ_BUF_SIZE];
+            while let Ok(size) = reader.read(&mut buffer).await {
+                if size == 0 || on_data.send(Some(buffer[..size].to_vec())).is_err() {
+                    break;
                 }
-
-                let state = app_handle.state::<super::commands::ActiveConnection>();
-                *state.conn.lock().await = None;
-
-                app_handle.emit("connection_disconnected", ());
-            });
-
-            tauri::async_runtime::spawn(async move {
-                use tauri::Manager;
-
-                while let Some(data) = recv.next().await {
-                    let _res = writer.write(&data).await;
+            }
+        };
+        let write = async {
+            while let Some(data) = recv.next().await {
+                if writer.write_all(&data).await.is_err() {
+                    break;
                 }
+            }
+        };
+        pin_mut!(read, write);
+        select(read, write).await;
+        app_handle.state::<SerialConnections>().0.lock().await.remove(&session);
+        let _ = on_data.send(None);
+    });
 
-                let state = ahc.state::<super::commands::ActiveConnection>();
-                read_process.abort();
-                *state.conn.lock().await = None;
-            });
+    Ok(())
+}
 
-            Ok(true)
-        }
-        Err(e) => Err(format!("Failed to open the serial port: {}", e.description)),
-    }
+#[command]
+pub async fn serial_send(
+    req: Request<'_>,
+    state: State<'_, SerialConnections>,
+) -> Result<(), String> {
+    let session: u32 = req.headers().get("x-serial-session")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse().ok())
+        .ok_or("Missing serial session")?;
+    let InvokeBody::Raw(data) = req.body() else {
+        return Err("Expected serial bytes".into());
+    };
+    let mut sender = state.0.lock().await.get(&session).cloned().ok_or("Serial port closed")?;
+    sender.send(data.clone()).await.map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn serial_close(session: u32, state: State<'_, SerialConnections>) -> Result<(), ()> {
+    state.0.lock().await.remove(&session);
+    Ok(())
 }
 
 #[command]
@@ -355,6 +370,8 @@ pub async fn serial_list_devices(
                 Some(super::commands::AvailableDevice {
                     id: pi.port_name,
                     label,
+                    usb_vendor_id: Some(u.vid),
+                    usb_product_id: Some(u.pid),
                 })
             } else {
                 None
@@ -368,7 +385,9 @@ pub async fn serial_list_devices(
                 if let serde_json::Value::String(path) = &p.value {
                     candidates.push(super::commands::AvailableDevice {
                         id: path.to_string(),
-                        label: format!("CLI Port: {path}").to_string(),
+                        label: format!("CLI Port: {path}"),
+                        usb_vendor_id: None,
+                        usb_product_id: None,
                     })
                 }
             }
