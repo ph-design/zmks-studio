@@ -2,41 +2,30 @@
 import { useEffect, useRef, useState } from "react";
 
 import { errorText } from "../misc/errors";
-import { sleep, type Translate } from "../misc/format";
+import type { Translate } from "../misc/format";
+
+import { openUsbPort, type UsbTransport } from "./usbTransport";
+import { connect as connectNative, list_devices } from "../tauri/serial";
 
 export type DonglePhase = "idle" | "connecting" | "open" | "lost";
-
-export interface TranscriptEntry {
-  id: number;
-  at: number;
-  dir: "tx" | "rx";
-  text: string;
-}
 
 export interface DongleController {
   supported: boolean;
   phase: DonglePhase;
-  port?: string;
-  firmware?: string;
   status?: DongleStatus;
   error?: string;
   busy: boolean;
-  transcript: TranscriptEntry[];
-  connect: (anyPort?: boolean) => Promise<void>;
   disconnect: () => Promise<void>;
+  connect: () => Promise<void>;
   refresh: () => Promise<void>;
-  send: (command: string) => Promise<AtResult | undefined>;
   pair: (keyHex: string, rfAddrHex: string, channel: number) => Promise<AtResult>;
   queryStatus: () => Promise<DongleStatus>;
   clear: () => Promise<AtResult | undefined>;
-  reset: () => Promise<AtResult | undefined>;
-  bootloader: () => Promise<AtResult | undefined>;
-  clearTranscript: () => void;
+  prepare: (transport: UsbTransport) => Promise<DongleStatus | undefined>;
+  release: () => UsbTransport | null;
 }
 
-const TRANSCRIPT_LIMIT = 400;
 const AT_TIMEOUT_MS = 3000;
-const CONNECT_TIMEOUT_MS = 10000;
 
 function dongleErrorText(t: Translate, error: unknown): string {
   if (error instanceof DongleError) {
@@ -74,16 +63,12 @@ function atFailureText(t: Translate, result: AtResult): string | undefined {
 export function useDongle(t: Translate): DongleController {
   const [client] = useState(() => new DongleSerial());
   const [phase, setPhase] = useState<DonglePhase>("idle");
-  const [port, setPort] = useState<string | undefined>();
-  const [firmware, setFirmware] = useState<string | undefined>();
   const [status, setStatus] = useState<DongleStatus | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
-  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
 
   const tRef = useRef(t);
   tRef.current = t;
-  const nextId = useRef(0);
   const [connectState] = useState(() => {
     const state = { generation: 0 };
     return {
@@ -94,26 +79,13 @@ export function useDongle(t: Translate): DongleController {
     };
   });
 
-  const push = (dir: "tx" | "rx", text: string) => {
-    const entry: TranscriptEntry = { id: (nextId.current += 1), at: Date.now(), dir, text };
-    setTranscript((prev) => {
-      const next = [...prev, entry];
-      return next.length > TRANSCRIPT_LIMIT ? next.slice(next.length - TRANSCRIPT_LIMIT) : next;
-    });
-  };
-
   useEffect(() => {
-    client.onLine = (line) => {
-      if (line.trim()) push("rx", line);
-    };
     client.onLost = (reason) => {
       const head = tRef.current(
         "carbon.conn.dongleLost",
         "The dongle's serial port disappeared. Plug it back in and reconnect."
       );
       setPhase("lost");
-      setPort(undefined);
-      setFirmware(undefined);
       setStatus(undefined);
       setBusy(false);
       setError(reason ? `${head}（${reason}）` : head);
@@ -121,9 +93,8 @@ export function useDongle(t: Translate): DongleController {
 
     return () => {
       connectState.invalidate();
-      client.onLine = undefined;
       client.onLost = undefined;
-      void client.close();
+      client.close();
     };
   }, [client, connectState]);
 
@@ -135,11 +106,6 @@ export function useDongle(t: Translate): DongleController {
 
     setBusy(true);
     try {
-      push("tx", "AT+GMR");
-      const version = await client.send("AT+GMR");
-      if (version.ok) setFirmware(parseDongleVersion(version.raw));
-
-      push("tx", "AT+2G4?");
       const queried = await client.send("AT+2G4?");
       if (queried.ok) {
         setStatus(parseDongleStatus(queried.raw));
@@ -154,80 +120,75 @@ export function useDongle(t: Translate): DongleController {
     }
   };
 
-  const connect = async (anyPort = false) => {
+  const prepare = async (transport: UsbTransport) => {
+    setError(undefined);
+    setStatus(undefined);
+    client.close();
+    client.attach(transport);
+
+    let reply = await client.send("AT+2G4?", 600);
+    if (reply.timedOut && client.isOpen) reply = await client.send("AT+2G4?", 1000);
+    const parsed = reply.ok ? parseDongleStatus(reply.raw) : undefined;
+    if (!parsed?.pairState) {
+      client.detach();
+      setPhase("idle");
+      return;
+    }
+
+    setStatus(parsed);
+    setPhase("open");
+    return parsed;
+  };
+
+  const connect = async () => {
     const generation = ++connectState.state.generation;
     setError(undefined);
-    setFirmware(undefined);
-    setStatus(undefined);
     setPhase("connecting");
-    push("tx", anyPort ? "opening any serial port" : "opening 5048:FF11");
 
     try {
-      const candidates = anyPort ? [await requestAnySerialPort()] : await requestDonglePorts();
-      if (generation !== connectState.state.generation) return;
-
-      const attempt = async () => {
-        let lastError: unknown;
-
-        for (let i = 0; i < candidates.length; i++) {
-          const candidate = candidates[i];
-          try {
-            push("tx", `probing ${portLabel(candidate)} (${i + 1}/${candidates.length})`);
-            await client.open(candidate);
-            const probe = await client.send("AT");
-
-            if (generation !== connectState.state.generation) {
-              await client.close();
-              return;
-            }
-
-            if (!probe.ok) {
-              lastError = new DongleError(
-                "open-failed",
-                probe.note || probe.raw.trim() || "No AT response on this serial port"
-              );
-              await client.close();
-              continue;
-            }
-
-            setPort(portLabel(candidate));
-            setPhase("open");
-            push("rx", `— ${portLabel(candidate)} open @ 115200 8N1 —`);
-            await refresh();
-            return;
-          } catch (thrown) {
-            lastError = thrown;
-            await client.close();
-            if (generation !== connectState.state.generation) return;
-          }
-        }
-
-        throw lastError ?? new DongleError("open-failed", "No compatible AT serial port found");
-      };
-
-      await withTimeout(attempt(), CONNECT_TIMEOUT_MS, "Dongle connection timed out");
-    } catch (thrown) {
-      if (generation !== connectState.state.generation) {
-        void client.close();
-        return;
+      const candidates = window.__TAURI_INTERNALS__
+        ? await list_devices().then((devices) => devices.filter(isDonglePortInfo)
+          .map((device) => () => connectNative(device)))
+        : (await requestDonglePorts())
+          .map((port) => () => openUsbPort(port, portLabel(port)));
+      if (candidates.length > 1) {
+        throw new Error(tRef.current("carbon.conn.receiverChoosePort", "Several receiver ports were found. Select the receiver port from the USB connection dialog."));
       }
-      connectState.state.generation++;
-      void client.close();
+      let lastError: unknown;
+      for (const open of candidates) {
+        if (generation !== connectState.state.generation) return;
+        let transport: UsbTransport | undefined;
+        try {
+          transport = await open();
+          if (generation === connectState.state.generation && await prepare(transport)) return;
+        } catch (error) {
+          lastError = error;
+        }
+        transport?.abortController.abort();
+      }
+      throw lastError ?? new DongleError("open-failed", "No compatible receiver responded");
+    } catch (error) {
+      if (generation !== connectState.state.generation) return;
+      client.close();
       setPhase("idle");
-      setPort(undefined);
-      setError(dongleErrorText(tRef.current, thrown));
+      setError(dongleErrorText(tRef.current, error));
     }
+  };
+
+  const release = () => {
+    const transport = client.detach();
+    setPhase("idle");
+    setStatus(undefined);
+    setError(undefined);
+    return transport;
   };
 
   const disconnect = async () => {
     connectState.state.generation++;
-    await client.close();
+    client.close();
     setPhase("idle");
-    setPort(undefined);
-    setFirmware(undefined);
     setStatus(undefined);
     setError(undefined);
-    push("rx", "— port closed —");
   };
 
   const send = async (command: string): Promise<AtResult | undefined> => {
@@ -239,7 +200,6 @@ export function useDongle(t: Translate): DongleController {
       return undefined;
     }
 
-    push("tx", commandLine);
     setBusy(true);
     try {
       const result = await client.send(commandLine, AT_TIMEOUT_MS);
@@ -249,10 +209,6 @@ export function useDongle(t: Translate): DongleController {
       if (/^AT\+?(INFO|2G4\?)/i.test(commandLine)) {
         const parsed = parseDongleStatus(result.raw);
         if (Object.keys(parsed).length > 0) setStatus(parsed);
-      }
-      if (/^AT\+GMR/i.test(commandLine)) {
-        const version = parseDongleVersion(result.raw);
-        if (version) setFirmware(version);
       }
 
       return result;
@@ -265,43 +221,35 @@ export function useDongle(t: Translate): DongleController {
   };
 
   const pair = async (keyHex: string, rfAddrHex: string, channel: number): Promise<AtResult> => {
-    push("tx", `AT+PAIR=${keyHex},${rfAddrHex},${channel.toString(16).toUpperCase().padStart(2, "0")}`);
     return client.pair(keyHex, rfAddrHex, channel);
   };
 
   const queryStatus = async (): Promise<DongleStatus> => {
     const result = await send("AT+2G4?");
-    const parsed = result?.ok ? parseDongleStatus(result.raw) : {};
-    if (result?.ok) setStatus(parsed);
-    return parsed;
+    if (!result?.ok) throw new Error(result && atFailureText(tRef.current, result));
+    return parseDongleStatus(result.raw);
   };
 
   return {
-    supported: dongleSupported(),
+    supported: dongleSupported() || !!window.__TAURI_INTERNALS__,
     phase,
-    port,
-    firmware,
     status,
     error,
     busy,
-    transcript,
     connect,
     disconnect,
     refresh,
-    send,
     pair,
     queryStatus,
     clear: () => send("AT+CLEAR"),
-    reset: () => send("AT+RST"),
-    bootloader: () => send("AT+BL"),
-    clearTranscript: () => setTranscript([]),
+    prepare,
+    release,
   };
 }
 
 
 export const DONGLE_VENDOR_ID = 0x5048;
 export const DONGLE_PRODUCT_ID = 0xff11;
-export const DONGLE_BAUD_RATE = 115200;
 
 export const DONGLE_FILTERS: SerialPortFilter[] = [
   { usbVendorId: DONGLE_VENDOR_ID, usbProductId: DONGLE_PRODUCT_ID },
@@ -309,16 +257,6 @@ export const DONGLE_FILTERS: SerialPortFilter[] = [
 
 const DEFAULT_TIMEOUT_MS = 2500;
 const FLASH_TIMEOUT_MS = 3500;
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout>;
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(message)), timeoutMs);
-    }),
-  ]).finally(() => clearTimeout(timer));
-}
 
 export type DongleErrorCode = "unsupported" | "cancelled" | "not-open" | "open-failed";
 
@@ -335,7 +273,6 @@ export class DongleError extends Error {
 export interface AtResult {
   command: string;
   ok: boolean;
-  lines: string[];
   raw: string;
   timedOut: boolean;
   note?: string;
@@ -349,13 +286,11 @@ export interface DongleStatus {
   rfAddr?: string;
   rfChannel?: number;
   link?: string;
-  rx?: number;
-  rxDecryptFail?: number;
+  studioPort?: string;
 }
 
 interface Pending {
   command: string;
-  lines: string[];
   raw: string;
   resolve: (result: AtResult) => void;
   timer: ReturnType<typeof setTimeout>;
@@ -370,7 +305,7 @@ export function dongleSupported(): boolean {
   return !!serialApi();
 }
 
-export function isDonglePortInfo(info: SerialPortInfo): boolean {
+export function isDonglePortInfo(info: { usbVendorId?: number | null; usbProductId?: number | null }): boolean {
   return info.usbVendorId === DONGLE_VENDOR_ID && info.usbProductId === DONGLE_PRODUCT_ID;
 }
 
@@ -394,7 +329,7 @@ export async function requestDonglePorts(): Promise<SerialPort[]> {
 
   const granted = await serial.getPorts().catch(() => [] as SerialPort[]);
   const known = granted.filter((port) => isDonglePortInfo(port.getInfo()));
-  if (known.length > 0) return known;
+  if (known.length === 1) return known;
 
   try {
     return [await serial.requestPort({ filters: DONGLE_FILTERS })];
@@ -413,24 +348,6 @@ export async function requestDonglePorts(): Promise<SerialPort[]> {
 }
 
 // Unfiltered picker
-export async function requestAnySerialPort(): Promise<SerialPort> {
-  const serial = serialApi();
-  if (!serial) {
-    throw new DongleError("unsupported", "Web Serial is not available in this browser");
-  }
-
-  const granted = await serial.getPorts().catch(() => [] as SerialPort[]);
-  if (granted.length === 1) return granted[0];
-
-  try {
-    return await serial.requestPort();
-  } catch (error) {
-    throw isCancel(error)
-      ? new DongleError("cancelled", "Port selection cancelled")
-      : new DongleError("open-failed", describe(error));
-  }
-}
-
 function describe(value: unknown): string {
   if (value instanceof Error && value.message) return value.message;
   return String(value);
@@ -459,19 +376,16 @@ export function parseDongleStatus(raw: string): DongleStatus {
         status.addrPaired = value === "1";
         break;
       case "RF_ADDR":
-        status.rfAddr = value.toUpperCase();
+        if (/^[\da-f]{10}$/i.test(value)) status.rfAddr = value.toUpperCase();
         break;
       case "RF_CH":
         status.rfChannel = Number(value);
         break;
+      case "STUDIO_PORT":
+        status.studioPort = value.toUpperCase();
+        break;
       case "LINK":
         status.link = value.toUpperCase();
-        break;
-      case "RX":
-        status.rx = Number(value);
-        break;
-      case "RX_DECRYPT_FAIL":
-        status.rxDecryptFail = Number(value);
         break;
       default:
         break;
@@ -481,80 +395,39 @@ export function parseDongleStatus(raw: string): DongleStatus {
   return status;
 }
 
-export function parseDongleVersion(raw: string): string | undefined {
-  return raw
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .find((line) => /ph_(?:nano|lite)_dongle/i.test(line));
-}
-
 export class DongleSerial {
-  private port: SerialPort | null = null;
+  private port: UsbTransport | null = null;
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
-  private readLoop: Promise<void> | null = null;
   private buffer = "";
   private pending: Pending | null = null;
   private chain: Promise<unknown> = Promise.resolve();
   private lostReason: string | undefined;
 
-  onLine?: (line: string) => void;
   onLost?: (reason: string) => void;
 
   get isOpen(): boolean {
     return !!this.port && !this.lostReason;
   }
 
-  get info(): SerialPortInfo | undefined {
-    return this.port?.getInfo();
-  }
-
-  async open(port: SerialPort): Promise<void> {
-    if (this.port) await this.close();
-
-    try {
-      await port.open({ baudRate: DONGLE_BAUD_RATE });
-    } catch (error) {
-      throw new DongleError("open-failed", describe(error));
-    }
-
+  attach(port: UsbTransport): void {
     this.port = port;
     this.lostReason = undefined;
     this.buffer = "";
-
-    port.addEventListener("disconnect", this.handlePortDisconnect);
     this.startReads();
-    // Let the freshly opened CDC settle; the first AT otherwise races the open.
-    await sleep(150);
   }
 
-  async close(): Promise<void> {
+  detach(): UsbTransport | null {
     const port = this.port;
     this.port = null;
-    this.lostReason = undefined;
-
-    this.failPending("port closed");
-
-    if (port) {
-      port.removeEventListener("disconnect", this.handlePortDisconnect);
-    }
-
-    try {
-      await this.reader?.cancel();
-    } catch {
-    }
+    const reader = this.reader;
     this.reader = null;
+    reader?.releaseLock();
+    this.failPending("port closed");
+    return port;
+  }
 
-    try {
-      await this.readLoop;
-    } catch {
-    }
-    this.readLoop = null;
-
-    try {
-      await port?.close();
-    } catch (e) {
-      console.warn("Dongle port close failed", e);
-    }
+  close(): void {
+    this.detach()?.abortController.abort();
   }
 
   send(command: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<AtResult> {
@@ -572,20 +445,6 @@ export class DongleSerial {
     return this.send(`AT+PAIR=${keyHex.toUpperCase()},${rfAddrHex.toUpperCase()},${ch}`, FLASH_TIMEOUT_MS);
   }
 
-  async queryStatus(): Promise<DongleStatus> {
-    const result = await this.send("AT+2G4?");
-    return parseDongleStatus(result.raw);
-  }
-
-  async version(): Promise<string | undefined> {
-    const result = await this.send("AT+GMR");
-    return parseDongleVersion(result.raw);
-  }
-
-  private handlePortDisconnect = () => {
-    this.markLost("dongle disconnected");
-  };
-
   private startReads(): void {
     const port = this.port;
     if (!port?.readable) return;
@@ -594,24 +453,23 @@ export class DongleSerial {
     const decoder = new TextDecoder();
     this.reader = reader;
 
-    const loop = (async () => {
+    void (async () => {
       try {
-        for (;;) {
+        while (this.reader === reader) {
           const { value, done } = await reader.read();
-          if (done) break;
+          if (done || this.reader !== reader) break;
           if (value) this.feed(decoder.decode(value, { stream: true }));
         }
-      } catch (error) {
-        this.markLost(describe(error));
+      } catch {
+        // Releasing the reader during a handoff also ends a pending read.
       } finally {
-        try {
+        if (this.reader === reader) {
+          this.reader = null;
           reader.releaseLock();
-        } catch {
+          this.markLost("dongle disconnected");
         }
       }
     })();
-
-    this.readLoop = loop;
   }
 
   private feed(chunk: string): void {
@@ -627,11 +485,8 @@ export class DongleSerial {
   }
 
   private handleLine(line: string): void {
-    this.onLine?.(line);
-
     const pending = this.pending;
     if (pending) {
-      pending.lines.push(line);
       pending.raw += `${line}\n`;
     }
 
@@ -654,7 +509,6 @@ export class DongleSerial {
     const result = new Promise<AtResult>((resolve) => {
       this.pending = {
         command,
-        lines: [],
         raw: "",
         resolve,
         timer: setTimeout(() => this.finish(false, true), timeoutMs),
@@ -662,7 +516,7 @@ export class DongleSerial {
     });
 
     const writer = port.writable.getWriter();
-    void writer
+    return writer
       .write(new TextEncoder().encode(`${command}\r\n`))
       .catch((error: unknown) => this.failPending(`write failed: ${describe(error)}`))
       .finally(() => {
@@ -671,9 +525,7 @@ export class DongleSerial {
         } catch {
           // nothing to release if the stream errored out
         }
-      });
-
-    return result;
+      }).then(() => result);
   }
 
   private finish(ok: boolean, timedOut = false): void {
@@ -685,7 +537,6 @@ export class DongleSerial {
     pending.resolve({
       command: pending.command,
       ok,
-      lines: pending.lines,
       raw: pending.raw,
       timedOut,
     });
@@ -700,7 +551,6 @@ export class DongleSerial {
     pending.resolve({
       command: pending.command,
       ok: false,
-      lines: pending.lines,
       raw: pending.raw,
       timedOut: false,
       note,

@@ -27,6 +27,7 @@ import { MotionView } from "./MotionView";
 import { DeviceView } from "./DeviceView";
 import { PreferencesView } from "./PreferencesView";
 import { TapHoldView } from "./TapHoldView";
+import type { DongleController } from "../connection/useDongle";
 import { ConnectionView } from "./ConnectionView";
 import { linkBadge, useConnectionRuntime } from "../connection/useConnectionState";
 import { deserializeNav, resolveNav, type NavId } from "./navIds";
@@ -40,6 +41,8 @@ export interface CarbonShellProps {
   carbon: ReturnType<typeof useCarbonTheme>;
   connectedDeviceName?: string;
   connectionType?: string;
+  dongle: DongleController;
+  onReceiverPaired: () => void;
   onDisconnect: () => void;
   onSwitchDevice: () => void;
   /** Awaitable so the Device page can show a busy state — this one is slow. */
@@ -350,7 +353,7 @@ export function CarbonShell(props: CarbonShellProps) {
                 onResetSettings={props.onResetSettings} />
             ) : activeNav === "connection" ? (
               <ConnectionView th={th} t={t} onDisconnect={props.onDisconnect}
-                connectionType={props.connectionType} />
+                connectionType={props.connectionType} dongle={props.dongle} onReceiverPaired={props.onReceiverPaired} />
             ) : activeNav === "preferences" ? (
               <PreferencesView th={th} t={t} setting={setting} setSetting={setSetting}
                 accent={accent} setAccent={setAccent}

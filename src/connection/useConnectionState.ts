@@ -189,6 +189,7 @@ export function linkBadge(
   value: ConnectionSnapshot,
   connectionType?: string
 ): { label?: string; tone: LinkTone } {
+  if (connectionType === "2.4G") return { tone: "2g4" };
   const fallbackTone: LinkTone = connectionType === "BLE" ? "ble" : "usb";
   const state = value.support === "ready" ? value.state : undefined;
   if (!state) return { tone: fallbackTone };
@@ -206,19 +207,9 @@ export function linkBadge(
   return { label, tone };
 }
 
-export interface KeyboardPairState {
-  usesFactoryKey: boolean;
+interface GeneratedPairing {
   keyId: string;
-  addrPaired: boolean;
-  rfAddrHex: string;
-  rfChannel: number;
-}
-
-export interface GeneratedPairing {
-  keyId: string;
-  key: Uint8Array;
   keyHex: string;
-  rfAddr: Uint8Array;
   rfAddrHex: string;
   rfChannel: number;
 }
@@ -266,23 +257,7 @@ async function pairingRequest(
   return response;
 }
 
-export async function getKeyboardPairState(conn: RpcConnection): Promise<KeyboardPairState> {
-  const response = await pairingRequest(conn, { pairing: { getPairState: {} } });
-  const state = response.getPairState;
-  if (!state) {
-    throw new ConnRpcError("carbon.conn.rpcNoResult", "Firmware returned no pairing state");
-  }
-
-  return {
-    usesFactoryKey: state.usesFactoryKey,
-    keyId: keyIdHex(state.keyId),
-    addrPaired: state.addrPaired,
-    rfAddrHex: toHex(state.rfAddr),
-    rfChannel: state.rfChannel,
-  };
-}
-
-export async function generateKeyboardPairing(conn: RpcConnection): Promise<GeneratedPairing> {
+async function generateKeyboardPairing(conn: RpcConnection): Promise<GeneratedPairing> {
   const response = await pairingRequest(conn, { pairing: { generateAndPair: {} } });
   const generated = response.generateAndPair;
   if (!generated) {
@@ -294,16 +269,13 @@ export async function generateKeyboardPairing(conn: RpcConnection): Promise<Gene
   if (keyHex.length !== 32 || rfAddrHex.length !== 10) {
     throw new ConnRpcError(
       "carbon.conn.pairErrorGenerate",
-      "Keyboard returned an incomplete pairing",
-      `key=${keyHex || "∅"} addr=${rfAddrHex || "∅"}`
+      "Keyboard returned an incomplete pairing"
     );
   }
 
   return {
     keyId: keyIdHex(generated.keyId),
-    key: generated.key,
     keyHex,
-    rfAddr: generated.rfAddr,
     rfAddrHex,
     rfChannel: generated.rfChannel,
   };
@@ -313,65 +285,6 @@ export async function clearKeyboardPairing(conn: RpcConnection): Promise<void> {
   await pairingRequest(conn, { pairing: { clearPairing: {} } });
 }
 
-export function atPairCommand(generated: GeneratedPairing): string {
-  const channel = generated.rfChannel.toString(16).toUpperCase().padStart(2, "0");
-  return `AT+PAIR=${generated.keyHex},${generated.rfAddrHex},${channel}`;
-}
-
-export type ConsistencyId = "keyId" | "rfAddr" | "rfChannel";
-
-export interface ConsistencyRow {
-  id: ConsistencyId;
-  keyboard: string;
-  dongle: string;
-  match: boolean;
-}
-
-export function comparePairings(
-  keyboard: Pick<GeneratedPairing, "keyId" | "rfAddrHex" | "rfChannel">,
-  dongle: DongleStatus | undefined
-): ConsistencyRow[] {
-  const keyId = dongle?.keyId?.toUpperCase();
-  const rfAddr = dongle?.rfAddr?.toUpperCase();
-
-  const rows: ConsistencyRow[] = [
-    { id: "keyId", keyboard: keyboard.keyId, dongle: keyId ?? "", match: !!keyId && keyId === keyboard.keyId },
-    {
-      id: "rfAddr",
-      keyboard: keyboard.rfAddrHex,
-      dongle: rfAddr ?? "",
-      match: !!rfAddr && rfAddr === keyboard.rfAddrHex,
-    },
-    {
-      id: "rfChannel",
-      keyboard: String(keyboard.rfChannel),
-      dongle: dongle?.rfChannel === undefined ? "" : String(dongle.rfChannel),
-      match: dongle?.rfChannel !== undefined && dongle.rfChannel === keyboard.rfChannel,
-    },
-  ];
-
-  return rows;
-}
-
-export type PairStepId = "generate" | "atPair" | "verify";
-
-export interface PairStep {
-  id: PairStepId;
-  ok: boolean;
-  detail?: string;
-  errorKey?: string;
-}
-
-export interface PairOutcome {
-  ok: boolean;
-  steps: PairStep[];
-  generated?: GeneratedPairing;
-  status?: DongleStatus;
-  rows: ConsistencyRow[];
-  errorKey?: string;
-  errorDetail?: string;
-}
-
 function atErrorKey(detail: string): string {
   if (/STORAGE/i.test(detail)) return "carbon.conn.pairErrorStorage";
   if (/INVALID_ARGS|USAGE/i.test(detail)) return "carbon.conn.pairErrorAtArgs";
@@ -379,73 +292,30 @@ function atErrorKey(detail: string): string {
   return "carbon.conn.pairErrorAt";
 }
 
-export async function runOneClickPair(
-  conn: RpcConnection | null,
-  dongle: DonglePairSink
-): Promise<PairOutcome> {
-  const steps: PairStep[] = [];
-
-  if (!conn) {
-    return {
-      ok: false,
-      steps,
-      rows: [],
-      errorKey: "carbon.conn.pairErrorNoKeyboard",
-      errorDetail: "keyboard RPC not connected",
-    };
-  }
-
+export async function runOneClickPair(conn: RpcConnection, dongle: DonglePairSink): Promise<{
+  ok: boolean;
+  status?: DongleStatus;
+  errorKey?: string;
+}> {
   let generated: GeneratedPairing;
   try {
     generated = await generateKeyboardPairing(conn);
-    steps.push({ id: "generate", ok: true });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    steps.push({ id: "generate", ok: false, errorKey: "carbon.conn.pairErrorGenerate", detail });
-    return {
-      ok: false,
-      steps,
-      rows: [],
-      errorKey: "carbon.conn.pairErrorGenerate",
-      errorDetail: detail,
-    };
+    const errorKey = error instanceof ConnRpcError ? error.key : "carbon.conn.pairErrorGenerate";
+    return { ok: false, errorKey };
   }
 
   const reply = await dongle.pair(generated.keyHex, generated.rfAddrHex, generated.rfChannel);
-  if (!reply.ok) {
-    const detail = reply.note || reply.raw.trim() || (reply.timedOut ? "timeout" : "ERROR");
-    const errorKey = atErrorKey(detail);
-    steps.push({ id: "atPair", ok: false, errorKey, detail });
-    return { ok: false, steps, generated, rows: [], errorKey, errorDetail: detail };
-  }
-  steps.push({ id: "atPair", ok: true });
+  if (!reply.ok) return { ok: false, errorKey: atErrorKey(reply.note || reply.raw) };
 
-  let status: DongleStatus | undefined;
+  let status: DongleStatus;
   try {
     status = await dongle.queryStatus();
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    steps.push({ id: "verify", ok: false, errorKey: "carbon.conn.pairErrorVerify", detail });
-    return {
-      ok: false,
-      steps,
-      generated,
-      rows: comparePairings(generated, undefined),
-      errorKey: "carbon.conn.pairErrorVerify",
-      errorDetail: detail,
-    };
+  } catch {
+    return { ok: false, errorKey: "carbon.conn.pairErrorVerify" };
   }
-
-  const rows = comparePairings(generated, status);
-  const matched = rows.every((row) => row.match);
-  steps.push({ id: "verify", ok: matched });
-
-  return {
-    ok: matched,
-    steps,
-    generated,
-    status,
-    rows,
-    errorKey: matched ? undefined : "carbon.conn.pairErrorVerify",
-  };
+  const ok = status.pairState === "PAIRED" && status.addrPaired !== false &&
+    status.keyId === generated.keyId && status.rfAddr === generated.rfAddrHex &&
+    status.rfChannel === generated.rfChannel;
+  return { ok, status, errorKey: ok ? undefined : "carbon.conn.pairErrorVerify" };
 }

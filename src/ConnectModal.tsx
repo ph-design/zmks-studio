@@ -35,6 +35,9 @@ export type ConnectionPhase = "idle" | "connecting" | "initializing" | "connecte
 
 export interface ConnectModalProps {
   open?: boolean;
+  keyboardOnly?: boolean;
+  receiverStage?: "waiting" | "connecting" | "retry";
+  onRetryReceiver?: () => void;
   transports: TransportFactory[];
   onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
   connectionError?: string;
@@ -455,7 +458,7 @@ function DeviceList({
       if (dev) {
         dev[0]
           .pick_and_connect!.connect(dev[1])
-          .then(onTransportCreated)
+          .then((transport) => onTransportCreated(transport, { isWireless: dev[0].isWireless }))
           .catch((e) => {
             console.error(e);
             onConnectionError?.(errorMessageFrom(e, t("errors.failedToConnect")));
@@ -700,6 +703,9 @@ function ClientRecommendation() {
 
 export const ConnectModal = ({
   open,
+  keyboardOnly,
+  receiverStage,
+  onRetryReceiver,
   transports,
   onTransportCreated,
   connectionError,
@@ -733,7 +739,7 @@ export const ConnectModal = ({
   const showCheckingLock = showConnected && lockState === undefined && !lockCheckFailed;
   const showUnlock = lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED &&
     (lockState !== undefined || (showConnected && lockCheckFailed));
-  const liveView = showConnecting || showInitializing || showCheckingLock
+  const liveView = receiverStage ? "receiver" : showConnecting || showInitializing || showCheckingLock
     ? "progress"
     : showUnlock
       ? "unlock"
@@ -756,7 +762,7 @@ export const ConnectModal = ({
           <img src="/zmk.svg" alt="ZMK Logo" className="size-10 rounded-md" />
           <div>
             <h1 className="text-xl font-semibold">{t("welcome.title")}</h1>
-            <p className="text-sm opacity-75">{t("welcome.subtitle")}</p>
+            <p className="text-sm opacity-75">{keyboardOnly ? t("carbon.conn.receiverChooseKeyboard") : t("welcome.subtitle")}</p>
           </div>
         </div>
         <div className="flex-shrink-0 relative" ref={langRef}>
@@ -793,6 +799,25 @@ export const ConnectModal = ({
           onDismiss={() => onConnectionError?.(undefined)}
         />
         <div className="space-y-4">
+          {displayView === "receiver" && (
+            <FlowStep icon={<Cable size={24} />} title={t(
+              receiverStage === "waiting" ? "welcome.receiverPaired" : "welcome.receiverConnecting"
+            )} body={t(
+              receiverStage === "waiting" ? "welcome.receiverUnplugKeyboard" :
+                receiverStage === "retry" ? "welcome.receiverRetryHint" : "welcome.receiverConnectingHint"
+            )}>
+              <div className="flex justify-center gap-2">
+                {receiverStage === "retry" && (
+                  <Button className="bg-primary px-3 py-2 text-sm text-primary-content" onPress={onRetryReceiver}>
+                    {t("welcome.receiverRetry")}
+                  </Button>
+                )}
+                <Button className="px-3 py-2 text-sm hover:bg-base-300" onPress={onCancelConnection}>
+                  {t("welcome.cancelConnection")}
+                </Button>
+              </div>
+            </FlowStep>
+          )}
           {displayView === "progress" && (
             <ConnectingStep
               onCancel={onCancelConnection}
@@ -811,8 +836,16 @@ export const ConnectModal = ({
               {haveTransports
                 ? <ConnectOptions transports={transports} onTransportCreated={onTransportCreated} onConnectionError={onConnectionError} open={open} />
                 : <NoTransportsOptionsPrompt />}
-              {!isDesktopClient && <ClientRecommendation />}
-              <DemoModeCard onTransportCreated={onTransportCreated} />
+              {keyboardOnly ? (
+                <Button onPress={onCancelConnection} className="rounded border border-base-300 px-3 py-1.5 text-sm">
+                  {t("common.cancel")}
+                </Button>
+              ) : (
+                <>
+                  {!isDesktopClient && <ClientRecommendation />}
+                  <DemoModeCard onTransportCreated={onTransportCreated} />
+                </>
+              )}
             </>
           )}
           {footer}

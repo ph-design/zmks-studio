@@ -1,12 +1,12 @@
 import i18n from "./i18n";
 import { I18nextProvider, useTranslation } from "react-i18next";
 
-import { create_rpc_connection } from "@zmkfirmware/zmk-studio-ts-client";
+import { create_rpc_connection, type RpcConnection } from "@zmkfirmware/zmk-studio-ts-client";
 import { call_rpc } from "./rpc/logging";
 
 import type { Notification } from "@zmkfirmware/zmk-studio-ts-client/studio";
 import { ConnectionState, ConnectionContext } from "./rpc/ConnectionContext";
-import { Dispatch, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ConnectModal,
   type ConnectionPhase,
@@ -15,7 +15,10 @@ import {
 
 import type { RpcTransport } from "@zmkfirmware/zmk-studio-ts-client/transport/index";
 import { connect as gatt_connect } from "@zmkfirmware/zmk-studio-ts-client/transport/gatt";
-import { connect as serial_connect } from "@zmkfirmware/zmk-studio-ts-client/transport/serial";
+import { connectUsb, isUsbTransport, type UsbTransport } from "./connection/usbTransport";
+import { isDonglePortInfo, useDongle } from "./connection/useDongle";
+import { openReceiverRpc } from "./connection/receiverRpc";
+import { ReceiverSetup } from "./connection/ReceiverSetup";
 import {
   connect as tauri_ble_connect,
   list_devices as ble_list_devices,
@@ -42,9 +45,9 @@ declare global {
 }
 
 const TRANSPORTS: TransportFactory[] = [
-  navigator.serial && { label: "USB", connect: serial_connect },
+  navigator.serial && { label: "USB", connect: connectUsb },
   ...(navigator.bluetooth && navigator.userAgent.indexOf("Linux") >= 0
-    ? [{ label: "BLE", connect: gatt_connect }]
+    ? [{ label: "BLE", isWireless: true, connect: gatt_connect }]
     : []),
   ...(window.__TAURI_INTERNALS__
     ? [
@@ -70,6 +73,8 @@ const TRANSPORTS: TransportFactory[] = [
       ]
     : []),
 ].filter((t) => t !== undefined);
+
+const USB_TRANSPORTS = TRANSPORTS.filter((transport) => transport.label === "USB");
 
 async function listen_for_notifications(
   notification_stream: ReadableStream<Notification>,
@@ -130,71 +135,26 @@ async function listen_for_notifications(
   }
 }
 
-async function connect(
-  transport: RpcTransport,
-  setConn: Dispatch<ConnectionState>,
-  setConnectedDeviceName: Dispatch<string | undefined>,
-  signal: AbortSignal,
-  setConnectionError: Dispatch<string | undefined>
-): Promise<boolean> {
-  let conn;
-  try {
-    conn = await create_rpc_connection(transport, { signal });
-  } catch (e) {
-    if (signal.aborted) {
-      return false;
-    }
-
-    console.error("Failed to create RPC connection", e);
-    setConnectionError(
-      e instanceof Error && e.message ? e.message : i18n.t("errors.failedToConnect")
-    );
-    return false;
-  }
-
-  let details = await Promise.race([
-    call_rpc(conn, { core: { getDeviceInfo: true } })
-      .then((r) => r?.core?.getDeviceInfo)
-      .catch((e) => {
-        console.error("Failed first RPC call", e);
-        return undefined;
-      }),
-    valueAfter(undefined, 1000),
+async function getKeyboardInfo(conn: RpcConnection, timeout: number) {
+  return Promise.race([
+    call_rpc(conn, { core: { getDeviceInfo: true } }).then((response) => response?.core?.getDeviceInfo),
+    valueAfter(undefined, timeout),
   ]);
-
-  if (signal.aborted) {
-    return false;
-  }
-
-  if (!details) {
-    setConnectionError(i18n.t("errors.failedToConnect"));
-    return false;
-  }
-
-  const onConnectionDropped = () => {
-    if (signal.aborted) {
-      return;
-    }
-
-    // Stream ended without a user disconnect: the keyboard went away.
-    setConnectionError(i18n.t("errors.connectionLost"));
-    setConnectedDeviceName(undefined);
-    setConn({ conn: null });
-  };
-
-  listen_for_notifications(conn.notification_readable, signal)
-    .then(onConnectionDropped)
-    .catch(onConnectionDropped);
-
-  setConnectedDeviceName(details.name || i18n.t("welcome.unknownDevice"));
-  setConnectionError(undefined);
-  setConn({ conn });
-  return true;
 }
+
+type ReceiverStage = "waiting" | "connecting" | "retry";
+
 
 function App() {
   const { t } = useTranslation();
   const carbon = useCarbonTheme();
+  const dongle = useDongle(t);
+  const dongleRef = useRef(dongle);
+  dongleRef.current = dongle;
+  const [receiverSetup, setReceiverSetup] = useState(false);
+  const [receiverStage, setReceiverStage] = useState<ReceiverStage>();
+  const receiverPort = useRef<UsbTransport>();
+  const [choosingKeyboard, setChoosingKeyboard] = useState(false);
   const [conn, setConn] = useState<ConnectionState>({ conn: null });
   const [connectedDeviceName, setConnectedDeviceName] = useState<
     string | undefined
@@ -202,12 +162,11 @@ function App() {
   const [doIt, undo, redo, canUndo, canRedo, reset] = useUndoRedo();
   const [showAbout, setShowAbout] = useState(false);
   const [showLicenseNotice, setShowLicenseNotice] = useState(false);
-  const [connectionAbort, setConnectionAbort] = useState(new AbortController());
   const [connectionError, setConnectionError] = useState<string | undefined>();
   const [connectionPhase, setConnectionPhase] = useState<ConnectionPhase>("idle");
   const [keyboardReady, setKeyboardReady] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
-  const connectionAbortRef = useRef(connectionAbort);
+  const connectionAbortRef = useRef(new AbortController());
 
   const [lockState, updateLockState] = useState<LockState | undefined>(undefined);
   const [lockCheckFailed, setLockCheckFailed] = useState(false);
@@ -228,10 +187,6 @@ function App() {
    */
   const [hasUnsavedComboChanges, setHasUnsavedComboChanges] = useState(false);
   const [connectionType, setConnectionType] = useState<string | undefined>();
-
-  useEffect(() => {
-    connectionAbortRef.current = connectionAbort;
-  }, [connectionAbort]);
 
   useSub("rpc_notification.core.lockStateChanged", (ls) => {
     setLockCheckFailed(false);
@@ -289,7 +244,11 @@ function App() {
   useEffect(() => {
     if (!conn.conn) {
       setKeyboardReady(false);
-      if (connectionPhase !== "idle") {
+      return;
+    }
+
+    if (receiverSetup) {
+      if (lockState === LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED) {
         setConnectionPhase("idle");
       }
       return;
@@ -315,7 +274,7 @@ function App() {
     if (connectionPhase === "initializing" && keyboardReady) {
       setConnectionPhase("idle");
     }
-  }, [conn.conn, connectionPhase, keyboardReady, lockState]);
+  }, [conn.conn, connectionPhase, keyboardReady, lockState, receiverSetup]);
 
   const markLightingChanged = useCallback(() => {
     setHasUnsavedLightingChanges(true);
@@ -415,35 +374,29 @@ function App() {
     return true;
   }, [conn]);
 
+  const resetConnection = useCallback(() => {
+    connectionAbortRef.current.abort();
+    setConn({ conn: null });
+    setConnectedDeviceName(undefined);
+    setKeyboardReady(false);
+    setLockState(undefined);
+    setLockCheckFailed(false);
+    setHasUnsavedLightingChanges(false);
+    setHasUnsavedMotionChanges(false);
+    setHasUnsavedComboChanges(false);
+    setConnectionType(undefined);
+    setConnectionPhase("idle");
+    setChoosingKeyboard(false);
+  }, [setLockState]);
+
   const disconnect = useCallback(() => {
-    async function doDisconnect() {
-      const currentConn = conn.conn;
-      if (!currentConn) {
-        return;
-      }
-
-      connectionAbortRef.current.abort("User disconnected");
-      const nextAbort = new AbortController();
-      connectionAbortRef.current = nextAbort;
-      setConnectionAbort(nextAbort);
-      setConn({ conn: null });
-      setConnectedDeviceName(undefined);
-      setKeyboardReady(false);
-      setLockState(undefined);
-      setLockCheckFailed(false);
-      setHasUnsavedLightingChanges(false);
-      setConnectionType(undefined);
-      setConnectionPhase("idle");
-
-      try {
-        await currentConn.request_writable.close();
-      } catch (e) {
-        console.error("Failed to close RPC writable stream", e);
-      }
-    }
-
-    doDisconnect();
-  }, [conn, setLockState]);
+    const receiver = receiverPort.current;
+    receiverPort.current = undefined;
+    receiver?.abortController.abort();
+    resetConnection();
+    setReceiverStage(undefined);
+    void dongleRef.current.disconnect();
+  }, [resetConnection]);
 
   // Give up if initialization stalls past 60s instead of spinning forever.
   useEffect(() => {
@@ -459,60 +412,169 @@ function App() {
     return () => clearTimeout(timer);
   }, [connectionPhase, keyboardReady, disconnect]);
 
+  const onKeyboardDropped = useCallback(() => {
+    resetConnection();
+    const receiver = receiverPort.current;
+    if (receiver && !receiver.abortController.signal.aborted) {
+      setReceiverStage("connecting");
+      return;
+    }
+
+    receiverPort.current = undefined;
+    setReceiverStage(undefined);
+    setConnectionError(i18n.t(receiver ? "carbon.conn.receiverUnplugged" : "errors.connectionLost"));
+  }, [resetConnection]);
+
+  const showKeyboard = useCallback((
+    rpc: RpcConnection, name: string, attempt: AbortSignal, owner: AbortSignal, closeSession?: () => Promise<void>
+  ) => {
+    setConnectedDeviceName(name || i18n.t("welcome.unknownDevice"));
+    setConnectionError(undefined);
+    setConn({ conn: rpc });
+    setConnectionPhase("connected");
+    setChoosingKeyboard(false);
+
+    const dropped = async () => {
+      await closeSession?.();
+      if (!owner.aborted) onKeyboardDropped();
+    };
+    void listen_for_notifications(rpc.notification_readable, attempt).then(dropped, dropped);
+  }, [onKeyboardDropped]);
+
+  useEffect(() => {
+    const receiver = receiverPort.current;
+    if (receiverStage !== "connecting" || !receiver) return;
+
+    const owner = new AbortController();
+    connectionAbortRef.current.abort();
+    connectionAbortRef.current = owner;
+    setConnectionError(undefined);
+    setConnectionType("2.4G");
+
+    void (async () => {
+      for (let tries = 0; tries < 3; tries++) {
+        if (owner.signal.aborted || receiver.abortController.signal.aborted) break;
+        const radio = openReceiverRpc(receiver, owner.signal);
+        const details = await getKeyboardInfo(radio.conn, 2500);
+        if (details && !radio.signal.aborted && !owner.signal.aborted) {
+          setReceiverStage(undefined);
+          showKeyboard(radio.conn, details.name, radio.signal, owner.signal, radio.close);
+          return;
+        }
+        await radio.close();
+      }
+
+      if (owner.signal.aborted) return;
+      if (receiver.abortController.signal.aborted) onKeyboardDropped();
+      else setReceiverStage("retry");
+    })().catch(() => {
+      if (!owner.signal.aborted) setReceiverStage("retry");
+    });
+  }, [receiverStage, onKeyboardDropped, showKeyboard]);
+
   const onConnect = useCallback(
-    (t: RpcTransport, meta?: { isWireless?: boolean }) => {
-      setConnectionType(meta?.isWireless ? "BLE" : "USB");
-      const ac = new AbortController();
-      connectionAbortRef.current = ac;
-      setConnectionAbort(ac);
+    async (transport: RpcTransport, meta?: { isWireless?: boolean }) => {
+      const receiver = isUsbTransport(transport) && isDonglePortInfo(transport.usb);
+      if (receiverSetup && (receiver || !isUsbTransport(transport))) {
+        transport.abortController.abort();
+        setConnectionError(i18n.t("carbon.conn.receiverChooseKeyboard"));
+        return;
+      }
+
+      resetConnection();
+      const owner = new AbortController();
+      const closeTransport = () => transport.abortController.abort();
+      owner.signal.addEventListener("abort", closeTransport, { once: true });
+      connectionAbortRef.current = owner;
+      setConnectionType(receiver ? "2.4G" : meta?.isWireless ? "BLE" : "USB");
       setConnectionError(undefined);
-      setKeyboardReady(false);
-      setLockState(undefined);
-      setLockCheckFailed(false);
-      setHasUnsavedLightingChanges(false);
       setConnectionPhase("connecting");
-      connect(t, setConn, setConnectedDeviceName, ac.signal, setConnectionError)
-        .then((connected) => {
-          if (ac.signal.aborted) {
+      if (receiverSetup) setChoosingKeyboard(true);
+
+      try {
+        if (receiver) {
+          const radio = openReceiverRpc(transport, owner.signal);
+          const details = await getKeyboardInfo(radio.conn, 2500);
+          if (owner.signal.aborted) return;
+
+          if (details && !radio.signal.aborted) {
+            owner.signal.removeEventListener("abort", closeTransport);
+            receiverPort.current = transport;
+            showKeyboard(radio.conn, details.name, radio.signal, owner.signal, radio.close);
             return;
           }
 
-          setConnectionPhase(connected ? "connected" : "idle");
-        })
-        .catch((e) => {
-          if (ac.signal.aborted) {
+          await radio.close();
+          if (owner.signal.aborted) return;
+          const dongle = dongleRef.current;
+          const status = await dongle.prepare(transport);
+          if (owner.signal.aborted) return;
+
+          if (status) {
+            owner.signal.removeEventListener("abort", closeTransport);
+            setConnectionPhase("idle");
+            if (status.pairState === "PAIRED" && status.studioPort !== "SECOND_CDC") {
+              receiverPort.current = dongle.release() ?? undefined;
+              setReceiverStage("connecting");
+            } else {
+              setReceiverSetup(true);
+            }
             return;
           }
+        } else {
+          const rpc = create_rpc_connection(transport, { signal: owner.signal });
+          const details = await getKeyboardInfo(rpc, 1000);
+          if (owner.signal.aborted) return;
+          if (details) {
+            showKeyboard(rpc, details.name, owner.signal, owner.signal);
+            return;
+          }
+        }
 
-          console.error(e);
-          setConnectionPhase("idle");
-          setConnectionError(
-            e instanceof Error && e.message ? e.message : i18n.t("errors.failedToConnect")
-          );
-        });
+        setConnectionError(i18n.t("errors.failedToConnect"));
+      } catch (error) {
+        if (owner.signal.aborted) return;
+        setConnectionError(error instanceof Error ? error.message : i18n.t("errors.failedToConnect"));
+      }
+      owner.abort();
+      setConnectionPhase("idle");
     },
-    [setConn, setConnectedDeviceName, setConnectionError, setLockState]
+    [receiverSetup, resetConnection, showKeyboard]
   );
 
-  const cancelConnection = useCallback(() => {
-    connectionAbortRef.current.abort("User cancelled connection");
-    const nextAbort = new AbortController();
-    connectionAbortRef.current = nextAbort;
-    setConnectionAbort(nextAbort);
-    setConn({ conn: null });
-    setConnectedDeviceName(undefined);
-    setKeyboardReady(false);
-    setLockState(undefined);
-    setLockCheckFailed(false);
-    setHasUnsavedLightingChanges(false);
-    setConnectionType(undefined);
-    setConnectionPhase("idle");
-  }, [setLockState]);
+  const cancelConnection = () => {
+    if (receiverStage === "waiting") {
+      const receiver = receiverPort.current;
+      receiverPort.current = undefined;
+      receiver?.abortController.abort();
+      setReceiverStage(undefined);
+      setConnectionPhase("connected");
+    } else if (receiverStage) {
+      disconnect();
+    } else {
+      resetConnection();
+    }
+    setConnectionError(undefined);
+  };
 
-  const connectModalOpen =
-    !conn.conn ||
-    connectionPhase !== "idle" ||
-    lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED;
+  const onReceiverPaired = () => {
+    const receiver = dongleRef.current.release();
+    if (!receiver) return;
+    receiverPort.current = receiver;
+    setReceiverSetup(false);
+    setReceiverStage(conn.conn ? "waiting" : "connecting");
+  };
+
+  const closeReceiverSetup = () => {
+    disconnect();
+    setReceiverSetup(false);
+    setConnectionError(undefined);
+  };
+
+  const connectModalOpen = !!receiverStage || (receiverSetup
+    ? choosingKeyboard || (!!conn.conn && lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED)
+    : !conn.conn || connectionPhase !== "idle" ||
+      lockState !== LockState.ZMK_STUDIO_CORE_LOCK_STATE_UNLOCKED);
 
   return (
     <I18nextProvider i18n={i18n}>
@@ -521,7 +583,10 @@ function App() {
           <UndoRedoContext.Provider value={doIt}>
             <ConnectModal
               open={connectModalOpen}
-              transports={TRANSPORTS}
+              transports={receiverSetup ? USB_TRANSPORTS : TRANSPORTS}
+              keyboardOnly={receiverSetup}
+              receiverStage={receiverStage}
+              onRetryReceiver={() => setReceiverStage("connecting")}
               onTransportCreated={onConnect}
               connectionError={connectionError}
               onConnectionError={setConnectionError}
@@ -536,11 +601,23 @@ function App() {
               open={showLicenseNotice}
               onClose={() => setShowLicenseNotice(false)}
             />
-            {conn.conn ? (
+            {receiverSetup ? (
+              <ReceiverSetup
+                th={carbon.theme}
+                t={t}
+                dongle={dongle}
+                onDisconnect={closeReceiverSetup}
+                onConnectKeyboard={() => setChoosingKeyboard(true)}
+                onPaired={onReceiverPaired}
+                keyboardName={connectedDeviceName}
+              />
+            ) : conn.conn ? (
               <CarbonShell
                 carbon={carbon}
                 connectedDeviceName={connectedDeviceName}
                 connectionType={connectionType}
+                dongle={dongle}
+                onReceiverPaired={onReceiverPaired}
                 onDisconnect={disconnect}
                 onSwitchDevice={disconnect}
                 onResetSettings={resetSettings}
