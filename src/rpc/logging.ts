@@ -5,14 +5,22 @@ import {
   RpcConnection,
 } from "@zmkfirmware/zmk-studio-ts-client";
 
+const debugEnabled = (() => {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem("zmk.rpc.debug") === "1";
+  } catch {
+    return false;
+  }
+})();
+
 export async function call_rpc(
   conn: RpcConnection,
   req: RpcRequest
 ): Promise<RequestResponse> {
-  console.log("RPC Request", req);
+  if (debugEnabled) console.log("RPC Request", req);
   return inner_call_rpc(conn, req)
     .then((r) => {
-      if (!req.pairing?.generateAndPair) console.log("RPC Response", r);
+      if (debugEnabled && !req.pairing?.generateAndPair) console.log("RPC Response", r);
       return r;
     })
     .catch((e) => {

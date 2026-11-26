@@ -7,6 +7,7 @@ import { ConnectionContext } from "../rpc/ConnectionContext";
 import { LockStateContext } from "../rpc/LockStateContext";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import { call_rpc } from "../rpc/logging";
+import { useCoalescedSender } from "../rpc/coalesce";
 import { useConnectionSnapshot } from "../connection/useConnectionState";
 
 import type {
@@ -15,8 +16,10 @@ import type {
   CapsLockIndicatorState,
   ConnectionIndicatorState,
   GetLayerLedColorsResponse,
+  SetBacklightStateRequest,
   SetCapsLockIndicatorRequest,
   SetConnectionIndicatorRequest,
+  SetRgbUnderglowStateRequest,
 } from "@zmkfirmware/zmk-studio-ts-client/lighting";
 import type { Keymap } from "@zmkfirmware/zmk-studio-ts-client/keymap";
 import type { IndicatorPositionDraft } from "../carbon/useKeyboardModel";
@@ -239,6 +242,51 @@ export default function LightingControl({
     [conn, setBacklightState, onLightingChanged]
   );
 
+  // Drag fields (color, speed, brightness) push into a coalescing sender: the
+  // UI updates locally right away and only the latest value reaches the device,
+  // so a drag can never queue up one RPC per pointer event.
+  const sendRgbDrag = useCallback(
+    async (props: Partial<SetRgbUnderglowStateRequest>) => {
+      if (!conn.conn) return false;
+      try {
+        const resp = await call_rpc(conn.conn, {
+          lighting: { setRgbUnderglowState: props },
+        });
+        return !!resp.lighting?.setRgbUnderglowState;
+      } catch (e) {
+        console.error("Failed to set RGB state", e);
+        return false;
+      }
+    },
+    [conn]
+  );
+
+  const rgbDrag = useCoalescedSender(sendRgbDrag, {
+    minIntervalMs: 30,
+    onApplied: () => onLightingChanged?.(),
+  });
+
+  const sendBacklightDrag = useCallback(
+    async (props: Partial<SetBacklightStateRequest>) => {
+      if (!conn.conn) return false;
+      try {
+        const resp = await call_rpc(conn.conn, {
+          lighting: { setBacklightState: props },
+        });
+        return !!resp.lighting?.setBacklightState;
+      } catch (e) {
+        console.error("Failed to set backlight state", e);
+        return false;
+      }
+    },
+    [conn]
+  );
+
+  const backlightDrag = useCoalescedSender(sendBacklightDrag, {
+    minIntervalMs: 30,
+    onApplied: () => onLightingChanged?.(),
+  });
+
   const setCapsLockProp = useCallback(
     async (props: Partial<SetCapsLockIndicatorRequest>) => {
       if (!conn.conn) return false;
@@ -447,13 +495,21 @@ export default function LightingControl({
           <div className={`flex flex-col gap-3 ${!rgbState.on ? "opacity-40 pointer-events-none" : ""}`}>
             <HsbColorPicker
               hsb={{ h: rgbState.color?.h ?? 0, s: rgbState.color?.s ?? 0, b: rgbState.color?.b ?? 0 }}
-              onHsbChanged={(hsb) => setRgbProp({ color: { h: hsb.h, s: hsb.s, b: hsb.b } })}
+              onHsbChanged={(hsb) => {
+                const color = { h: hsb.h, s: hsb.s, b: hsb.b };
+                setRgbState((prev) => (prev ? { ...prev, color } : prev));
+                rgbDrag.push({ color });
+              }}
               disabled={!isUnlocked}
             />
             <div className="flex items-center gap-3">
               <Label className="text-sm text-base-content/60 w-16 shrink-0">{t("lighting.speed")}</Label>
               <input type="range" min={1} max={10} value={rgbState.speed ?? 1}
-                onChange={(e) => setRgbProp({ speed: Number(e.target.value) })} disabled={!isUnlocked}
+                onChange={(e) => {
+                  const speed = Number(e.target.value);
+                  setRgbState((prev) => (prev ? { ...prev, speed } : prev));
+                  rgbDrag.push({ speed });
+                }} disabled={!isUnlocked}
                 className="flex-1 accent-primary" />
               <span className="text-sm text-base-content/50 w-8 text-right tabular-nums">{rgbState.speed ?? 1}</span>
             </div>
@@ -467,7 +523,11 @@ export default function LightingControl({
       <Block title={t("lighting.brt", "Brightness")}>
         <div className={`flex items-center gap-3 ${!backlightState.on ? "opacity-40 pointer-events-none" : ""}`}>
           <input type="range" min={0} max={100} value={backlightState.brightness}
-            onChange={(e) => setBlProp({ brightness: Number(e.target.value) })} disabled={!isUnlocked}
+            onChange={(e) => {
+              const brightness = Number(e.target.value);
+              setBacklightState((prev) => (prev ? { ...prev, brightness } : prev));
+              backlightDrag.push({ brightness });
+            }} disabled={!isUnlocked}
             className="flex-1 accent-primary" />
           <span className="text-sm text-base-content/50 w-10 text-right tabular-nums">{backlightState.brightness}</span>
         </div>
