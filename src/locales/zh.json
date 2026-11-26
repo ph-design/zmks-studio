@@ -228,7 +228,8 @@
     "connection": {
       "title": "连接指示灯",
       "usbColor": "USB 颜色",
-      "btColor": "蓝牙颜色"
+      "btColor": "蓝牙颜色",
+      "w2g4Color": "2.4G 颜色"
     },
     "indicator": {
       "keyPosition": "位置",

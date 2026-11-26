@@ -7,6 +7,7 @@ import { ConnectionContext } from "../rpc/ConnectionContext";
 import { LockStateContext } from "../rpc/LockStateContext";
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import { call_rpc } from "../rpc/logging";
+import { useConnectionSnapshot } from "../connection/useConnectionState";
 
 import type {
   RgbUnderglowState,
@@ -75,6 +76,7 @@ const connectionIndicatorFieldOrder: (keyof SetConnectionIndicatorRequest)[] = [
   "enabled",
   "usbColor",
   "btColor",
+  "w2g4Color",
   "keyPosition",
   "layerId",
 ];
@@ -122,8 +124,13 @@ export default function LightingControl({
 
   const [connUsbHsb, setConnUsbHsb] = useState<HsbColor>({ h: 0, s: 0, b: 100 });
   const [connBtHsb, setConnBtHsb] = useState<HsbColor>({ h: 240, s: 100, b: 100 });
+  const [connW2g4Hsb, setConnW2g4Hsb] = useState<HsbColor>({ h: 120, s: 100, b: 100 });
   const [connUsbTransparent, setConnUsbTransparent] = useState(false);
   const [connBtTransparent, setConnBtTransparent] = useState(false);
+  const [connW2g4Transparent, setConnW2g4Transparent] = useState(false);
+
+  // Only keyboards with a 2.4G output have a third color to set.
+  const supports2G4 = useConnectionSnapshot().state?.supports2g4 === true;
 
   const capsInitialized = useRef(false);
   const connInitialized = useRef(false);
@@ -149,8 +156,10 @@ export default function LightingControl({
     connInitialized.current = true;
     setConnUsbHsb(rgbToHsb(connectionState.usbColor));
     setConnBtHsb(rgbToHsb(connectionState.btColor));
+    setConnW2g4Hsb(rgbToHsb(connectionState.w2g4Color ?? 0));
     setConnUsbTransparent(isRgbOverrideTransparent(connectionState.usbColor));
     setConnBtTransparent(isRgbOverrideTransparent(connectionState.btColor));
+    setConnW2g4Transparent(isRgbOverrideTransparent(connectionState.w2g4Color ?? 0));
   }, [connectionState]);
 
   useEffect(() => {
@@ -556,6 +565,26 @@ export default function LightingControl({
             />
           </div>
         </Block>
+        {supports2G4 && (
+          <Block title={t("lighting.connection.w2g4Color", "2.4G color")}>
+            <div className={!connectionState.enabled ? "opacity-40 pointer-events-none" : ""}>
+              <TransparentColorPicker
+                hsb={connW2g4Hsb}
+                transparent={connW2g4Transparent}
+                onHsbChanged={(hsb) => {
+                  setConnW2g4Hsb(hsb);
+                  setConnW2g4Transparent(false);
+                  setConnectionProp({ w2g4Color: encodeRgbOverride(hsbToRgb(hsb)) });
+                }}
+                onTransparentChange={(transparent) => {
+                  setConnW2g4Transparent(transparent);
+                  setConnectionProp({ w2g4Color: transparent ? 0 : encodeRgbOverride(hsbToRgb(connW2g4Hsb)) });
+                }}
+                disabled={!isUnlocked}
+              />
+            </div>
+          </Block>
+        )}
       </>
     );
   } else if (isLayerLedSelected) {

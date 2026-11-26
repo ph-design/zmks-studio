@@ -228,7 +228,8 @@
     "connection": {
       "title": "Connection",
       "usbColor": "USB Color",
-      "btColor": "Bluetooth Color"
+      "btColor": "Bluetooth Color",
+      "w2g4Color": "2.4G Color"
     },
     "indicator": {
       "keyPosition": "Position",

@@ -9,7 +9,7 @@
         "@fortawesome/react-fontawesome": "^0.2.6",
         "@tauri-apps/api": "^2.11.1",
         "@tauri-apps/plugin-cli": "^2.4.1",
-        "@zmkfirmware/zmk-studio-ts-client": "npm:@ph-design/zmk-studio-ts-client-fork@0.0.18-dev.20261126074742.8ac8565",
+        "@zmkfirmware/zmk-studio-ts-client": "npm:@ph-design/zmk-studio-ts-client-fork@0.0.18-dev.20261126110448.ea95f68",
         "emittery": "^1.2.1",
         "i18next": "^25.10.10",
         "immer": "^10.2.0",
@@ -460,7 +460,7 @@
 
     "@vitest/utils": ["@vitest/utils@2.1.9", "", { "dependencies": { "@vitest/pretty-format": "2.1.9", "loupe": "^3.1.2", "tinyrainbow": "^1.2.0" } }, "sha512-v0psaMSkNJ3A2NMrUEHFRzJtDPFn+/VWZ5WxImB21T9fjucJRmS7xCS3ppEnARb9y11OAzaD+P2Ps+b+BGX5iQ=="],
 
-    "@zmkfirmware/zmk-studio-ts-client": ["@ph-design/zmk-studio-ts-client-fork@0.0.18-dev.20261126074742.8ac8565", "https://npm.pkg.github.com/download/@ph-design/zmk-studio-ts-client-fork/0.0.18-dev.20261126074742.8ac8565/06daa6a0518b64f4b7accead48b2a1128567a4d5", { "dependencies": { "async-mutex": "^0.5.0", "protobufjs": "^7.3.2" } }, "sha512-Ce2M6JSjLOhQflMLAFJ+mv1JkaeNJYUEH0hIeerp5ckw43knfmT6bE1xNsctFkdJfkUJVv0vOdyCkdKYzFWbaQ=="],
+    "@zmkfirmware/zmk-studio-ts-client": ["@ph-design/zmk-studio-ts-client-fork@0.0.18-dev.20261126110448.ea95f68", "https://npm.pkg.github.com/download/@ph-design/zmk-studio-ts-client-fork/0.0.18-dev.20261126110448.ea95f68/a4825bd83f75a3750063895a3ee1c2129196005a", { "dependencies": { "async-mutex": "^0.5.0", "protobufjs": "^7.3.2" } }, "sha512-FCqLl/Amj2ZbDwZOs3OiFfHW79yRcj3cHpUdkeLbg9utIS4oUJf4rgGp7Kj/iqZbh/LCrZ7uKP8UNo52YqFMbw=="],
 
     "acorn": ["acorn@8.18.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-lGq+9yr1/GuAWaVYIHRjvvySG5/4VfKIvC8EWxStPdcDh/Ka7FG3twP6v4d5BkravUilhIAsG4Qj83t02LWUPQ=="],
 
