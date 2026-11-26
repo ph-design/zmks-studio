@@ -11,6 +11,9 @@ import {
   PhysicalLayout as PhysicalLayoutComp,
 } from "./PhysicalLayout";
 import { HidUsageLabel } from "./HidUsageLabel";
+import { behaviorLegend } from "./behaviorLegend";
+import { BehaviorLegendIcon } from "./BehaviorLegendIcon";
+import { isHoldTapShape, isLayerTapShape } from "../behaviors/holdTapUtils";
 import { useKeyMeta } from "./keyMeta";
 import {
   hid_usage_page_and_id_from_usage,
@@ -83,13 +86,22 @@ export const Keymap = ({
       };
     }
 
+    const binding = keymap.layers[selectedLayerIndex].bindings[i];
+    const behavior = behaviors[binding.behaviorId];
+    const behaviorName = behavior?.displayName;
+    const legend = behaviorLegend(behavior, binding, keymap.layers);
+    // Hold-taps are recognised by metadata so custom presets (e.g. a
+    // bt_clear_holdtap) get the same hold/tap legends as stock &mt / &lt.
+    const holdTap = behavior !== undefined && isHoldTapShape(behavior);
+    const layerTap = behavior !== undefined && isLayerTapShape(behavior);
+
     return {
       id: `key-${i}`,
       accent: keyMeta[i] !== undefined,
       cornerLabel: keyMeta[i]?.label,
-      header:
-        behaviors[keymap.layers[selectedLayerIndex].bindings[i].behaviorId]
-          ?.displayName || "Unknown",
+      // Legends that already say what the key does drop the repeated behavior
+      // name; anything else keeps it as a small header.
+      header: legend || holdTap ? "" : behaviorName || "Unknown",
       x: k.x / 100.0,
       y: k.y / 100.0,
       width: k.width / 100,
@@ -97,14 +109,31 @@ export const Keymap = ({
       r: (k.r || 0) / 100.0,
       rx: (k.rx || 0) / 100.0,
       ry: (k.ry || 0) / 100.0,
-      pressed: isPressed(keymap.layers[selectedLayerIndex].bindings[i]),
+      pressed: isPressed(binding),
       // No key on the layer index and no fade: switching layer should just show
       // the new legends, not replay a load-in on all 100+ keycaps at once.
       children: (
         <div>
           {(() => {
-            const binding = keymap.layers[selectedLayerIndex].bindings[i];
-            const behaviorName = behaviors[binding.behaviorId]?.displayName;
+            // Hold-taps first: two bindings need the hold/tap stack, which the
+            // single-line legend cannot express.
+            if (holdTap) {
+              const holdLabel = layerTap
+                ? keymap.layers.find(l => l.id === binding.param1)?.name || `L${binding.param1}`
+                : getShortHidLabel(binding.param1);
+              const tapLabel = getShortHidLabel(binding.param2);
+              return (
+                <div className="flex flex-col items-center leading-none text-center max-w-full px-0.5">
+                  <span className="text-[0.4rem] opacity-45 leading-none">hold</span>
+                  <span className="text-[0.56rem] font-medium leading-tight truncate max-w-full">{holdLabel}</span>
+                  <span className="text-[0.4rem] opacity-45 leading-none mt-[3px]">tap</span>
+                  <span className="text-[0.56rem] font-medium leading-tight truncate max-w-full">{tapLabel}</span>
+                </div>
+              );
+            }
+            if (legend) {
+              return <BehaviorLegendIcon legend={legend} />;
+            }
             if (behaviorName === "None") {
               return <span className="text-xl opacity-60">⊘</span>;
             }
@@ -117,38 +146,8 @@ export const Keymap = ({
                 </svg>
               );
             }
-            if (behaviorName === "Mod-Tap") {
-              const holdLabel = getShortHidLabel(binding.param1);
-              const tapLabel = getShortHidLabel(binding.param2);
-              return (
-                <div className="flex flex-col items-center leading-none text-center max-w-full px-0.5">
-                  <span className="text-[0.45rem] opacity-50 leading-none">hold</span>
-                  <span className="text-[0.6rem] font-semibold leading-tight truncate max-w-full">{holdLabel}</span>
-                  <span className="text-[0.45rem] opacity-50 leading-none mt-0.5">tap</span>
-                  <span className="text-[0.6rem] font-semibold leading-tight truncate max-w-full">{tapLabel}</span>
-                </div>
-              );
-            }
-            if (behaviorName === "Layer-Tap") {
-              const layerName = keymap.layers.find(l => l.id === binding.param1)?.name || `L${binding.param1}`;
-              const tapLabel = getShortHidLabel(binding.param2);
-              return (
-                <div className="flex flex-col items-center leading-none text-center max-w-full px-0.5">
-                  <span className="text-[0.45rem] opacity-50 leading-none">hold</span>
-                  <span className="text-[0.6rem] font-semibold leading-tight truncate max-w-full">{layerName}</span>
-                  <span className="text-[0.45rem] opacity-50 leading-none mt-0.5">tap</span>
-                  <span className="text-[0.6rem] font-semibold leading-tight truncate max-w-full">{tapLabel}</span>
-                </div>
-              );
-            }
-            if (behaviorName === "Momentary Layer" || behaviorName === "Toggle Layer" || behaviorName === "Sticky Layer" || behaviorName === "To Layer") {
-              const layerName = keymap.layers.find(l => l.id === binding.param1)?.name || `L${binding.param1}`;
-              return (
-                <span className="text-xs font-semibold text-center leading-tight">{layerName}</span>
-              );
-            }
             return (
-              <span className="text-[0.7rem] font-medium leading-tight">
+              <span className="text-[0.68rem] font-medium leading-tight">
                 <HidUsageLabel hid_usage={binding.param1} />
               </span>
             );

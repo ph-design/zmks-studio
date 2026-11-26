@@ -3,6 +3,7 @@ import { Request, Response, RequestResponse } from "@zmkfirmware/zmk-studio-ts-c
 import { LockState } from "@zmkfirmware/zmk-studio-ts-client/core";
 import { SetComboErrorCode, type ComboConfig } from "@zmkfirmware/zmk-studio-ts-client/combos";
 import type { Layer } from "@zmkfirmware/zmk-studio-ts-client/keymap";
+import type { BehaviorBindingParametersSet } from "@zmkfirmware/zmk-studio-ts-client/behaviors";
 import { SwitchResult, Transport, type BleProfile, type State } from "@zmkfirmware/zmk-studio-ts-client/connection";
 import { setDemoMotionEnabled } from "./motionBackend";
 import { setDemoKeyMeta } from "./demoKeyMeta";
@@ -27,6 +28,7 @@ const B = {
   out: 11,
   softOff: 12,
   capsWord: 13,
+  ug: 14,
 };
 
 /*
@@ -236,15 +238,23 @@ function buildLayers(): Layer[] {
   };
   Object.entries(ra).forEach(([i, b]) => { raise[Number(i)] = b; });
 
-  // Layer 3 — Adjust: bluetooth, system, studio-unlock
+  // Layer 3 — Adjust: bluetooth profiles, output switch, lighting, system
   const adjust = baseBindings();
   const ad: Record<number, { behaviorId: number; param1: number; param2: number }> = {
-    [idxOf(U.N1)]: { behaviorId: B.bt, param1: 4, param2: 0 },
-    [idxOf(U.N2)]: { behaviorId: B.bt, param1: 4, param2: 1 },
-    [idxOf(U.N3)]: { behaviorId: B.bt, param1: 4, param2: 2 },
-    [idxOf(U.N4)]: { behaviorId: B.bt, param1: 4, param2: 3 },
-    [idxOf(U.N5)]: { behaviorId: B.bt, param1: 4, param2: 4 },
-    [idxOf(U.GRAVE)]: { behaviorId: B.out, param1: 0, param2: 0 },
+    [idxOf(U.N1)]: { behaviorId: B.bt, param1: 3, param2: 0 },
+    [idxOf(U.N2)]: { behaviorId: B.bt, param1: 3, param2: 1 },
+    [idxOf(U.N3)]: { behaviorId: B.bt, param1: 3, param2: 2 },
+    [idxOf(U.N4)]: { behaviorId: B.bt, param1: 3, param2: 3 },
+    [idxOf(U.N5)]: { behaviorId: B.bt, param1: 3, param2: 4 },
+    [idxOf(U.N6)]: { behaviorId: B.out, param1: 0, param2: 0 },
+    [idxOf(U.N7)]: { behaviorId: B.out, param1: 2, param2: 0 },
+    [idxOf(U.N8)]: { behaviorId: B.out, param1: 3, param2: 0 },
+    [idxOf(U.N9)]: { behaviorId: B.out, param1: 1, param2: 0 },
+    [idxOf(U.GRAVE)]: { behaviorId: B.ug, param1: 0, param2: 0 },
+    [idxOf(U.Q)]: { behaviorId: B.ug, param1: 4, param2: 0 },
+    [idxOf(U.W)]: { behaviorId: B.ug, param1: 3, param2: 0 },
+    [idxOf(U.E)]: { behaviorId: B.ug, param1: 11, param2: 0 },
+    [idxOf(U.R)]: { behaviorId: B.ug, param1: 7, param2: 0 },
     [idxOf(U.TAB)]: { behaviorId: B.bootloader, param1: 0, param2: 0 },
     [idxOf(U.INS)]: { behaviorId: B.sysReset, param1: 0, param2: 0 },
     [idxOf(U.DEL)]: { behaviorId: B.softOff, param1: 0, param2: 0 },
@@ -322,6 +332,7 @@ const BEHAVIOR_NAMES: Record<number, string> = {
   [B.out]: "Output Select",
   [B.softOff]: "Soft Off",
   [B.capsWord]: "Caps Word",
+  [B.ug]: "Underglow",
 };
 
 // Which features the demo firmware advertises. Each maps to a Studio panel or
@@ -488,15 +499,59 @@ class DemoFirmware {
       if (b.getBehaviorDetails) {
         const id = b.getBehaviorDetails.behaviorId;
         if (BEHAVIOR_NAMES[id]) {
-          // Provide metadata so isHoldTapShape() recognises Mod-Tap / Layer-Tap.
-          // Protobuf requires { name, hidUsage?: { keyboardMax, consumerMax }, layerId?: {} }
+          // Real metadata is what the keycap legend is generated from.
           const hidMeta = { keyboardMax: 255, consumerMax: 65535 };
           const layerMeta = {};
-          const meta: { param1: { name: string; hidUsage?: { keyboardMax: number; consumerMax: number }; layerId?: {} }[]; param2: { name: string; hidUsage?: { keyboardMax: number; consumerMax: number }; layerId?: {} }[] }[] = [];
+          const none: never[] = [];
+          const meta: BehaviorBindingParametersSet[] = [];
           if (id === B.mt) {
             meta.push({ param1: [{ name: "mod", hidUsage: hidMeta }], param2: [{ name: "key", hidUsage: hidMeta }] });
           } else if (id === B.lt) {
             meta.push({ param1: [{ name: "layer", layerId: layerMeta }], param2: [{ name: "key", hidUsage: hidMeta }] });
+          } else if (id === B.mo) {
+            meta.push({ param1: [{ name: "Layer", layerId: layerMeta }], param2: none });
+          } else if (id === B.bt) {
+            meta.push({
+              param1: [
+                { name: "Clear Selected Profile", constant: 0 },
+                { name: "Next Profile", constant: 1 },
+                { name: "Previous Profile", constant: 2 },
+                { name: "Select Profile", constant: 3 },
+                { name: "Clear All Profiles", constant: 4 },
+                { name: "Disconnect Profile", constant: 5 },
+              ],
+              param2: none,
+            });
+            meta.push({ param1: [{ name: "Select Profile", constant: 3 }], param2: [{ name: "Profile", range: { min: 0, max: 5 } }] });
+          } else if (id === B.out) {
+            meta.push({
+              param1: [
+                { name: "Toggle Outputs", constant: 0 },
+                { name: "USB Output", constant: 1 },
+                { name: "BLE Output", constant: 2 },
+                { name: "2.4G Output", constant: 3 },
+              ],
+              param2: none,
+            });
+          } else if (id === B.ug) {
+            meta.push({
+              param1: [
+                { name: "Toggle On/Off", constant: 0 },
+                { name: "Turn On", constant: 1 },
+                { name: "Turn OFF", constant: 2 },
+                { name: "Hue Up", constant: 3 },
+                { name: "Hue Down", constant: 4 },
+                { name: "Saturation Up", constant: 5 },
+                { name: "Saturation Down", constant: 6 },
+                { name: "Brightness Up", constant: 7 },
+                { name: "Brightness Down", constant: 8 },
+                { name: "Speed Up", constant: 9 },
+                { name: "Speed Down", constant: 10 },
+                { name: "Next Effect", constant: 11 },
+                { name: "Previous Effect", constant: 12 },
+              ],
+              param2: none,
+            });
           }
           return respond({ behaviors: { getBehaviorDetails: { id, displayName: BEHAVIOR_NAMES[id], metadata: meta } } });
         }

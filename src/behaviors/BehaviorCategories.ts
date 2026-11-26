@@ -3,7 +3,7 @@ import {
   Keyboard,
   Layers,
   Wrench,
-  Bluetooth,
+  Wifi,
   Settings,
   MoreHorizontal,
   Sun,
@@ -52,9 +52,9 @@ export const BEHAVIOR_CATEGORIES: BehaviorCategory[] = [
   },
   {
     id: "bluetooth",
-    label: "Bluetooth",
-    icon: Bluetooth,
-    patterns: ["Bluetooth", "Output Selection"],
+    label: "Connection",
+    icon: Wifi,
+    patterns: ["Bluetooth", "Output Selection", "Output Select"],
   },
   {
     id: "system",

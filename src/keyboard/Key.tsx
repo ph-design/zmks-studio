@@ -78,10 +78,10 @@ export const Key = ({
       }}
       onClick={onClick}
     >
-      <div className={`absolute text-[0.55rem] ${selected ? "text-primary-content" : "z1text-base-content"} opacity-80 top-1 text-nowrap left-1/2 font-light -translate-x-1/2 text-center transition-opacity duration-200`}>{shortenHeader(header)}</div>
+      <div className={`absolute max-w-[calc(100%-4px)] truncate px-0.5 text-[0.42rem] tracking-tight ${selected ? "text-primary-content" : "z1text-base-content"} opacity-60 top-1 text-nowrap left-1/2 font-normal -translate-x-1/2 text-center transition-opacity duration-200`}>{shortenHeader(header)}</div>
       {children}
       {cornerLabel && (
-        <div className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[0.45rem] uppercase tracking-wide text-nowrap ${selected ? "text-primary-content opacity-80" : "text-primary opacity-90"}`}>
+        <div className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[0.42rem] uppercase tracking-wide text-nowrap ${selected ? "text-primary-content opacity-80" : "text-primary opacity-90"}`}>
           {cornerLabel}
         </div>
       )}
