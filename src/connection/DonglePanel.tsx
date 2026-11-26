@@ -74,9 +74,13 @@ export function DonglePanel({ th, t, dongle, canPair, onPaired }: DonglePanelPro
         setMessage({ text: t(result.errorKey ?? "carbon.conn.pairErrorVerify", "Pairing could not be verified."), error: true });
         return;
       }
+      const switchFailed = result.switched === false;
       if (result.status?.studioPort === "SECOND_CDC") {
         setMessage({ text: t("carbon.conn.receiverSeparatePort", "This receiver has a separate Studio USB port. Select that port to edit the keyboard over 2.4G.") });
+      } else if (switchFailed) {
+        setMessage({ text: t("carbon.conn.donglePairSwitchFailed", "Paired, but the keyboard did not switch to 2.4G. Switch the output manually."), error: true });
       } else {
+        setMessage({ text: t("carbon.conn.donglePairSwitched", "Paired. The keyboard is now on 2.4G.") });
         onPaired();
       }
     } catch (error) {

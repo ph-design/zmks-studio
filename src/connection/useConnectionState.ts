@@ -4,6 +4,7 @@ import { useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 import type { RequestResponse, RpcConnection } from "@zmkfirmware/zmk-studio-ts-client";
 import { ErrorConditions } from "@zmkfirmware/zmk-studio-ts-client/meta";
 import {
+  SwitchResult,
   Transport,
   type Response as ConnectionResponse,
   type SelectTransportResponse,
@@ -286,16 +287,39 @@ export async function clearKeyboardPairing(conn: RpcConnection): Promise<void> {
 }
 
 function atErrorKey(detail: string): string {
+  if (/STUDIO_OPEN/i.test(detail)) return "carbon.conn.pairErrorStudioOpen";
+  if (/NOT_READY/i.test(detail)) return "carbon.conn.pairErrorNotReady";
+  if (/RADIO/i.test(detail)) return "carbon.conn.pairErrorRadio";
   if (/STORAGE/i.test(detail)) return "carbon.conn.pairErrorStorage";
   if (/INVALID_ARGS|USAGE/i.test(detail)) return "carbon.conn.pairErrorAtArgs";
   if (/NOT_IMPLEMENTED/i.test(detail)) return "carbon.conn.pairErrorNoAt";
   return "carbon.conn.pairErrorAt";
 }
 
+// A fresh pair only lands on the receiver; the keyboard is still on USB, so it
+// has to be moved to 2.4G or the receiver has nothing to relay.
+async function switchToPairedTransport(conn: RpcConnection): Promise<boolean> {
+  try {
+    const raw: unknown = await call_rpc(conn, {
+      connection: { selectTransport: { transport: Transport.ZMK_CONNECTION_TRANSPORT_2G4 } },
+    });
+    if (raw instanceof Error) return false;
+    const result = (raw as RequestResponse).connection?.selectTransport?.result;
+    // PENDING: the reply leaves before the radio restarts, which is success here.
+    return (
+      result === SwitchResult.ZMK_CONNECTION_SWITCH_RESULT_OK ||
+      result === SwitchResult.ZMK_CONNECTION_SWITCH_RESULT_PENDING
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function runOneClickPair(conn: RpcConnection, dongle: DonglePairSink): Promise<{
   ok: boolean;
   status?: DongleStatus;
   errorKey?: string;
+  switched?: boolean;
 }> {
   let generated: GeneratedPairing;
   try {
@@ -317,5 +341,7 @@ export async function runOneClickPair(conn: RpcConnection, dongle: DonglePairSin
   const ok = status.pairState === "PAIRED" && status.addrPaired !== false &&
     status.keyId === generated.keyId && status.rfAddr === generated.rfAddrHex &&
     status.rfChannel === generated.rfChannel;
-  return { ok, status, errorKey: ok ? undefined : "carbon.conn.pairErrorVerify" };
+  if (!ok) return { ok, status, errorKey: "carbon.conn.pairErrorVerify" };
+
+  return { ok, status, switched: await switchToPairedTransport(conn) };
 }
