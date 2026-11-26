@@ -12,7 +12,7 @@ export async function call_rpc(
   console.log("RPC Request", req);
   return inner_call_rpc(conn, req)
     .then((r) => {
-      console.log("RPC Response", r);
+      if (!req.pairing?.generateAndPair) console.log("RPC Response", r);
       return r;
     })
     .catch((e) => {
