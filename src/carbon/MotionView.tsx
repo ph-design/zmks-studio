@@ -6,7 +6,7 @@ import type { BehaviorBinding, Layer } from "@zmkfirmware/zmk-studio-ts-client/k
 import type { GetBehaviorDetailsResponse } from "@zmkfirmware/zmk-studio-ts-client/behaviors";
 
 import type { CarbonTheme } from "./theme";
-import { Loading, NotSupportedHint } from "./CarbonChrome";
+import { ActionButton, InlineError, Loading, NotSupportedHint, SettingsBlock } from "./CarbonChrome";
 import { RealCarbonToggle } from "./RealCarbonToggle";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
 import { summarizeBinding } from "../combos/comboUtils";
@@ -40,10 +40,11 @@ interface MotionViewProps {
 export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: MotionViewProps) {
   const { capabilities, tapConfig, carryConfig, stillWakeConfig } = motion;
 
+  const liftLock = capabilities?.guardVersion === 1;
   const allSections: { id: Section; label: string; icon: React.ReactNode; has: boolean }[] = [
     {
       id: "carry",
-      label: t("motion.carry.title", "Carry sleep"),
+      label: liftLock ? t("motion.carry.guardGroup", "Lift lock") : t("motion.carry.title", "Carry sleep"),
       icon: <Footprints size={16} />,
       has: !!capabilities?.supportsCarry && !!carryConfig,
     },
@@ -51,7 +52,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
       id: "stillWake",
       label: t("motion.stillWake.title", "Stationary wake"),
       icon: <Sunrise size={16} />,
-      has: !!capabilities?.supportsStillWake && !!stillWakeConfig,
+      has: !liftLock && !!capabilities?.supportsStillWake && !!stillWakeConfig,
     },
     {
       id: "tap",
@@ -115,7 +116,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
           })}
         </div>
         {/* Carry status is shared by both sections, so it lives in the rail. */}
-        <CarryStateCard th={th} t={t} live={motion.live} />
+        {!liftLock && <CarryStateCard th={th} t={t} live={motion.live} />}
         <div style={{ padding: "10px 14px", borderTop: `1px solid ${th.border}`, fontSize: 11, color: th.textHelper, fontFamily: "var(--font-mono)" }}>
           <span className="font-sans">{t("motion.sensorModel", "Sensor model")}: </span>
           {capabilities.sensor || t("motion.sensorUnknown", "Not reported")}
@@ -188,11 +189,11 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
               </div>
             </div>
           ) : current === "carry" && carryConfig ? (
+            liftLock ? <LiftLockSettings th={th} t={t} config={carryConfig} onChange={motion.applyCarryConfig} /> :
             <CarrySettings
               th={th} t={t}
               config={carryConfig}
               thresholdMax={capabilities.thresholdMax}
-              guard={capabilities.guardVersion === 1}
               thresholdDraft={carryThresholdDraft}
               onThresholdDraft={setCarryThresholdDraft}
               onChange={(c) => motion.applyCarryConfig(c)}
@@ -307,8 +308,9 @@ function LiveMeter({ th, t, motion, section, thresholdDraft }: {
   const peak = usePeakHold(live.magnitude, max, section);
 
   // Markers make raw counts legible: distance from the threshold that fires.
+  const liftLock = section === "carry" && capabilities?.guardVersion === 1;
   const markers =
-    section === "carry" && carryConfig
+    section === "carry" && carryConfig && !liftLock
       ? [{
           value: thresholdDraft ?? carryConfig.motionThreshold,
           label: t("motion.carry.motionThreshold", "Motion threshold"),
@@ -321,7 +323,7 @@ function LiveMeter({ th, t, motion, section, thresholdDraft }: {
       <div>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 500, color: th.textPrimary }}>
-            {t("motion.live", "Live magnitude")}
+            {liftLock ? t("motion.lift.magnitude", "Motion magnitude (relative)") : t("motion.live", "Live magnitude")}
           </span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: th.textHelper }}>
             <span style={{ fontSize: 22, color: th.textPrimary }}>{live.magnitude}</span> / {max}
@@ -352,7 +354,9 @@ function LiveMeter({ th, t, motion, section, thresholdDraft }: {
             ))}
           </div>
           <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: th.textHelper, lineHeight: 1.5 }}>
-            {section === "carry"
+            {liftLock
+              ? t("motion.lift.meterHint", "Use this value to observe motion. Placement uses the parameters below.")
+              : section === "carry"
               ? t("motion.carry.calibrateHint", "Move the keyboard and observe the stable motion range. Use the lower end of that range as a starting threshold.")
               : t("motion.stillWake.meterHint", "Stationary confirmation uses motion state rather than a threshold marker.")}
           </div>
@@ -553,16 +557,17 @@ function GroupHeading({ th, children }: { th: CarbonTheme; children: React.React
 }
 
 // Fixed above the scroll area, matching the lighting panel's top bar.
-function EnableBar({ th, title, desc, enabled, onChange }: {
+function EnableBar({ th, title, desc, enabled, disabled, onChange }: {
   th: CarbonTheme;
   title: string;
   desc: string;
   enabled: boolean;
+  disabled?: boolean;
   onChange: (v: boolean) => void;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, height: 48, padding: "0 20px", borderBottom: `1px solid ${th.border}`, flexShrink: 0 }}>
-      <RealCarbonToggle checked={enabled} onChange={onChange} />
+      <RealCarbonToggle checked={enabled} disabled={disabled} ariaLabel={title} onChange={onChange} />
       <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary, flexShrink: 0 }}>{title}</span>
       <span style={{ fontSize: 12, color: th.textHelper, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {desc}
@@ -782,12 +787,92 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, modern, o
   );
 }
 
-function CarrySettings({ th, t, config, thresholdMax, guard, thresholdDraft, onThresholdDraft, onChange }: {
+const LIFT_FIELDS = [
+  { key: "carriedSettleMs", label: "carriedSettle", unit: "ms", min: 100, max: 600, recommended: 180 },
+  { key: "briefSettleMs", label: "briefSettle", unit: "ms", min: 40, max: 200, recommended: 60 },
+  { key: "stableSpanMg", label: "stableSpan", unit: "mg", min: 20, max: 100, recommended: 60 },
+  { key: "departureMg", label: "departure", unit: "mg", min: 120, max: 350, recommended: 200 },
+  { key: "verifyMs", label: "verify", unit: "ms", min: 20, max: 60, recommended: 30 },
+] as const;
+
+type LiftField = (typeof LIFT_FIELDS)[number]["key"];
+
+function LiftLockSettings({ th, t, config, onChange }: {
+  th: CarbonTheme;
+  t: MotionViewProps["t"];
+  config: CarryConfig;
+  onChange: (config: CarryConfig) => Promise<boolean>;
+}) {
+  const [draft, setDraft] = useState<Partial<Record<LiftField, string>>>({});
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const updated = { ...config };
+  const valid = LIFT_FIELDS.every(({ key, min, max }) => {
+    const value = Number(draft[key] ?? config[key]);
+    updated[key] = value;
+    return Number.isInteger(value) && value >= min && value <= max;
+  }) && updated.carriedSettleMs >= updated.briefSettleMs;
+  const changed = LIFT_FIELDS.some(({ key }) => Number(draft[key] ?? config[key]) !== config[key]);
+
+  const apply = async (next: CarryConfig, clearDraft = false) => {
+    setBusy(true);
+    setFailed(false);
+    try {
+      const ok = await onChange(next);
+      setFailed(!ok);
+      if (ok && clearDraft) setDraft({});
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <EnableBar th={th} title={t("motion.carry.guardGroup", "Lift lock")}
+        desc={t("motion.lift.description", "Locks input when lifted and restores it after stable placement.")}
+        enabled={config.enabled} disabled={busy} onChange={(enabled) => void apply({ ...config, enabled })} />
+      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:px-6">
+        <SettingsBlock th={th} title={t("motion.lift.parameters", "Detection parameters")}
+          hint={t("motion.lift.applyHint", "Apply updates the keyboard immediately. Use Save to keyboard to keep the changes after restart.")}>
+          <div className="divide-y divide-base-300">
+            {LIFT_FIELDS.map(({ key, label, unit, min, max }) => (
+              <label key={key} className="grid grid-cols-[minmax(0,1fr)_6rem] items-start gap-x-4 gap-y-1 py-3">
+                <span className="self-center text-sm font-medium text-base-content">
+                  {t("motion.carry.guard." + label, label)} · {unit}
+                </span>
+                <input type="number" min={min} max={max} step={1} disabled={busy}
+                  className="h-8 w-full border border-base-300 bg-layer2 px-2 font-mono text-sm text-base-content"
+                  value={draft[key] ?? config[key]}
+                  onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} />
+                <span className="col-span-2 text-xs leading-relaxed text-helper">
+                  {t("motion.carry.guard." + label + "Hint", "")} ({min}–{max})
+                </span>
+              </label>
+            ))}
+          </div>
+          {!valid && <InlineError th={th} t={t} message={t("motion.lift.invalid", "Check the ranges. The brief lift time must be at most the extended movement time.")} />}
+          {failed && <InlineError th={th} t={t} message={t("motion.lift.failed", "The keyboard did not apply the lift lock settings.")} />}
+          <div className="flex flex-wrap gap-2 pt-3">
+            <ActionButton th={th} label={t("motion.lift.recommended", "Restore recommended")} disabled={busy}
+              onClick={() => setDraft(Object.fromEntries(LIFT_FIELDS.map(({ key, recommended }) => [key, String(recommended)])))} />
+            <ActionButton th={th} label={t("motion.lift.apply", "Apply parameters")} primary
+              disabled={busy || !valid || !changed} onClick={() => void apply(updated, true)} />
+          </div>
+        </SettingsBlock>
+        <p className="mt-3 text-xs leading-relaxed text-helper">
+          {t("motion.lift.bufferedHint", "Keys pressed while placement is being confirmed are buffered and sent in order once the keyboard is stable.")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function CarrySettings({ th, t, config, thresholdMax, thresholdDraft, onThresholdDraft, onChange }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   config: CarryConfig;
   thresholdMax: number;
-  guard: boolean;
   /** Uncommitted slider value, shared with the live meter's marker. */
   thresholdDraft: number | null;
   onThresholdDraft: (v: number | null) => void;
@@ -820,44 +905,6 @@ function CarrySettings({ th, t, config, thresholdMax, guard, thresholdDraft, onT
               onCommit={(v) => set({ motionDurationMs: v })} />
           </Field>
 
-          {guard && (
-            <>
-              <GroupHeading th={th}>{t("motion.carry.guardGroup", "Lift lock")}</GroupHeading>
-              <p style={{ fontSize: 12, color: th.textHelper, lineHeight: 1.5, margin: "0 0 4px" }}>
-                {t("motion.carry.guardHint", "Locks input while the sensor believes the keyboard is being carried or has just been set down.")}
-              </p>
-              <Field th={th} label={t("motion.carry.guard.carriedSettle", "After extended movement")}
-                value={`${config.carriedSettleMs} ms`} height={24}
-                hint={t("motion.carry.guard.carriedSettleHint", "Movement must persist for this long before it counts as being carried.")}>
-                <Slider th={th} value={config.carriedSettleMs} min={100} max={600} step={10}
-                  onCommit={(v) => set({ carriedSettleMs: v, briefSettleMs: Math.min(config.briefSettleMs, v) })} />
-              </Field>
-              <Field th={th} label={t("motion.carry.guard.briefSettle", "After a brief lift")}
-                value={`${config.briefSettleMs} ms`} height={24}
-                hint={t("motion.carry.guard.briefSettleHint", "A short lift still locks input; it must not exceed the extended-movement time.")}>
-                <Slider th={th} value={config.briefSettleMs} min={40} max={200} step={10}
-                  onCommit={(v) => set({ briefSettleMs: Math.min(v, config.carriedSettleMs) })} />
-              </Field>
-              <Field th={th} label={t("motion.carry.guard.stableSpan", "Stable placement tolerance")}
-                value={`${config.stableSpanMg} mg`} height={24}
-                hint={t("motion.carry.guard.stableSpanHint", "How much the acceleration may drift while the keyboard is treated as placed.")}>
-                <Slider th={th} value={config.stableSpanMg} min={20} max={100} step={5}
-                  onCommit={(v) => set({ stableSpanMg: v })} />
-              </Field>
-              <Field th={th} label={t("motion.carry.guard.departure", "Lift detection threshold")}
-                value={`${config.departureMg} mg`} height={24}
-                hint={t("motion.carry.guard.departureHint", "Acceleration change that counts as lifting the keyboard.")}>
-                <Slider th={th} value={config.departureMg} min={120} max={350} step={10}
-                  onCommit={(v) => set({ departureMg: v })} />
-              </Field>
-              <Field th={th} label={t("motion.carry.guard.verify", "Lift confirmation time")}
-                value={`${config.verifyMs} ms`} height={24}
-                hint={t("motion.carry.guard.verifyHint", "How long the lift signal must hold before input is locked.")}>
-                <Slider th={th} value={config.verifyMs} min={20} max={60} step={5}
-                  onCommit={(v) => set({ verifyMs: v })} />
-              </Field>
-            </>
-          )}
         </SettingsList>
       </div>
     </div>

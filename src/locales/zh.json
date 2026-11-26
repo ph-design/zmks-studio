@@ -851,6 +851,18 @@
     "emptyTitle": "体感功能不可用",
     "emptyHint": "设备未检测到运动传感器，或固件未启用体感功能。",
     "live": "实时运动强度",
+    "lift": {
+      "magnitude": "运动幅值（相对值）",
+      "meterHint": "此值用于观察运动幅值。放稳由下方参数判定。",
+      "description": "拿起时锁定输入，确认放稳后恢复。",
+      "parameters": "判定参数",
+      "applyHint": "调整后点击“应用参数”即时生效。需要重启后保留时，使用顶部“保存到键盘”。",
+      "invalid": "请检查参数范围。短暂拿起后的确认时间不能超过持续移动后的确认时间。",
+      "failed": "键盘未能应用拿起锁定设置。",
+      "recommended": "恢复推荐值",
+      "apply": "应用参数",
+      "bufferedHint": "放置确认期间的新按键会暂存，确认放稳后依次发送。"
+    },
     "carry": {
       "title": "携带休眠",
       "desc": "持续运动达到设定时长后进入休眠，减少携带过程中的误触。",
@@ -865,16 +877,16 @@
       "guardGroup": "拿起锁定",
       "guardHint": "传感器判断键盘被拿起或刚被放下时，暂时锁定输入。",
       "guard": {
-        "carriedSettle": "持续移动后锁定",
-        "carriedSettleHint": "运动持续达到该时长后，视为被携带。",
-        "briefSettle": "短暂拿起后锁定",
-        "briefSettleHint": "短暂拿起也会锁定输入；该时长不能超过“持续移动后锁定”。",
-        "stableSpan": "稳定放置容差",
-        "stableSpanHint": "判定为已放置时，允许的加速度波动范围。",
+        "carriedSettle": "持续移动后的放稳确认",
+        "carriedSettleHint": "持续移动后需要保持稳定的时间。数值越大，越不容易把移动中的短暂放平判为放稳。",
+        "briefSettle": "短暂拿起后的放稳确认",
+        "briefSettleHint": "短暂拿起后需要保持稳定的时间。数值越小，恢复输入越快。",
+        "stableSpan": "放稳容差",
+        "stableSpanHint": "各轴在确认窗口内允许的最大加速度变化。太小可能在有振动的桌面上难以恢复输入。",
         "departure": "拿起检测阈值",
-        "departureHint": "加速度变化超过该值即视为拿起键盘。",
+        "departureHint": "相对桌面基准的加速度变化。明显侧放或倒置由独立的姿态检测判定。",
         "verify": "拿起确认时间",
-        "verifyHint": "拿起信号需保持该时长后才锁定输入。"
+        "verifyHint": "拿起信号需持续的时间。数值越大，越能容忍短促振动。"
       }
     },
     "stillWake": {

@@ -18,7 +18,7 @@ const CAPABILITIES: MotionCapabilities = {
   supportsTap: true,
   supportsDoubleTap: true,
   supportsCarry: true,
-  supportsStillWake: true,
+  supportsStillWake: false,
   supportsSleepWake: true,
   thresholdMax: 127,
   guardVersion: 1,
@@ -74,9 +74,6 @@ class DemoMotionFirmware implements MotionBackend {
   private listeners = new Set<(s: MotionLiveState) => void>();
   private timer: ReturnType<typeof setInterval> | undefined;
   private tick = 0;
-  private now = 0;
-  private carryActive = false;
-  private aboveSince: number | undefined;
 
   async getCapabilities() {
     return CAPABILITIES;
@@ -137,20 +134,6 @@ class DemoMotionFirmware implements MotionBackend {
     const magnitude = Math.min(CAPABILITIES.thresholdMax, Math.round(base + swing));
 
     const orientation = walking ? Orientation.ORIENTATION_TILTED : Orientation.ORIENTATION_FLAT_UP;
-    // Monotonic so the streak survives the tick wrap.
-    this.now += 100;
-    const elapsed = this.now;
-
-    // Same streak rule as the firmware: above the threshold, sustained for
-    // motionDurationMs, resets when the signal drops back below it.
-    if (this.carry.enabled && magnitude >= this.carry.motionThreshold) {
-      if (this.aboveSince === undefined) this.aboveSince = elapsed;
-      if (elapsed - this.aboveSince >= this.carry.motionDurationMs) this.carryActive = true;
-    } else {
-      this.aboveSince = undefined;
-      this.carryActive = false;
-    }
-
     // A tap lands only while still and only when the swing clears the click
     // threshold — same gate the firmware applies. Sign bit set = left side.
     const tapDetected =
@@ -160,7 +143,7 @@ class DemoMotionFirmware implements MotionBackend {
     const state: MotionLiveState = {
       magnitude,
       orientation,
-      carryActive: this.carryActive,
+      carryActive: this.carry.enabled && walking,
       tapDetected,
       lastClickSrc,
     };

@@ -82,7 +82,7 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
       const [tap, carry, stillWake] = await Promise.all([
         caps.supportsTap ? backend.getTapConfig().catch(() => null) : Promise.resolve(null),
         caps.supportsCarry ? backend.getCarryConfig().catch(() => null) : Promise.resolve(null),
-        caps.supportsStillWake ? backend.getStillWakeConfig().catch(() => null) : Promise.resolve(null),
+        caps.supportsStillWake && caps.guardVersion !== 1 ? backend.getStillWakeConfig().catch(() => null) : Promise.resolve(null),
       ]);
       if (generation.current !== gen) return;
 
@@ -124,8 +124,10 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
       rollback: () => void
     ): Promise<boolean> => {
       if (!backend) return false;
+      const gen = generation.current;
       set(config);
       const ok = await send(config).catch(() => false);
+      if (gen !== generation.current) return false;
       if (ok) {
         onGood(config);
         onMotionChanged?.();

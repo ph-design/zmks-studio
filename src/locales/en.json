@@ -110,7 +110,7 @@
       "sideKey": "Frame button",
       "sideKeyDesc": "An extra per-layer key on the case edge",
       "motion": "Motion",
-      "motionDesc": "Carry sleep, stationary wake and tap detection",
+      "motionDesc": "Lift lock and tap detection",
       "unlockCombo": "Reserved unlock combo",
       "unlockComboDesc": "Firmware-protected unlock slot (not shipping yet)"
     }
@@ -831,6 +831,18 @@
     "emptyTitle": "Motion features unavailable",
     "emptyHint": "No motion sensor was detected on this device, or the firmware has the motion subsystem disabled.",
     "live": "Live magnitude",
+    "lift": {
+      "magnitude": "Motion magnitude (relative)",
+      "meterHint": "Use this value to observe motion. Placement is evaluated with the parameters below.",
+      "description": "Locks input when lifted and restores it after stable placement.",
+      "parameters": "Detection parameters",
+      "applyHint": "Apply updates the keyboard immediately. Use Save to keyboard to keep the changes after restart.",
+      "invalid": "Check the ranges. The brief lift time must be at most the extended movement time.",
+      "failed": "The keyboard did not apply the lift lock settings.",
+      "recommended": "Restore recommended",
+      "apply": "Apply parameters",
+      "bufferedHint": "Keys pressed while placement is being confirmed are buffered and sent in order once the keyboard is stable."
+    },
     "carry": {
       "title": "Carry sleep",
       "desc": "Enters sleep after sustained motion to reduce unintended input during transport.",
@@ -845,16 +857,16 @@
       "guardGroup": "Lift lock",
       "guardHint": "Locks input while the sensor believes the keyboard is being carried or has just been set down.",
       "guard": {
-        "carriedSettle": "After extended movement",
-        "carriedSettleHint": "Movement must persist for this long before it counts as being carried.",
-        "briefSettle": "After a brief lift",
-        "briefSettleHint": "A short lift still locks input; it must not exceed the extended-movement time.",
-        "stableSpan": "Stable placement tolerance",
-        "stableSpanHint": "How much the acceleration may drift while the keyboard is treated as placed.",
+        "carriedSettle": "Placement after extended movement",
+        "carriedSettleHint": "Time the keyboard must stay stable after extended movement.",
+        "briefSettle": "Placement after a brief lift",
+        "briefSettleHint": "Time the keyboard must stay stable after a brief lift. Lower values restore input sooner.",
+        "stableSpan": "Placement tolerance",
+        "stableSpanHint": "Maximum acceleration change on each axis during placement confirmation.",
         "departure": "Lift detection threshold",
-        "departureHint": "Acceleration change that counts as lifting the keyboard.",
+        "departureHint": "Acceleration change relative to the desk baseline. A visible tilt or inversion is detected independently.",
         "verify": "Lift confirmation time",
-        "verifyHint": "How long the lift signal must hold before input is locked."
+        "verifyHint": "How long the lift signal must hold to lock input. Higher values tolerate more brief vibration."
       }
     },
     "stillWake": {
