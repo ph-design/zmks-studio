@@ -367,16 +367,22 @@ function UnlockStep({ onDisconnect, failed }: {
   );
 }
 
-function DeviceList({
+export function DeviceList({
   open,
   transports,
   onTransportCreated,
   onConnectionError,
+  title,
+  hint,
+  emptyMessage,
 }: {
   open: boolean;
   transports: TransportFactory[];
-  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void;
+  onTransportCreated: (t: RpcTransport, meta?: { isWireless?: boolean }) => void | Promise<void>;
   onConnectionError?: (message: string | undefined) => void;
+  title?: string;
+  hint?: string;
+  emptyMessage?: string;
 }) {
   const { t } = useTranslation();
   const [devices, setDevices] = useState<
@@ -386,6 +392,8 @@ function DeviceList({
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | undefined>(undefined);
   const scanId = useRef(0);
+  const openingScan = useRef<number>();
+  const [opening, setOpening] = useState(false);
 
   const loadDevices = useCallback(async () => {
     const currentScanId = scanId.current + 1;
@@ -437,9 +445,12 @@ function DeviceList({
   useEffect(() => {
     setSelectedDev(new Set());
     setDevices([]);
+    setOpening(false);
+    if (!open) return;
 
-    loadDevices();
-  }, [transports, open, setDevices, loadDevices]);
+    void loadDevices();
+    return () => { scanId.current++; };
+  }, [open, loadDevices]);
 
   const onRefresh = useCallback(() => {
     setSelectedDev(new Set());
@@ -450,34 +461,45 @@ function DeviceList({
 
   const onSelect = useCallback(
     async (keys: Selection) => {
-      if (keys === "all") {
-        return;
-      }
-      setSelectedDev(new Set(keys));
+      const scan = scanId.current;
+      if (!open || keys === "all" || openingScan.current === scan) return;
       const dev = devices.find(([transport, d]) => keys.has(`${transport.label}:${d.id}`));
-      if (dev) {
-        dev[0]
-          .pick_and_connect!.connect(dev[1])
-          .then((transport) => onTransportCreated(transport, { isWireless: dev[0].isWireless }))
-          .catch((e) => {
-            console.error(e);
-            onConnectionError?.(errorMessageFrom(e, t("errors.failedToConnect")));
-          });
+      if (!dev) return;
+
+      openingScan.current = scan;
+      setSelectedDev(new Set(keys));
+      setOpening(true);
+      onConnectionError?.(undefined);
+      try {
+        const transport = await dev[0].pick_and_connect!.connect(dev[1]);
+        if (scanId.current !== scan) {
+          transport.abortController.abort();
+          return;
+        }
+        await onTransportCreated(transport, { isWireless: dev[0].isWireless });
+      } catch (e) {
+        if (scanId.current === scan) onConnectionError?.(errorMessageFrom(e, t("errors.failedToConnect")));
+      } finally {
+        if (openingScan.current === scan) openingScan.current = undefined;
+        if (scanId.current === scan) {
+          setSelectedDev(new Set());
+          setOpening(false);
+        }
       }
     },
-    [devices, onTransportCreated, onConnectionError, t]
+    [devices, open, onTransportCreated, onConnectionError, t]
   );
 
   return (
     <section className="grid gap-3">
       <div className="grid grid-cols-[1fr_auto] items-start gap-3">
         <div>
-          <h2 className="text-lg font-semibold">{t("welcome.selectDevice")}</h2>
-          <p className="text-sm opacity-75">{t("welcome.deviceListHint")}</p>
+          <h2 className="text-lg font-semibold">{title ?? t("welcome.selectDevice")}</h2>
+          <p className="text-sm opacity-75">{hint ?? t("welcome.deviceListHint")}</p>
         </div>
         <Button
           className="inline-flex items-center gap-2 rounded-md border border-base-300 px-3 py-2 text-sm transition-colors hover:bg-base-200 disabled:opacity-60"
-          isDisabled={refreshing}
+          isDisabled={refreshing || opening}
           onPress={onRefresh}
           aria-label={t("welcome.refresh")}
         >
@@ -488,7 +510,8 @@ function DeviceList({
 
       <div className="relative min-h-[14rem] overflow-hidden rounded-md border border-base-300 bg-base-100/30">
         <ListBox
-          aria-label="Device"
+          aria-label={title ?? t("welcome.selectDevice")}
+          aria-busy={opening}
           items={devices}
           onSelectionChange={onSelect}
           selectionMode="single"
@@ -516,7 +539,7 @@ function DeviceList({
           <div className="pointer-events-none absolute inset-0 grid place-items-center p-4 text-center text-sm opacity-75">
             <div className="grid gap-2 justify-items-center">
               {refreshing && <RefreshCw className="size-5 animate-spin" />}
-              <span>{refreshError || (refreshing ? t("welcome.scanningDevices") : t("welcome.noDevices"))}</span>
+              <span>{refreshError || (refreshing ? t("welcome.scanningDevices") : (emptyMessage ?? t("welcome.noDevices")))}</span>
             </div>
           </div>
         )}

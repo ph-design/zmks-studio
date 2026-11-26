@@ -794,7 +794,6 @@
     },
     "tap": {
       "title": "Tape sur le boîtier",
-      "desc": "Tapez le boîtier pour déclencher une action, détectée par l'interruption de clic du capteur",
       "bindingTitle": "Action déclenchée par une tape",
       "action": "Action",
       "kind": "Type de tape",
@@ -802,7 +801,6 @@
       "double": "Double",
       "threshold": "Seuil de déclenchement",
       "timeLimit": "Durée maximale",
-      "latency": "Temps mort après déclenchement",
       "window": "Fenêtre pour la 2e tape",
       "calibrateHint": "Tapez le boîtier et lisez le repère de pic laissé sur la barre, puis placez le seuil juste en dessous — trop bas, les vibrations de frappe le déclencheront."
     },
@@ -826,9 +824,7 @@
       "scopeSoftOff": "Extinction douce",
       "calibrateHint": "Prenez le clavier et marchez quelques pas pour voir la plage atteinte ; prenez le seuil de verrouillage au bas de cette plage et le seuil d'immobilité au niveau du bruit sur un bureau."
     },
-    "peak": "Pic",
-    "sensorModel": "Modèle du capteur",
-    "sensorUnknown": "Non renseigné"
+    "peak": "Pic"
   },
   "unlockPanel": {
     "title": "Raccourci de déverrouillage",

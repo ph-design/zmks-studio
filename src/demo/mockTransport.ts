@@ -364,7 +364,7 @@ class DemoFirmware {
   // Link state for the Connection panel: one tri-mode keyboard, USB plugged in,
   // slot 1 bonded, 2.4G unpaired until the user runs the pairing flow.
   private bootedAt = Date.now();
-  private rgbFade = { enabled: false, durationMs: 180 };
+  private rgbFade = { enabled: true, durationMs: 180 };
   private rgbIdle = { timeoutMs: 30000, sleepOnUsb: false };
   private rgbLayerWake = { layers: 0 };
   private savedRgbGeneral = { fade: this.rgbFade, idle: this.rgbIdle, layerWake: this.rgbLayerWake };

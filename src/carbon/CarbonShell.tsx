@@ -123,7 +123,7 @@ export function CarbonShell(props: CarbonShellProps) {
   const {
     hasChanges: generalChanges, previewing, markSaved, refresh: refreshGeneralLighting,
   } = generalLighting;
-  const busy = saving || previewing;
+  const busy = saving || previewing || motion.applying;
 
   const handleDiscard = async () => {
     if (busy) return;

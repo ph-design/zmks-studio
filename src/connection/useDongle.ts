@@ -5,7 +5,6 @@ import { errorText } from "../misc/errors";
 import type { Translate } from "../misc/format";
 
 import { openUsbPort, type UsbTransport } from "./usbTransport";
-import { connect as connectNative, list_devices } from "../tauri/serial";
 
 export type DonglePhase = "idle" | "connecting" | "open" | "lost";
 
@@ -16,7 +15,7 @@ export interface DongleController {
   error?: string;
   busy: boolean;
   disconnect: () => Promise<void>;
-  connect: () => Promise<void>;
+  connect: (transport?: UsbTransport) => Promise<boolean>;
   refresh: () => Promise<void>;
   pair: (keyHex: string, rfAddrHex: string, channel: number) => Promise<AtResult>;
   queryStatus: () => Promise<DongleStatus>;
@@ -121,13 +120,16 @@ export function useDongle(t: Translate): DongleController {
   };
 
   const prepare = async (transport: UsbTransport) => {
+    const generation = connectState.state.generation;
     setError(undefined);
     setStatus(undefined);
     client.close();
     client.attach(transport);
 
     let reply = await client.send("AT+2G4?", 600);
+    if (generation !== connectState.state.generation) return;
     if (reply.timedOut && client.isOpen) reply = await client.send("AT+2G4?", 1000);
+    if (generation !== connectState.state.generation) return;
     const parsed = reply.ok ? parseDongleStatus(reply.raw) : undefined;
     if (!parsed?.pairState) {
       client.detach();
@@ -140,38 +142,38 @@ export function useDongle(t: Translate): DongleController {
     return parsed;
   };
 
-  const connect = async () => {
+  const connect = async (transport?: UsbTransport) => {
     const generation = ++connectState.state.generation;
     setError(undefined);
     setPhase("connecting");
+    let connected = false;
 
     try {
-      const candidates = window.__TAURI_INTERNALS__
-        ? await list_devices().then((devices) => devices.filter(isDonglePortInfo)
-          .map((device) => () => connectNative(device)))
-        : (await requestDonglePorts())
-          .map((port) => () => openUsbPort(port, portLabel(port)));
-      if (candidates.length > 1) {
-        throw new Error(tRef.current("carbon.conn.receiverChoosePort", "Several receiver ports were found. Select the receiver port from the USB connection dialog."));
+      if (!transport) {
+        const [port] = await requestDonglePorts();
+        if (generation !== connectState.state.generation) return false;
+        transport = await openUsbPort(port, portLabel(port));
       }
-      let lastError: unknown;
-      for (const open of candidates) {
-        if (generation !== connectState.state.generation) return;
-        let transport: UsbTransport | undefined;
-        try {
-          transport = await open();
-          if (generation === connectState.state.generation && await prepare(transport)) return;
-        } catch (error) {
-          lastError = error;
-        }
-        transport?.abortController.abort();
+      if (generation !== connectState.state.generation) return false;
+
+      const status = await prepare(transport);
+      if (generation !== connectState.state.generation) return false;
+      if (!status) {
+        setError(tRef.current("carbon.conn.receiverNoResponse", "The receiver did not respond. Select its Studio port."));
+        return false;
       }
-      throw lastError ?? new DongleError("open-failed", "No compatible receiver responded");
+
+      connected = true;
+      return true;
     } catch (error) {
-      if (generation !== connectState.state.generation) return;
-      client.close();
-      setPhase("idle");
-      setError(dongleErrorText(tRef.current, error));
+      if (generation === connectState.state.generation) {
+        client.close();
+        setPhase("idle");
+        setError(dongleErrorText(tRef.current, error));
+      }
+      return false;
+    } finally {
+      if (!connected) transport?.abortController.abort();
     }
   };
 

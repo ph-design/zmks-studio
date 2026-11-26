@@ -537,8 +537,6 @@ html.panel-resizing .keyboard-scale {
   .hid-modifiers { width:100%; border-left:0; border-top:1px solid hsl(var(--base-300)); overflow:visible; }
   .hid-modifier-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
 }
-.motion-test-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:12px; }
-.motion-test-history { grid-column:1 / -1; max-height:112px; overflow:auto; }
 @media (max-width:767px) {
   .carbon-feature-page { flex-direction:column; }
   .carbon-feature-rail { width:100%; flex:0 0 auto; max-height:40%; border-right:0; border-bottom:1px solid hsl(var(--base-300)); }

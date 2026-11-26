@@ -1,12 +1,12 @@
 import { FeatureRail } from "./FeatureRail";
 import { useEffect, useRef, useState } from "react";
-import { Hand, Waves, Footprints, Moon, Smartphone, Sunrise, Info } from "lucide-react";
+import { Hand, Waves, Footprints, Moon, Smartphone, Sunrise } from "lucide-react";
 
 import type { BehaviorBinding, Layer } from "@zmkfirmware/zmk-studio-ts-client/keymap";
 import type { GetBehaviorDetailsResponse } from "@zmkfirmware/zmk-studio-ts-client/behaviors";
 
 import type { CarbonTheme } from "./theme";
-import { ActionButton, InlineError, Loading, NotSupportedHint, SettingsBlock } from "./CarbonChrome";
+import { ActionButton, InlineError, Loading, NotSupportedHint, SelectionButton, SettingsBlock } from "./CarbonChrome";
 import { RealCarbonToggle } from "./RealCarbonToggle";
 import { BehaviorBindingPicker } from "../behaviors/BehaviorBindingPicker";
 import { summarizeBinding } from "../combos/comboUtils";
@@ -14,15 +14,14 @@ import {
   Orientation,
   TAP_SLOTS,
   ALL_LAYERS_MASK,
-  decodeClickSrc,
   withSlotBinding,
   type CarryConfig,
   type MotionLiveState,
   type StillWakeConfig,
   type TapConfig,
-  type TapEvent,
   type TapSlot,
 } from "../motion/motionRpc";
+import { TapDiagnosticsPanel } from "../motion/TapDiagnosticsPanel";
 import type { MotionModel } from "../motion/useMotion";
 
 type Section = "carry" | "stillWake" | "tap";
@@ -58,7 +57,7 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
       id: "tap",
       label: t("motion.tap.title", "Tap detection"),
       icon: <Hand size={16} />,
-      has: !!capabilities?.supportsTap && !!tapConfig,
+      has: capabilities?.tapVersion === 2 && capabilities.supportsTap && !!tapConfig,
     },
   ];
   const sections = allSections.filter((s) => s.has);
@@ -67,16 +66,25 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
   const current = sections.some((s) => s.id === section) ? section : sections[0]?.id;
 
   const [editing, setEditing] = useState<{ slot: TapSlot; binding: BehaviorBinding } | null>(null);
+  const [bindingError, setBindingError] = useState(false);
+
+  const applyTapBinding = async (binding: BehaviorBinding | undefined) => {
+    if (!editing || !tapConfig || motion.applying) return;
+    setBindingError(false);
+    const applied = await motion.applyTapConfig(withSlotBinding(tapConfig, editing.slot, binding));
+    if (applied) setEditing(null);
+    else setBindingError(true);
+  };
   // While the carry threshold slider is being dragged the meter's marker
   // follows the knob; the value is still only sent to firmware on release.
   const [carryThresholdDraft, setCarryThresholdDraft] = useState<number | null>(null);
 
-  // Live push stays off unless this view is mounted — it's per-100ms traffic.
   const { setLiveWanted } = motion;
   useEffect(() => {
+    if (!current || current === "tap") return;
     setLiveWanted(true);
     return () => setLiveWanted(false);
-  }, [setLiveWanted]);
+  }, [current, setLiveWanted]);
 
   // A draft belongs to the section that produced it, so navigating away can't
   // leave a marker behind that no slider owns any more.
@@ -117,10 +125,6 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
         </div>
         {/* Carry status is shared by both sections, so it lives in the rail. */}
         {!liftLock && <CarryStateCard th={th} t={t} live={motion.live} />}
-        <div style={{ padding: "10px 14px", borderTop: `1px solid ${th.border}`, fontSize: 11, color: th.textHelper, fontFamily: "var(--font-mono)" }}>
-          <span className="font-sans">{t("motion.sensorModel", "Sensor model")}: </span>
-          {capabilities.sensor || t("motion.sensorUnknown", "Not reported")}
-        </div>
       </FeatureRail>
 
       {/* Live canvas + config drawer */}
@@ -145,19 +149,21 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
                 <span style={{ flex: 1, fontSize: 13, color: th.textPrimary, fontWeight: 500 }}>
                   {t("motion.tap.bindingTitle", "Tap action binding")}
                 </span>
-                <button onClick={() => setEditing(null)}
+                <button disabled={motion.applying} onClick={() => setEditing(null)}
                   style={{ padding: "5px 12px", fontSize: 12, background: "transparent", color: th.textSecondary, border: `1px solid ${th.border}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
                   {t("common.cancel", "Cancel")}
                 </button>
-                <button onClick={() => { motion.applyTapConfig(withSlotBinding(tapConfig, editing.slot, undefined)); setEditing(null); }}
+                <button disabled={motion.applying} onClick={() => void applyTapBinding(undefined)}
                   style={{ padding: "5px 12px", fontSize: 12, background: "transparent", color: th.textSecondary, border: `1px solid ${th.border}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}>
                   {t("motion.tap.clearBinding", "Clear")}
                 </button>
-                <button onClick={() => { motion.applyTapConfig(withSlotBinding(tapConfig, editing.slot, editing.binding)); setEditing(null); }}
+                <button disabled={motion.applying} onClick={() => void applyTapBinding(editing.binding)}
                   style={{ padding: "5px 12px", fontSize: 12, background: th.interactive, color: "#fff", border: "none", cursor: "pointer", fontFamily: "var(--font-sans)" }}>
                   {t("combos.confirm", "Confirm")}
                 </button>
               </div>
+              {bindingError && <InlineError th={th} t={t}
+                message={t("motion.tap.bindingApplyFailed", "The keyboard could not apply the double-tap action.")} />}
               <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 py-3">
                 <BehaviorBindingPicker
                   binding={editing.binding}
@@ -169,7 +175,6 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
             </div>
           ) : current === "tap" && tapConfig ? (
             <div style={{ display: "flex", flexDirection: "column", minHeight: 0, height: "100%" }}>
-              <TapTestPanel th={th} t={t} live={motion.live} tapConfig={tapConfig} />
               <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="custom-scrollbar">
                 <TapSettings
                   th={th} t={t}
@@ -177,13 +182,13 @@ export function MotionView({ motion, behaviors, behaviorList, layers, th, t }: M
                   behaviors={behaviors}
                   layers={layers}
                   thresholdMax={capabilities.thresholdMax}
-                  modern={capabilities.tapVersion === 1 || capabilities.tapVersion === 2}
-                  onEditSlot={(slot) =>
+                  onEditSlot={(slot) => {
+                    setBindingError(false);
                     setEditing({
                       slot,
                       binding: tapConfig[slot] ?? { behaviorId: -1, param1: 0, param2: 0 },
-                    })
-                  }
+                    });
+                  }}
                   onChange={(c) => motion.applyTapConfig(c)}
                 />
               </div>
@@ -366,143 +371,6 @@ function LiveMeter({ th, t, motion, section, thresholdDraft }: {
   );
 }
 
-const TAP_TEST_HISTORY = 12;
-
-function TapTestPanel({ th, t, live, tapConfig }: {
-  th: CarbonTheme;
-  t: (k: string, d: string) => string;
-  live: MotionLiveState;
-  tapConfig: TapConfig;
-}) {
-  const [events, setEvents] = useState<TapEvent[]>([]);
-  const [missed, setMissed] = useState(0);
-  const prevTap = useRef(false);
-  const lastEventAt = useRef(0);
-  const lastMissAt = useRef(0);
-
-  useEffect(() => {
-    const now = Date.now();
-    if (live.tapDetected && !prevTap.current && live.lastClickSrc !== 0) {
-      const ev = decodeClickSrc(live.lastClickSrc);
-      lastEventAt.current = ev.at;
-      setEvents((prev) => [ev, ...prev].slice(0, TAP_TEST_HISTORY));
-    } else if (tapConfig.enabled && !live.tapDetected &&
-               live.magnitude >= tapConfig.threshold &&
-               now - lastEventAt.current > 250 && now - lastMissAt.current > 400) {
-      lastMissAt.current = now;
-      setMissed((m) => m + 1);
-    }
-    prevTap.current = live.tapDetected;
-  }, [live, tapConfig.threshold, tapConfig.enabled]);
-
-  const clear = () => { setEvents([]); setMissed(0); };
-  const last = events[0];
-  const leftCount = events.filter((e) => e.side === "left").length;
-  const singleCount = events.filter((e) => e.taps === 1).length;
-
-  const sideLabel = (side: TapEvent["side"]) =>
-    side === "left" ? t("motion.tap.side.left", "Left") : t("motion.tap.side.right", "Right");
-
-  return (
-    <div className="motion-test-panel custom-scrollbar" style={{ flexShrink: 0, maxHeight: "45%", overflowY: "auto", borderBottom: `1px solid ${th.border}`, padding: "12px 24px 14px" }}>
-      {!tapConfig.enabled && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 10, background: th.fieldBg, border: `1px solid ${th.warning}` }}>
-          <Info size={16} style={{ color: th.warning, flexShrink: 0 }} />
-          <span style={{ fontSize: 12, color: th.textPrimary }}>
-            {t("motion.tap.test.disabled", "Tap detection is disabled. Enable it to inspect sensor events.")}
-          </span>
-        </div>
-      )}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <Hand size={16} style={{ color: th.interactive }} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: th.textPrimary }}>
-          {t("motion.tap.test.title", "Tap test")}
-        </span>
-        <span style={{ fontSize: 12, color: th.textHelper }}>
-          {t("motion.tap.test.hint", "Tap the case to inspect detection results and calibrate parameters.")}
-        </span>
-        {events.length > 0 && (
-          <button
-            onClick={clear}
-            style={{ marginLeft: "auto", padding: "3px 10px", fontSize: 11, background: "transparent", color: th.textSecondary, border: `1px solid ${th.border}`, cursor: "pointer", fontFamily: "var(--font-sans)" }}
-          >
-            {t("motion.tap.test.clear", "Clear history")}
-          </button>
-        )}
-      </div>
-
-      <div className="motion-test-grid">
-        {/* Latest recognition, big and immediate */}
-        <div
-          key={last?.at}
-          style={{
-            minWidth: 0, padding: "10px 16px", display: "flex", flexDirection: "column", justifyContent: "center",
-            background: last ? th.selectedLayer : th.fieldBg, border: `1px solid ${last ? th.interactive : th.border}`,
-          }}
-        >
-          {last ? (
-            <>
-              <span style={{ fontSize: 20, fontWeight: 600, color: th.textPrimary, fontFamily: "var(--font-sans)" }}>
-                {sideLabel(last.side)} ·{" "}
-                {last.taps === 2 ? t("motion.tap.test.double", "Double tap") : t("motion.tap.test.single", "Single tap")}
-              </span>
-              <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: th.textHelper, marginTop: 2 }}>
-                CLICK_SRC 0x{last.src.toString(16).padStart(2, "0")} · {last.axes}
-              </span>
-            </>
-          ) : (
-            <span style={{ fontSize: 13, color: th.textHelper }}>
-              {t("motion.tap.test.waiting", "Waiting for a tap event…")}
-            </span>
-          )}
-        </div>
-
-        {/* Session counters for quick accuracy checks */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "center", minWidth: 0 }}>
-          <span style={{ fontSize: 12, color: th.textHelper }}>
-            {t("motion.tap.test.count", "Detected events")}: <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{events.length}</span>
-          </span>
-          <span style={{ fontSize: 12, color: th.textHelper }}>
-            {t("motion.tap.side.left", "Left")}/{t("motion.tap.side.right", "Right")}:{" "}
-            <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{leftCount}/{events.length - leftCount}</span>
-          </span>
-          <span style={{ fontSize: 12, color: th.textHelper }}>
-            {t("motion.tap.test.single", "Single tap")}/{t("motion.tap.test.double", "Double tap")}:{" "}
-            <span style={{ fontFamily: "var(--font-mono)", color: th.textPrimary }}>{singleCount}/{events.length - singleCount}</span>
-            <span style={{ color: th.textHelper }}> ({t("motion.tap.test.eventCount", "sensor event count; a double tap may include single- and double-tap events")})</span>
-          </span>
-          <span style={{ fontSize: 12, color: missed > 0 ? th.warning : th.textHelper }}>
-            {t("motion.tap.test.missed", "Above-threshold detections missed")}:{" "}
-            <span style={{ fontFamily: "var(--font-mono)" }}>{missed}</span>
-          </span>
-        </div>
-
-        {/* History: newest first */}
-        <div className="motion-test-history custom-scrollbar" style={{ minWidth: 0, fontFamily: "var(--font-mono)", fontSize: 11, color: th.textSecondary }}>
-          <div className="mb-1 font-sans font-medium">{t("motion.tap.test.history", "Recent events")}</div>
-          {events.length === 0 && <span>{t("motion.tap.test.noEvents", "No events recorded")}</span>}
-          {events.slice(0, 6).map((e) => (
-            <div key={e.at} style={{ display: "flex", gap: 12, whiteSpace: "nowrap" }}>
-              <span style={{ color: th.textHelper }}>
-                {new Date(e.at).toLocaleTimeString([], { minute: "2-digit", second: "2-digit" })}
-              </span>
-              <span style={{ width: 52 }}>{sideLabel(e.side)}</span>
-              <span style={{ width: 64 }}>{e.taps === 2 ? "x2" : "x1"}</span>
-              <span style={{ width: 44 }}>{e.axes}</span>
-              <span>0x{e.src.toString(16).padStart(2, "0")}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <details style={{ fontSize: 11, color: th.textHelper, marginTop: 8 }}>
-        <summary>{t("motion.tap.test.details", "Detection details")}</summary>
-        {t("motion.tap.test.sideNote", "Side detection follows the sensor direction signal. The physical direction depends on sensor mounting and firmware configuration.")}
-      </details>
-    </div>
-  );
-}
-
 // ─── Settings forms ────────────────────────────────────────────────────────────
 
 // One column: label → helper → control. Values sit on the label line so every
@@ -521,7 +389,7 @@ function Field({ th, label, tag, value, hint, height = FIELD_H, children }: {
   /** Current value, right-aligned on the label line. */
   value?: string;
   hint?: string;
-  height?: number;
+  height?: number | "auto";
   children: React.ReactNode;
 }) {
   return (
@@ -580,7 +448,7 @@ function EnableBar({ th, title, desc, enabled, disabled, onChange }: {
 // value commits on release so a drag isn't one RPC per pixel. Callers that
 // draw the value elsewhere (the live meter's marker) listen to onDraftChange
 // to follow the knob while it moves.
-function Slider({ th, value, min, max, step, onCommit, onDraftChange, unit }: {
+function Slider({ th, value, min, max, step, onCommit, onDraftChange, unit, ariaLabel }: {
   th: CarbonTheme;
   value: number;
   min: number;
@@ -590,6 +458,7 @@ function Slider({ th, value, min, max, step, onCommit, onDraftChange, unit }: {
   /** Fires on every drag step, before anything is sent to firmware. */
   onDraftChange?: (v: number) => void;
   unit?: string;
+  ariaLabel?: string;
 }) {
   const end: React.CSSProperties = { fontSize: 12, fontFamily: "var(--font-mono)", color: th.textHelper, flexShrink: 0 };
   const [draft, setDraft] = useState(value);
@@ -600,6 +469,7 @@ function Slider({ th, value, min, max, step, onCommit, onDraftChange, unit }: {
       <span style={end}>{min}{unit ?? ""}</span>
       <input
         type="range"
+        aria-label={ariaLabel}
         min={min}
         max={max}
         step={step ?? 1}
@@ -640,107 +510,103 @@ function ValueField({ th, value, actionLabel, onAction }: {
   );
 }
 
-// No chip selected = layerMask 0, which the firmware treats as "every layer".
-function LayerChips({ th, t, layers, mask, onChange }: {
-  th: CarbonTheme;
-  t: (k: string, d: string) => string;
+function LayerChips({ t, layers, mask, onChange }: {
+  t: (key: string, fallback: string) => string;
   layers: Layer[];
   mask: number;
-  onChange: (m: number) => void;
+  onChange: (mask: number) => void;
 }) {
-  const chip = (on: boolean): React.CSSProperties => ({
-    padding: "4px 12px", fontSize: 12, cursor: "pointer", whiteSpace: "nowrap",
-    background: on ? th.selectedLayer : "transparent",
-    color: on ? th.textPrimary : th.textSecondary,
-    border: `1px solid ${on ? th.interactive : th.border}`,
-  });
+  const all = mask === ALL_LAYERS_MASK;
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", minHeight: 32 }}>
-      {layers.map((layer, i) => {
-        const on = mask === ALL_LAYERS_MASK || (mask & (1 << i)) !== 0;
+    <div className="flex flex-wrap gap-1.5">
+      <SelectionButton selected={all} onClick={() => { if (!all) onChange(ALL_LAYERS_MASK); }}>
+        {t("motion.tap.allLayers", "All layers")}
+      </SelectionButton>
+      {layers.slice(0, 32).map((layer, index) => {
+        const bit = 1 << index;
+        const selected = (mask & bit) !== 0;
         return (
-          <button key={i} style={chip(mask !== ALL_LAYERS_MASK && on)}
-            onClick={() => {
-              if (mask === ALL_LAYERS_MASK) {
-                onChange(1 << i);
-              } else {
-                onChange(on ? mask & ~(1 << i) : mask | (1 << i));
-              }
-            }}>
-            {layer.name ?? `Layer ${i}`}
-          </button>
+          <SelectionButton key={layer.id} selected={selected}
+            onClick={() => onChange((mask ^ bit) >>> 0)}>
+            {layer.name || t("carbon.layer", "Layer") + " " + index}
+          </SelectionButton>
         );
       })}
-      <span style={{ fontSize: 11, color: th.textHelper }}>
-        {mask === ALL_LAYERS_MASK
-          ? t("motion.tap.allLayers", "All layers")
-          : t("motion.tap.allLayersOff", "No selection enables all layers")}
-      </span>
     </div>
   );
 }
 
-function TapSettings({ th, t, config, behaviors, layers, thresholdMax, modern, onEditSlot, onChange }: {
+const SHOW_ADVANCED_TAP_SETTINGS = false;
+
+function TapSettings({ th, t, config, behaviors, layers, thresholdMax, onEditSlot, onChange }: {
   th: CarbonTheme;
   t: (k: string, d: string) => string;
   config: TapConfig;
   behaviors: Record<number, GetBehaviorDetailsResponse>;
   layers: Layer[];
   thresholdMax: number;
-  modern: boolean;
   onEditSlot: (slot: TapSlot) => void;
   onChange: (c: TapConfig) => void;
 }) {
+  const [advanced, setAdvanced] = useState(false);
+  const slots = config.splitSides ? TAP_SLOTS : TAP_SLOTS.slice(0, 1);
+  const thresholdLabel = t("motion.tap.threshold", "Trigger threshold");
+  const windowLabel = t("motion.tap.window", "Double-tap window");
   const set = (patch: Partial<TapConfig>) => onChange({ ...config, ...patch });
-  const dim = config.enabled ? 1 : 0.45;
 
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <EnableBar th={th}
         title={t("motion.tap.title", "Tap detection")}
-        desc={t("motion.tap.desc", "Trigger actions by tapping the case. Configure single and double taps separately for each side.")}
+        desc={t("motion.tap.desc", "Trigger an action by double-tapping the case.")}
         enabled={config.enabled}
         onChange={(v) => set({ enabled: v })} />
 
       <div className="custom-scrollbar"
-        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 24px 24px", opacity: dim, pointerEvents: config.enabled ? "auto" : "none" }}>
-        <SettingsList>
-          <GroupHeading th={th}>{t("motion.tap.bindingsGroup", "Action bindings")}</GroupHeading>
-          {TAP_SLOTS.map(({ slot, side, taps }) => (
-            <Field key={slot} th={th}
-              label={t(`motion.tap.${side}${taps === 1 ? "Single" : "Double"}`,
-                `${side === "left" ? "Left" : "Right"} ${taps === 1 ? "single" : "double"} tap`)}
-              tag={taps === 1 ? "SCLICK" : "DCLICK"}>
-              <ValueField th={th}
-                value={config[slot]
-                  ? summarizeBinding(config[slot] as BehaviorBinding, behaviors)
-                  : t("motion.tap.unbound", "Not set")}
-                actionLabel={t("common.change", "Change")}
-                onAction={() => onEditSlot(slot)} />
+        style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "8px 24px 24px" }}>
+        <fieldset disabled={!config.enabled} className="min-w-0 max-w-[52rem] disabled:opacity-50">
+          <SettingsList>
+            {slots.map(({ slot, side }) => {
+              const binding = config[slot];
+              return (
+                <div key={slot} className={config.splitSides ? "min-w-0" : "col-span-full min-w-0"}>
+                  <Field th={th}
+                    label={!config.splitSides ? t("motion.tap.double", "Double tap") :
+                      side === "left" ? t("motion.tap.leftDouble", "Left double tap") : t("motion.tap.rightDouble", "Right double tap")}>
+                    <ValueField th={th}
+                      value={binding ? summarizeBinding(binding, behaviors) : t("motion.tap.unbound", "Not set")}
+                      actionLabel={t("common.change", "Change")}
+                      onAction={() => onEditSlot(slot)} />
+                  </Field>
+                </div>
+              );
+            })}
+
+            <GroupHeading th={th}>{t("motion.tap.timingGroup", "Detection")}</GroupHeading>
+            <Field th={th} label={thresholdLabel}
+              value={String(config.threshold)} height={24}
+              hint={t("motion.tap.thresholdHint", "Lower values are more sensitive.")}>
+              <Slider th={th} ariaLabel={thresholdLabel} value={config.threshold} min={1} max={thresholdMax} onCommit={(v) => set({ threshold: v })} />
             </Field>
-          ))}
+            <Field th={th} label={windowLabel}
+              value={`${config.windowMs} ms`} height={24}
+              hint={t("motion.tap.windowHint", "Time allowed for the second tap after the minimum gap.")}>
+              <Slider th={th} ariaLabel={windowLabel} value={config.windowMs} min={80} max={600} step={10} onCommit={(v) => set({ windowMs: v })} />
+            </Field>
 
-          <GroupHeading th={th}>{t("motion.tap.timingGroup", "Detection")}</GroupHeading>
-          <Field th={th} label={t("motion.tap.threshold", "Trigger threshold")} tag="CLICK_THS"
-            value={String(config.threshold)} height={24}>
-            <Slider th={th} value={config.threshold} min={1} max={thresholdMax} onCommit={(v) => set({ threshold: v })} />
-          </Field>
-          <Field th={th} label={t("motion.tap.timeLimit", "Max tap length")} tag="TIME_LIMIT"
-            value={`${config.timeLimitMs} ms`} height={24}>
-            <Slider th={th} value={config.timeLimitMs} min={20} max={200} step={5} onCommit={(v) => set({ timeLimitMs: v })} />
-          </Field>
-          <Field th={th} label={t("motion.tap.latency", "Post-trigger suppression")} tag="TIME_LATENCY"
-            value={`${config.latencyMs} ms`} height={24}>
-            <Slider th={th} value={config.latencyMs} min={10} max={400} step={10} onCommit={(v) => set({ latencyMs: v })} />
-          </Field>
-          <Field th={th} label={t("motion.tap.window", "Double-tap window")} tag="TIME_WINDOW"
-            value={`${config.windowMs} ms`} height={24}
-            hint={t("motion.tap.windowHint", "When both actions are configured on the same side, the single-tap action waits until this window ends so a double tap can take priority.")}>
-            <Slider th={th} value={config.windowMs} min={50} max={800} step={10} onCommit={(v) => set({ windowMs: v })} />
-          </Field>
-
-          {modern && (
-            <>
+            <div className="col-span-full">
+              <Field th={th} label={t("motion.tap.layersGroup", "Active layers")} height="auto">
+                <LayerChips t={t} layers={layers} mask={config.layerMask}
+                  onChange={(mask) => set({ layerMask: mask })} />
+              </Field>
+            </div>
+          </SettingsList>
+        </fieldset>
+        {SHOW_ADVANCED_TAP_SETTINGS && <details className="mt-5 max-w-[52rem] border-t border-base-300"
+          onToggle={(e) => setAdvanced(e.currentTarget.open)}>
+          <summary className="cursor-pointer py-3 text-sm font-semibold">{t("motion.tap.advanced", "Advanced settings and hardware test")}</summary>
+          <fieldset disabled={!config.enabled} className="min-w-0 disabled:opacity-50">
+            <SettingsList>
               <GroupHeading th={th}>{t("motion.tap.optionsGroup", "Double-tap options")}</GroupHeading>
               <Field th={th} label={t("motion.tap.axes", "Sensor axes")}
                 hint={t("motion.tap.axesHint", "At least one axis must stay enabled.")}>
@@ -772,16 +638,19 @@ function TapSettings({ th, t, config, behaviors, layers, thresholdMax, modern, o
                 <Slider th={th} value={config.typingQuietMs} min={0} max={1000} step={10}
                   onCommit={(v) => set({ typingQuietMs: v })} />
               </Field>
-            </>
-          )}
 
-          <GroupHeading th={th}>{t("motion.tap.layersGroup", "Active layers")}</GroupHeading>
-          <Field th={th} label={t("motion.tap.layers", "Layers")}
-            hint={t("motion.tap.layersHint", "Respond to taps only on the selected active layers. No selection enables all layers.")}>
-            <LayerChips th={th} t={t} layers={layers} mask={config.layerMask}
-              onChange={(m) => set({ layerMask: m })} />
-          </Field>
-        </SettingsList>
+              <Field th={th} label={t("motion.tap.timeLimit", "Max tap length")} tag="TIME_LIMIT"
+                value={`${config.timeLimitMs} ms`} height={24}>
+                <Slider th={th} value={config.timeLimitMs} min={5} max={200} step={5} onCommit={(v) => set({ timeLimitMs: v })} />
+              </Field>
+              <Field th={th} label={t("motion.tap.latency", "Minimum gap before the second tap")} tag="TIME_LATENCY"
+                value={`${config.latencyMs} ms`} height={24}>
+                <Slider th={th} value={config.latencyMs} min={10} max={400} step={10} onCommit={(v) => set({ latencyMs: v })} />
+              </Field>
+            </SettingsList>
+          </fieldset>
+          {advanced && <TapDiagnosticsPanel th={th} t={t} enabled={config.enabled} />}
+        </details>}
       </div>
     </div>
   );

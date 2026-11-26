@@ -2,11 +2,24 @@ import { useContext, useState } from "react";
 
 import { ActionButton, ConfirmAction, InlineError, Notice, SettingsBlock } from "../carbon/CarbonChrome";
 import type { CarbonTheme } from "../carbon/theme";
+import { DeviceList, type TransportFactory } from "../ConnectModal";
+import { GenericModal } from "../GenericModal";
 import { errorText } from "../misc/errors";
 import type { Translate } from "../misc/format";
+import { useModalRef } from "../misc/useModalRef";
 import { ConnectionContext } from "../rpc/ConnectionContext";
+import { connect as connectNative, list_devices } from "../tauri/serial";
 import { clearKeyboardPairing, runOneClickPair } from "./useConnectionState";
-import type { DongleController } from "./useDongle";
+import { isUsbTransport } from "./usbTransport";
+import { isDonglePortInfo, type DongleController } from "./useDongle";
+
+const RECEIVER_TRANSPORTS: TransportFactory[] = [{
+  label: "USB",
+  pick_and_connect: {
+    list: async () => (await list_devices()).filter(isDonglePortInfo),
+    connect: connectNative,
+  },
+}];
 
 interface DonglePanelProps {
   th: CarbonTheme;
@@ -19,9 +32,28 @@ interface DonglePanelProps {
 export function DonglePanel({ th, t, dongle, canPair, onPaired }: DonglePanelProps) {
   const { conn } = useContext(ConnectionContext);
   const [working, setWorking] = useState(false);
+  const [pickingPort, setPickingPort] = useState(false);
+  const [pickerError, setPickerError] = useState<string>();
+  const picker = useModalRef(pickingPort);
   const [message, setMessage] = useState<{ text: string; error?: boolean }>();
   const open = dongle.phase === "open";
   const paired = dongle.status?.pairState === "PAIRED";
+  const connectLabel = t("carbon.conn.dongleConnect", "Connect receiver");
+
+  const connectReceiver = () => {
+    setMessage(undefined);
+    setPickerError(undefined);
+    if (window.__TAURI_INTERNALS__) {
+      setPickingPort(true);
+    } else {
+      void dongle.connect();
+    }
+  };
+
+  const cancelPicker = () => {
+    setPickingPort(false);
+    void dongle.disconnect();
+  };
 
   const update = async (clear: boolean) => {
     if (!conn || working) return;
@@ -59,9 +91,9 @@ export function DonglePanel({ th, t, dongle, canPair, onPaired }: DonglePanelPro
       hint={open ? t("carbon.conn.dongleDesc", "Connect the keyboard by USB and unlock Studio.") : t("carbon.conn.donglePairNeedsPort", "Connect the receiver first.")}>
       <div className="flex flex-wrap items-center gap-2">
         {!open ? (
-          <ActionButton th={th} label={t("carbon.conn.dongleConnect", "Connect dongle")} primary
-            disabled={!dongle.supported || dongle.phase === "connecting"}
-            onClick={() => { setMessage(undefined); void dongle.connect(); }} />
+          <ActionButton th={th} label={connectLabel} primary
+            disabled={!dongle.supported || dongle.phase === "connecting" || pickingPort}
+            onClick={connectReceiver} />
         ) : (
           <>
             <span className="mr-2 text-sm text-secondary-content">
@@ -78,13 +110,35 @@ export function DonglePanel({ th, t, dongle, canPair, onPaired }: DonglePanelPro
         )}
       </div>
       {open && !canPair && <p className="mt-3 text-xs text-helper">{t("carbon.conn.receiverPairNeedsKeyboard", "Connect and unlock the keyboard over USB to pair.")}</p>}
-      {(message || dongle.error) && (
+      {(message || (!pickingPort && dongle.error)) && (
         <div className="mt-3">
           {message && !message.error
             ? <Notice th={th} tone="ok">{message.text}</Notice>
             : <InlineError th={th} t={t} message={message?.text || dongle.error!} />}
         </div>
       )}
+      <GenericModal ref={picker} className="w-[min(92vw,32rem)]"
+        onClose={() => { if (pickingPort) cancelPicker(); }}>
+        <div className="grid gap-3">
+          <DeviceList
+            open={pickingPort}
+            transports={RECEIVER_TRANSPORTS}
+            title={connectLabel}
+            hint={t("carbon.conn.receiverPickerHint", "Choose the receiver's Studio port.")}
+            emptyMessage={t("carbon.conn.receiverPickerEmpty", "No receiver found. Plug in PH-dongle and refresh.")}
+            onConnectionError={setPickerError}
+            onTransportCreated={async (transport) => {
+              if (isUsbTransport(transport) && await dongle.connect(transport)) setPickingPort(false);
+            }}
+          />
+          {(pickerError || dongle.error) && (
+            <InlineError th={th} t={t} message={(pickerError || dongle.error)!} />
+          )}
+          <div className="flex justify-end">
+            <ActionButton th={th} label={t("common.cancel", "Cancel")} onClick={cancelPicker} />
+          </div>
+        </div>
+      </GenericModal>
     </SettingsBlock>
   );
 }

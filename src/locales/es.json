@@ -794,7 +794,6 @@
     },
     "tap": {
       "title": "Toque en la carcasa",
-      "desc": "Golpea la carcasa para lanzar una acción, detectada por la interrupción de clic del sensor",
       "bindingTitle": "Acción lanzada por el toque",
       "action": "Acción",
       "kind": "Tipo de toque",
@@ -802,7 +801,6 @@
       "double": "Doble",
       "threshold": "Umbral de disparo",
       "timeLimit": "Duración máxima",
-      "latency": "Tiempo muerto tras disparar",
       "window": "Ventana del 2.º toque",
       "calibrateHint": "Golpea la carcasa y lee la marca de pico que deja en la barra, luego fija el umbral justo por debajo — demasiado bajo y la vibración al escribir lo disparará."
     },
@@ -826,9 +824,7 @@
       "scopeSoftOff": "Apagado suave",
       "calibrateHint": "Coge el teclado y camina unos pasos para ver en qué rango se estabiliza; toma el umbral de bloqueo del extremo inferior y el de quietud del ruido sobre la mesa."
     },
-    "peak": "Pico",
-    "sensorModel": "Modelo del sensor",
-    "sensorUnknown": "No disponible"
+    "peak": "Pico"
   },
   "unlockPanel": {
     "title": "Atajo de desbloqueo",

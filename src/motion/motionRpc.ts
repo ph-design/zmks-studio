@@ -9,6 +9,8 @@ import {
   type Response as MotionResponse,
   type StillWakeConfig,
   type TapConfig,
+  type TapDiagnostics,
+  type TapCapture,
 } from "@zmkfirmware/zmk-studio-ts-client/motion";
 
 import { call_rpc } from "../rpc/logging";
@@ -24,23 +26,20 @@ export type {
   TapConfig,
 };
 
-export type TapSlot =
-  | "leftSingleBinding"
-  | "leftDoubleBinding"
-  | "rightSingleBinding"
-  | "rightDoubleBinding";
+export const TAP_SLOTS = [
+  { slot: "leftDoubleBinding", side: "left" },
+  { slot: "rightDoubleBinding", side: "right" },
+] as const;
 
-export const TAP_SLOTS: { slot: TapSlot; side: "left" | "right"; taps: 1 | 2 }[] = [
-  { slot: "leftSingleBinding", side: "left", taps: 1 },
-  { slot: "leftDoubleBinding", side: "left", taps: 2 },
-  { slot: "rightSingleBinding", side: "right", taps: 1 },
-  { slot: "rightDoubleBinding", side: "right", taps: 2 },
-];
+export type TapSlot = (typeof TAP_SLOTS)[number]["slot"];
 
 export interface MotionBackend {
   getCapabilities(): Promise<Capabilities | null>;
   getTapConfig(): Promise<TapConfig | null>;
   setTapConfig(config: TapConfig): Promise<boolean>;
+  getTapDiagnostics?(): Promise<TapDiagnostics | null>;
+  setTapTest?(enabled: boolean): Promise<boolean>;
+  getTapCapture?(): Promise<TapCapture | null>;
   getCarryConfig(): Promise<CarryConfig | null>;
   setCarryConfig(config: CarryConfig): Promise<boolean>;
   getStillWakeConfig(): Promise<StillWakeConfig | null>;
@@ -77,6 +76,15 @@ function rpcBackend(conn: RpcConnection): MotionBackend {
     async setTapConfig(config) {
       const r = await callMotion(conn, { setTapConfig: config });
       return r?.setTapConfig === true;
+    },
+    async getTapDiagnostics() {
+      return (await callMotion(conn, { getTapDiagnostics: true }))?.tapDiagnostics ?? null;
+    },
+    async setTapTest(enabled) {
+      return (await callMotion(conn, { setTapTest: enabled }))?.setTapTest === true;
+    },
+    async getTapCapture() {
+      return (await callMotion(conn, { getTapCapture: true }))?.tapCapture ?? null;
     },
     async getCarryConfig() {
       const r = await callMotion(conn, { getCarryConfig: true });
@@ -129,40 +137,4 @@ export function withSlotBinding(
   binding: BehaviorBinding | undefined
 ): TapConfig {
   return { ...config, [slot]: binding };
-}
-
-export const CLICK_SRC = {
-  IA: 0x40,
-  DCLICK: 0x20,
-  SCLICK: 0x10,
-  SIGN: 0x08,
-  Z: 0x04,
-  Y: 0x02,
-  X: 0x01,
-} as const;
-
-export interface TapEvent {
-  side: "left" | "right";
-  taps: 1 | 2;
-  axes: string;
-  src: number;
-  at: number;
-}
-
-export function decodeClickSrc(src: number): TapEvent {
-  const axes =
-    [
-      src & CLICK_SRC.X ? "X" : "",
-      src & CLICK_SRC.Y ? "Y" : "",
-      src & CLICK_SRC.Z ? "Z" : "",
-    ]
-      .filter(Boolean)
-      .join("+") || "?";
-  return {
-    side: src & CLICK_SRC.SIGN ? "left" : "right",
-    taps: src & CLICK_SRC.DCLICK ? 2 : 1,
-    axes,
-    src,
-    at: Date.now(),
-  };
 }

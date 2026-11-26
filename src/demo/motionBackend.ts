@@ -29,13 +29,12 @@ const CAPABILITIES: MotionCapabilities = {
 
 function defaultTapConfig(): TapConfig {
   return {
-    enabled: true,
+    enabled: false,
     threshold: 40,
-    timeLimitMs: 60,
+    timeLimitMs: 30,
     latencyMs: 80,
     windowMs: 240,
-    // &bt BT_SEL 0 in the demo behavior table — a plausible "pat the case" action.
-    leftSingleBinding: { behaviorId: 10, param1: 0, param2: 0 },
+    leftSingleBinding: undefined,
     leftDoubleBinding: undefined,
     rightSingleBinding: undefined,
     rightDoubleBinding: undefined,
@@ -134,18 +133,12 @@ class DemoMotionFirmware implements MotionBackend {
     const magnitude = Math.min(CAPABILITIES.thresholdMax, Math.round(base + swing));
 
     const orientation = walking ? Orientation.ORIENTATION_TILTED : Orientation.ORIENTATION_FLAT_UP;
-    // A tap lands only while still and only when the swing clears the click
-    // threshold — same gate the firmware applies. Sign bit set = left side.
-    const tapDetected =
-      this.tap.enabled && !walking && magnitude >= this.tap.threshold;
-    const lastClickSrc = tapDetected ? 0x35 : 0; // SCLICK | Sign | XA
-
     const state: MotionLiveState = {
       magnitude,
       orientation,
       carryActive: this.carry.enabled && walking,
-      tapDetected,
-      lastClickSrc,
+      tapDetected: false,
+      lastClickSrc: 0,
     };
     for (const cb of this.listeners) cb(state);
   }

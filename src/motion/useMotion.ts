@@ -42,6 +42,7 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
   const [carryConfig, setCarryConfig] = useState<CarryConfig | null>(null);
   const [stillWakeConfig, setStillWakeConfig] = useState<StillWakeConfig | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [pendingWrites, setPendingWrites] = useState(0);
   const [live, setLive] = useState<MotionLiveState>(IDLE_LIVE_STATE);
 
   const backend = useMemo<MotionBackend | null>(() => getMotionBackend(conn), [conn]);
@@ -64,6 +65,7 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
     setStillWakeConfig(null);
     setLive(IDLE_LIVE_STATE);
     setLoaded(false);
+    setPendingWrites(0);
 
     if (!backend || !unlocked) {
       // Nothing to probe — report "done, unsupported" so readiness isn't stuck.
@@ -80,7 +82,7 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
       }
 
       const [tap, carry, stillWake] = await Promise.all([
-        caps.supportsTap ? backend.getTapConfig().catch(() => null) : Promise.resolve(null),
+        caps.supportsTap && caps.tapVersion === 2 ? backend.getTapConfig().catch(() => null) : Promise.resolve(null),
         caps.supportsCarry ? backend.getCarryConfig().catch(() => null) : Promise.resolve(null),
         caps.supportsStillWake && caps.guardVersion !== 1 ? backend.getStillWakeConfig().catch(() => null) : Promise.resolve(null),
       ]);
@@ -126,15 +128,20 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
       if (!backend) return false;
       const gen = generation.current;
       set(config);
-      const ok = await send(config).catch(() => false);
-      if (gen !== generation.current) return false;
-      if (ok) {
-        onGood(config);
-        onMotionChanged?.();
-      } else {
-        rollback();
+      setPendingWrites((count) => count + 1);
+      try {
+        const ok = await send(config).catch(() => false);
+        if (gen !== generation.current) return false;
+        if (ok) {
+          onGood(config);
+          onMotionChanged?.();
+        } else {
+          rollback();
+        }
+        return ok;
+      } finally {
+        if (gen === generation.current) setPendingWrites((count) => count - 1);
       }
-      return ok;
     },
     [backend, onMotionChanged]
   );
@@ -178,6 +185,7 @@ export function useMotion({ onMotionChanged }: UseMotionOptions = {}) {
   return {
     hasMotion: !!capabilities,
     loaded,
+    applying: pendingWrites > 0,
     capabilities,
     tapConfig,
     carryConfig,
